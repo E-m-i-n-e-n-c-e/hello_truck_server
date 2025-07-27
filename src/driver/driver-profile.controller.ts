@@ -17,7 +17,7 @@ export class DriverProfileController {
   @Get('profile')
   @Serialize(ProfileResponseDto)
   async getProfile(@User('userId') userId: string, @Query() getProfileDto: GetProfileDto) {
-    return this.profileService.getProfile(userId, getProfileDto.includeDocuments);
+    return this.profileService.getProfile(userId, getProfileDto);
   }
 
   @Post('profile')

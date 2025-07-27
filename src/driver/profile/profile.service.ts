@@ -5,6 +5,11 @@ import { UpdateProfileDto, CreateDriverProfileDto } from '../dtos/profile.dto';
 import { Driver } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 
+interface GetProfileOptions {
+  includeDocuments?: boolean;
+  includeVehicle?: boolean;
+}
+
 @Injectable()
 export class ProfileService {
   constructor(
@@ -15,12 +20,12 @@ export class ProfileService {
 
   async getProfile(
     userId: string,
-    includeDocuments: boolean = false,
+    options: GetProfileOptions,
   ): Promise<Driver> {
     const driver = await this.prisma.driver.findUnique({
       where: { id: userId },
       include: {
-        documents: includeDocuments,
+        documents: options.includeDocuments ?? false,
       },
     });
 

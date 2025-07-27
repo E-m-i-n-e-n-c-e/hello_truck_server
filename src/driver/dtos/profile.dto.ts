@@ -1,13 +1,13 @@
 import { $Enums, Driver } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
-import { IsBoolean, IsEmail, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
+import { IsBoolean, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
 import { CreateDriverDocumentsDto } from "./documents.dto";
 
 export class GetProfileDto {
   @Type(() => Boolean)
   @IsBoolean()
   @IsOptional()
-  includeDocuments: boolean = false;
+  includeDocuments?: boolean;
 }
 
 export class CreateDriverProfileDto {
