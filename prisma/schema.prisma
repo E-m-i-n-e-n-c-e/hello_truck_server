@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Customer {
+  id          String   @id @default(uuid())
+  phoneNumber String   @unique
+  firstName   String?
+  lastName    String?
+  email       String?
+  isBusiness  Boolean  @default(false)
+  referralCode String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sessions    CustomerSession[]
+  gstDetails  CustomerGstDetails[]
+  addresses   CustomerAddress[]
+
+  @@index([isActive])
+}
+
+model CustomerAddress {
+  id            String    @id @default(uuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  addressLine1  String
+  landmark      String?
+  pincode       String
+  city          String
+  district      String
+  state         String
+  latitude      Decimal   @db.Decimal(10, 8)
+  longitude     Decimal   @db.Decimal(11, 8)
+  phoneNumber   String?
+  label         String?   // Home, Office, etc.
+  isDefault     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([latitude, longitude])
+  @@unique([customerId, isDefault], name: "only_one_default_address_per_customer")
+}
+
+model CustomerGstDetails {
+  id              String      @id @default(uuid())
+  customerId      String
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  gstNumber       String      @unique
+  businessName    String
+  businessAddress String
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([customerId, isActive])
+  @@index([createdAt])
+}
+
+model CustomerSession {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  token       String   @unique
+  oldToken    String?  @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+model OtpVerification {
+  id          String   @id @default(uuid())
+  phoneNumber String
+  otp         String
+  retryCount  Int      @default(0)
+  expiresAt   DateTime
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([phoneNumber, verified, expiresAt, createdAt])
+  @@index([expiresAt])
+}
+
+model Driver {
+  id                 String             @id @default(uuid())
+  phoneNumber        String             @unique
+  firstName          String?
+  lastName           String?
+  email              String?
+  alternatePhone     String?
+  referalCode        String?
+  photo              String?
+  isActive           Boolean            @default(true)
+  verificationStatus VerificationStatus @default(PENDING)
+  documents          DriverDocuments?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  sessions           DriverSession[]
+
+  @@index([isActive, verificationStatus])
+}
+
+model DriverDocuments {
+  id              String    @id @default(uuid())
+  driverId        String    @unique
+  driver          Driver    @relation(fields: [driverId], references: [id])
+  licenseUrl      String?
+  licenseExpiry   DateTime?
+  rcBookUrl       String?
+  fcUrl           String?
+  fcExpiry        DateTime?
+  insuranceUrl    String?
+  insuranceExpiry DateTime?
+  aadharUrl       String?
+  panNumber       String?   @unique
+  ebBillUrl       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([licenseExpiry])
+  @@index([fcExpiry])
+  @@index([insuranceExpiry])
+}
+
+model DriverSession {
+  id          String   @id @default(uuid())
+  driverId    String
+  driver      Driver   @relation(fields: [driverId], references: [id])
+  token       String   @unique
+  oldToken    String?  @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([expiresAt])
+}
