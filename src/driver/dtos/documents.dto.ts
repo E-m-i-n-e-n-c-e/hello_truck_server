@@ -1,5 +1,5 @@
 import { DriverDocuments } from "@prisma/client";
-import { Expose, Transform, Type } from "class-transformer";
+import { Expose, Type } from "class-transformer";
 import { IsDate, IsOptional, IsString, IsUrl, Matches } from "class-validator";
 
 export class CreateDriverDocumentsDto {
@@ -21,33 +21,27 @@ export class CreateDriverDocumentsDto {
 
   @Type(() => Date)
   @IsDate()
-  @IsOptional()
   fcExpiry: Date;
 
   @IsString()
-  @IsOptional()
   @IsUrl()
   insuranceUrl: string;
 
-  @Transform(({ value }) => new Date(value))
+  @Type(() => Date)
   @IsDate()
-  @IsOptional()
   insuranceExpiry: Date;
 
   @IsString()
-  @IsOptional()
   @IsUrl()
   aadharUrl: string;
 
   @IsString()
-  @IsOptional()
   @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
     message: 'PAN number must be in format: ABCDE1234F'
   })
   panNumber: string;
 
   @IsString()
-  @IsOptional()
   @IsUrl()
   ebBillUrl: string;
 }
@@ -58,7 +52,7 @@ export class UpdateDriverDocumentsDto {
   @IsUrl()
   licenseUrl?: string;
 
-  @Transform(({ value }) => new Date(value))
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   licenseExpiry?: Date;
@@ -73,7 +67,7 @@ export class UpdateDriverDocumentsDto {
   @IsUrl()
   fcUrl?: string;
 
-  @Transform(({ value }) => new Date(value))
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   fcExpiry?: Date;
@@ -83,7 +77,7 @@ export class UpdateDriverDocumentsDto {
   @IsUrl()
   insuranceUrl?: string;
 
-  @Transform(({ value }) => new Date(value))
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   insuranceExpiry?: Date;
