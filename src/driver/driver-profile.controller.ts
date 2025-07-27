@@ -1,4 +1,4 @@
-import { Controller, UseGuards, Post, Get, Put, Body, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, UseGuards, Post, Get, Put, Body, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
@@ -6,7 +6,7 @@ import { RolesGuard } from 'src/token/guards/roles.guard';
 import { ProfileService } from './profile/profile.service';
 import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import { ProfileResponseDto, UpdateProfileDto } from './dtos/profile.dto';
+import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetProfileDto } from './dtos/profile.dto';
 
 @Controller('driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -16,8 +16,17 @@ export class DriverProfileController {
 
   @Get('profile')
   @Serialize(ProfileResponseDto)
-  async getProfile(@User('userId') userId: string) {
-    return this.profileService.getProfile(userId);
+  async getProfile(@User('userId') userId: string, @Query() getProfileDto: GetProfileDto) {
+    return this.profileService.getProfile(userId, getProfileDto.includeDocuments);
+  }
+
+  @Post('profile')
+  @Serialize(SuccessResponseDto)
+  async createProfile(
+    @User('userId') userId: string,
+    @Body() createProfileDto: CreateDriverProfileDto,
+  ) {
+    return this.profileService.createProfile(userId, createProfileDto);
   }
 
   @Put('profile')

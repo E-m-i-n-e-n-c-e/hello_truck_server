@@ -1,6 +1,45 @@
 import { $Enums, Driver } from "@prisma/client";
-import { Expose } from "class-transformer";
-import { IsEmail, IsOptional, IsPhoneNumber, IsString, IsUrl } from "class-validator";
+import { Expose, Type } from "class-transformer";
+import { IsBoolean, IsEmail, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
+import { CreateDriverDocumentsDto } from "./documents.dto";
+
+export class GetProfileDto {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  includeDocuments: boolean = false;
+}
+
+export class CreateDriverProfileDto {
+  @IsString()
+  firstName: string;
+
+  @IsString()
+  @IsOptional()
+  lastName?: string;
+
+  @IsString()
+  @IsOptional()
+  googleIdToken?: string; // For email verification
+
+  @IsString()
+  @IsOptional()
+  @IsPhoneNumber('IN')
+  alternatePhone?: string;
+
+  @IsString()
+  @IsOptional()
+  referalCode?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  photo?: string; // Firebase Storage URL
+
+  @ValidateNested()
+  @Type(() => CreateDriverDocumentsDto)
+  documents: CreateDriverDocumentsDto;
+}
 
 export class UpdateProfileDto implements Partial<Driver> {
   @IsString()
