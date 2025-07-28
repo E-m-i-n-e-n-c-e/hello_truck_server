@@ -6,7 +6,7 @@ import { RolesGuard } from 'src/token/guards/roles.guard';
 import { ProfileService } from './profile/profile.service';
 import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetProfileDto } from './dtos/profile.dto';
+import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto } from './dtos/profile.dto';
 
 @Controller('driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -16,8 +16,8 @@ export class DriverProfileController {
 
   @Get('profile')
   @Serialize(ProfileResponseDto)
-  async getProfile(@User('userId') userId: string, @Query() getProfileDto: GetProfileDto) {
-    return this.profileService.getProfile(userId, getProfileDto);
+  async getProfile(@User('userId') userId: string, @Query() getQueryDto: GetQueryDto) {
+    return this.profileService.getProfile(userId, getQueryDto);
   }
 
   @Post('profile')
