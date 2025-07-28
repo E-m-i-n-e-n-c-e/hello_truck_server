@@ -16,7 +16,9 @@ export class DriverDocumentsController {
 
   @Get()
   @Serialize(DriverDocumentsResponseDto)
-  async getDocuments(@User('userId') userId: string) {
+  async getDocuments(
+    @User('userId') userId: string,
+  ): Promise<DriverDocumentsResponseDto> {
     return this.documentsService.getDocuments(userId);
   }
 

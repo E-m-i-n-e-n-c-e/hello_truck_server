@@ -33,10 +33,14 @@ export class DocumentsService {
     return documents;
   }
 
-  async getDocuments(driverId: string): Promise<DriverDocuments | null> {
+  async getDocuments(driverId: string): Promise<DriverDocuments> {
     const documents = await this.prisma.driverDocuments.findUnique({
       where: { driverId },
     });
+
+    if (!documents) {
+      throw new NotFoundException('Documents not found for this driver');
+    }
 
     return documents;
   }

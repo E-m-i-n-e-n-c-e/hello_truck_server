@@ -1,4 +1,4 @@
-import { $Enums, Driver } from "@prisma/client";
+import { $Enums, Driver, DriverDocuments } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
 import { IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
 import { CreateDriverDocumentsDto } from "./documents.dto";
@@ -89,5 +89,7 @@ export class ProfileResponseDto implements Driver {
   createdAt: Date;
   @Expose()
   updatedAt: Date;
+  @Expose()
+  documents: DriverDocuments | null;
 }
 

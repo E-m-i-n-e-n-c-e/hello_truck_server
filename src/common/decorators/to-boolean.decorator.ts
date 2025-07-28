@@ -5,6 +5,6 @@ export function ToBoolean() {
   return Transform(({ value }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    throw new BadRequestException(`${value} must be a boolean ("true" or "false")`);
+    throw new BadRequestException(`${value} must be a boolean (true or false)`);
   });
 }
