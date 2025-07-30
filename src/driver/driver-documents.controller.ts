@@ -1,12 +1,11 @@
-import { Controller, UseGuards, Get, Put, Delete, Body } from '@nestjs/common';
+import { Controller, UseGuards, Get, Put, Delete, Body, Query } from '@nestjs/common';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { User } from 'src/token/decorators/user.decorator';
-import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { DocumentsService } from './documents/documents.service';
-import { DriverDocumentsResponseDto, ExpiryAlertsResponseDto, UpdateDriverDocumentsDto } from './dtos/documents.dto';
+import { DriverDocumentsResponseDto, ExpiryAlertsResponseDto, UpdateDriverDocumentsDto, UploadUrlResponseDto, uploadUrlDto } from './dtos/documents.dto';
 
 @Controller('driver/documents')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -37,5 +36,14 @@ export class DriverDocumentsController {
     @User('userId') userId: string,
   ): Promise<ExpiryAlertsResponseDto> {
     return this.documentsService.getExpiryAlerts(userId);
+  }
+
+  @Get('upload-url')
+  @Serialize(UploadUrlResponseDto)
+  async getUploadUrl(
+    @User('userId') userId: string,
+    @Query() uploadUrlDto: uploadUrlDto,
+  ): Promise<UploadUrlResponseDto> {
+    return this.documentsService.getUploadUrl(userId, uploadUrlDto);
   }
 }

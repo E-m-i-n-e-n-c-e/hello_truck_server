@@ -4,7 +4,6 @@ import { OtpService } from './otp/otp.service';
 import { VerifyOtpDto } from './dtos/verify-otp.dto';
 import { TokenService } from '../token/token.service';
 import { UserType } from 'src/common/types/user-session.types';
-import { FirebaseService } from './firebase/firebase.service';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +11,6 @@ export class AuthService {
     private prisma: PrismaService,
     private otpService: OtpService,
     private tokenService: TokenService,
-    private firebaseService: FirebaseService,
   ) {}
 
   async sendOtp(phoneNumber: string) {
@@ -36,8 +34,7 @@ export class AuthService {
 
     const accessToken = await this.tokenService.generateAccessToken(customer, 'customer');
     const newRefreshToken = await this.tokenService.generateRefreshToken(customer.id, 'customer', staleRefreshToken);
-    const firebaseToken = await this.firebaseService.createCustomFirebaseToken(customer.id);
-    return { accessToken, refreshToken: newRefreshToken, firebaseToken };
+    return { accessToken, refreshToken: newRefreshToken };
   }
 
   async logoutCustomer(refreshToken: string) {
@@ -70,8 +67,7 @@ export class AuthService {
 
     const accessToken = await this.tokenService.generateAccessToken(driver, 'driver');
     const newRefreshToken = await this.tokenService.generateRefreshToken(driver.id, 'driver', staleRefreshToken);
-    const firebaseToken = await this.firebaseService.createCustomFirebaseToken(driver.id);
-    return { accessToken, refreshToken: newRefreshToken, firebaseToken };
+    return { accessToken, refreshToken: newRefreshToken };
   }
 
   async logoutDriver(refreshToken: string) {

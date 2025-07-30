@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/c
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { OAuth2Client } from 'google-auth-library';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -21,6 +22,7 @@ export class FirebaseService implements OnModuleInit {
         // Initialize with service account file
         this.app = admin.initializeApp({
           credential: admin.credential.cert(serviceAccountPath),
+          storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
           projectId,
         });
       } else {
@@ -40,6 +42,7 @@ export class FirebaseService implements OnModuleInit {
 
         this.app = admin.initializeApp({
           credential: admin.credential.cert(serviceAccountKey),
+          storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
           projectId,
         });
       }
@@ -59,6 +62,37 @@ export class FirebaseService implements OnModuleInit {
   async createCustomFirebaseToken(uid: string): Promise<string> {
     const customToken = await this.app.auth().createCustomToken(uid);
     return customToken;
+  }
+
+  async generateSignedUploadUrl(
+    filePath: string,
+    contentType: string,
+    expiresInSeconds = 300
+  ): Promise<{ signedUrl: string; publicUrl: string; token: string }> {
+    const token = uuidv4();
+    console.log('Token: ', token);
+
+    const bucket = this.app.storage().bucket();
+    const file = bucket.file(filePath);
+
+    const [signedUrl] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + expiresInSeconds * 1000,
+      contentType,
+      extensionHeaders: {
+        'x-goog-meta-firebaseStorageDownloadTokens': token,
+      },
+    });
+
+    const encodedPath = encodeURIComponent(filePath);
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${token}`;
+
+    return {
+      signedUrl,
+      publicUrl,
+      token,
+    };
   }
 
   async verifyGoogleIdToken(idToken: string): Promise<{ email: string; emailVerified: boolean; name?: string }> {

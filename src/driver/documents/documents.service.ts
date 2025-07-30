@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateDriverDocumentsDto, UpdateDriverDocumentsDto } from '../dtos/documents.dto';
+import { CreateDriverDocumentsDto, UpdateDriverDocumentsDto, uploadUrlDto } from '../dtos/documents.dto';
 import { DriverDocuments, Prisma } from '@prisma/client';
+import { FirebaseService } from 'src/auth/firebase/firebase.service';
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly firebaseService: FirebaseService) {}
 
   async createDocuments(
     driverId: string,
@@ -110,5 +111,17 @@ export class DocumentsService {
     }
 
     return alerts;
+    }
+
+  async getUploadUrl(driverId: string, uploadUrlDto: uploadUrlDto): Promise<{
+    signedUrl: string;
+    publicUrl: string;
+    token: string;
+  }> {
+    const uploadUrl = await this.firebaseService.generateSignedUploadUrl(
+      uploadUrlDto.filePath,
+      uploadUrlDto.type
+    );
+    return uploadUrl;
   }
 }

@@ -7,9 +7,6 @@ export class TokenResponseDto {
 
   @Expose()
   refreshToken: string;
-
-  @Expose()
-  firebaseToken?: string;
 }
 
 export class refreshTokenDto {
