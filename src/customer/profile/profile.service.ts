@@ -2,12 +2,18 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateProfileDto, CreateProfileDto } from '../dtos/profile.dto';
 import { GstService } from '../gst/gst.service';
+import { AddressService } from '../address/address.service';
 import { Customer } from '@prisma/client';
 import { FirebaseService } from 'src/auth/firebase/firebase.service';
 
 @Injectable()
 export class ProfileService {
-  constructor(private prisma: PrismaService, private gstService: GstService, private firebaseService: FirebaseService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gstService: GstService,
+    private addressService: AddressService,
+    private firebaseService: FirebaseService
+  ) {}
 
   async getProfile(userId: string): Promise<Customer> {
     const customer = await this.prisma.customer.findUnique({
@@ -53,7 +59,7 @@ export class ProfileService {
       throw new BadRequestException('Profile already exists');
     }
 
-    const {googleIdToken, gstDetails, ...profileData } = createProfileDto;
+    const {googleIdToken, gstDetails, address, ...profileData } = createProfileDto;
     let email: string | undefined;
     if(googleIdToken) {
       email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
@@ -63,6 +69,11 @@ export class ProfileService {
       if(gstDetails) {
         await this.gstService.addGstDetails(userId, gstDetails, tx);
       }
+
+      if(address) {
+        await this.addressService.createAddress(userId, address);
+      }
+
       await tx.customer.update({
         where: { id: userId },
         data: {

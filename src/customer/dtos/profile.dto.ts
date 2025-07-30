@@ -1,6 +1,7 @@
 import { IsString, IsEmail, IsOptional, ValidateNested } from 'class-validator';
 import { Expose, Type } from 'class-transformer';
 import { CreateGstDetailsDto } from './gst-details.dto';
+import { CreateAddressDto } from './address.dto';
 import { Customer } from '@prisma/client';
 
 export class CreateProfileDto implements Partial<Customer> {
@@ -23,6 +24,11 @@ export class CreateProfileDto implements Partial<Customer> {
   @ValidateNested()
   @Type(() => CreateGstDetailsDto)
   gstDetails?: CreateGstDetailsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateAddressDto)
+  address?: CreateAddressDto;
 }
 
 export class UpdateProfileDto implements Partial<Customer> {
