@@ -122,12 +122,12 @@ model DriverDocuments {
   driverId        String    @unique
   driver          Driver    @relation(fields: [driverId], references: [id])
   licenseUrl      String
-  licenseExpiry   DateTime
+  licenseExpiry   DateTime?
   rcBookUrl       String
   fcUrl           String
-  fcExpiry        DateTime
+  fcExpiry        DateTime?
   insuranceUrl    String
-  insuranceExpiry DateTime
+  insuranceExpiry DateTime?
   aadharUrl       String
   panNumber       String    @unique
   ebBillUrl       String

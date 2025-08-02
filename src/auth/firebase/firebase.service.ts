@@ -59,11 +59,6 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  async createCustomFirebaseToken(uid: string): Promise<string> {
-    const customToken = await this.app.auth().createCustomToken(uid);
-    return customToken;
-  }
-
   async generateSignedUploadUrl(
     filePath: string,
     contentType: string,

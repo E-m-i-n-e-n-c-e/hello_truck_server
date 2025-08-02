@@ -7,10 +7,6 @@ export class CreateDriverDocumentsDto {
   @IsUrl()
   licenseUrl: string;
 
-  @Type(() => Date)
-  @IsDate()
-  licenseExpiry: Date;
-
   @IsString()
   @IsUrl()
   rcBookUrl: string;
@@ -19,17 +15,9 @@ export class CreateDriverDocumentsDto {
   @IsUrl()
   fcUrl: string;
 
-  @Type(() => Date)
-  @IsDate()
-  fcExpiry: Date;
-
   @IsString()
   @IsUrl()
   insuranceUrl: string;
-
-  @Type(() => Date)
-  @IsDate()
-  insuranceExpiry: Date;
 
   @IsString()
   @IsUrl()
@@ -52,11 +40,6 @@ export class UpdateDriverDocumentsDto {
   @IsUrl()
   licenseUrl?: string;
 
-  @Type(() => Date)
-  @IsDate()
-  @IsOptional()
-  licenseExpiry?: Date;
-
   @IsString()
   @IsOptional()
   @IsUrl()
@@ -67,20 +50,10 @@ export class UpdateDriverDocumentsDto {
   @IsUrl()
   fcUrl?: string;
 
-  @Type(() => Date)
-  @IsDate()
-  @IsOptional()
-  fcExpiry?: Date;
-
   @IsString()
   @IsOptional()
   @IsUrl()
   insuranceUrl?: string;
-
-  @Type(() => Date)
-  @IsDate()
-  @IsOptional()
-  insuranceExpiry?: Date;
 
   @IsString()
   @IsOptional()
@@ -115,17 +88,17 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   @Expose()
   licenseUrl: string;
   @Expose()
-  licenseExpiry: Date;
+  licenseExpiry: Date | null;
   @Expose()
   rcBookUrl: string;
   @Expose()
   fcUrl: string;
   @Expose()
-  fcExpiry: Date;
+  fcExpiry: Date | null;
   @Expose()
   insuranceUrl: string;
   @Expose()
-  insuranceExpiry: Date;
+  insuranceExpiry: Date | null;
   @Expose()
   aadharUrl: string;
   @Expose()
