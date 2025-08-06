@@ -17,20 +17,20 @@ enum VerificationStatus {
 }
 
 enum VehicleType {
-  THREE_WHEELER
-  FOUR_WHEELER
+  threeWheeler
+  fourWheeler
 }
 
 enum VehicleBodyType {
-  OPEN
-  CLOSED
+  open
+  closed
 }
 
 enum FuelType {
-  DIESEL
-  PETROL
-  EV
-  CNG
+  diesel
+  petrol
+  ev
+  cng
 }
 
 enum BankAccountType {
@@ -131,11 +131,12 @@ model Driver {
   photo              String?
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
-  documents          DriverDocuments?
-  vehicle            Vehicle?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   sessions           DriverSession[]
+  address            DriverAddress?
+  documents          DriverDocuments?
+  vehicle            Vehicle?
 
   @@index([isActive, verificationStatus])
 }
@@ -209,4 +210,22 @@ model VehicleOwner {
   updatedAt     DateTime @updatedAt
 
   @@index([aadharNumber])
+}
+
+model DriverAddress {
+  id            String   @id @default(uuid())
+  driverId      String   @unique
+  driver        Driver   @relation(fields: [driverId], references: [id])
+  addressLine1  String
+  landmark      String?
+  pincode       String
+  city          String
+  district      String
+  state         String
+  latitude      Decimal?   @db.Decimal(10, 8)
+  longitude     Decimal?   @db.Decimal(11, 8)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([driverId])
 }

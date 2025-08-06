@@ -4,6 +4,7 @@ import { IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "clas
 import { CreateDriverDocumentsDto } from "./documents.dto";
 import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
+import { CreateAddressDto } from "./address.dto";
 
 export class GetQueryDto {
   @ToBoolean()
@@ -46,9 +47,14 @@ export class CreateDriverProfileDto {
   documents: CreateDriverDocumentsDto;
 
   @ValidateNested()
+  @Type(() => CreateAddressDto)
+  @IsOptional()
+  address: CreateAddressDto;
+
+  @ValidateNested()
   @Type(() => CreateVehicleDto)
   @IsOptional()
-  vehicle?: CreateVehicleDto;
+  vehicle: CreateVehicleDto;
 }
 
 export class UpdateProfileDto implements Partial<Driver> {
