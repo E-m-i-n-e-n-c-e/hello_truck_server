@@ -16,6 +16,28 @@ enum VerificationStatus {
   REJECTED
 }
 
+enum VehicleType {
+  THREE_WHEELER
+  FOUR_WHEELER
+}
+
+enum VehicleBodyType {
+  OPEN
+  CLOSED
+}
+
+enum FuelType {
+  DIESEL
+  PETROL
+  EV
+  CNG
+}
+
+enum BankAccountType {
+  SAVINGS
+  CURRENT
+}
+
 model Customer {
   id          String   @id @default(uuid())
   phoneNumber String   @unique
@@ -110,6 +132,7 @@ model Driver {
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
   documents          DriverDocuments?
+  vehicle            Vehicle?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   sessions           DriverSession[]
@@ -150,4 +173,40 @@ model DriverSession {
   updatedAt   DateTime @updatedAt
 
   @@index([expiresAt])
+}
+
+model Vehicle {
+  id                String          @id @default(uuid())
+  driverId          String          @unique
+  driver            Driver          @relation(fields: [driverId], references: [id])
+  vehicleNumber     String          @unique
+  vehicleType       VehicleType
+  vehicleBodyLength Decimal         @db.Decimal(3,1) // 7.0 or 8.0 feet
+  vehicleBodyType   VehicleBodyType
+  fuelType          FuelType
+  vehicleImageUrl   String?
+  owner             VehicleOwner?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([vehicleNumber])
+}
+
+model VehicleOwner {
+  id            String   @id @default(uuid())
+  vehicleId     String   @unique
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id])
+  name          String
+  aadharNumber  String   @unique
+  contactNumber String
+  addressLine1  String
+  landmark      String?
+  pincode       String
+  city          String
+  district      String
+  state         String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([aadharNumber])
 }

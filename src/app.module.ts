@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, seconds } from '@nestjs/throttler';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CronModule } from './cron/cron.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -26,8 +24,7 @@ import { DriverModule } from './driver/driver.module';
     CustomerModule,
     DriverModule,
   ],
-  controllers: [AppController],
-  providers: [AppService, {
+  providers: [ {
     provide: APP_GUARD,
     useClass: CustomThrottlerGuard,
   }],

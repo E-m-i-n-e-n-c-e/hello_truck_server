@@ -1,13 +1,18 @@
-import { $Enums, Driver, DriverDocuments } from "@prisma/client";
+import { $Enums, Driver, DriverDocuments, Vehicle } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
 import { IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
 import { CreateDriverDocumentsDto } from "./documents.dto";
+import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
 
 export class GetQueryDto {
   @ToBoolean()
   @IsOptional()
   includeDocuments?: boolean;
+
+  @ToBoolean()
+  @IsOptional()
+  includeVehicle?: boolean;
 }
 
 export class CreateDriverProfileDto {
@@ -39,6 +44,11 @@ export class CreateDriverProfileDto {
   @ValidateNested()
   @Type(() => CreateDriverDocumentsDto)
   documents: CreateDriverDocumentsDto;
+
+  @ValidateNested()
+  @Type(() => CreateVehicleDto)
+  @IsOptional()
+  vehicle?: CreateVehicleDto;
 }
 
 export class UpdateProfileDto implements Partial<Driver> {
@@ -91,5 +101,7 @@ export class ProfileResponseDto implements Driver {
   updatedAt: Date;
   @Expose()
   documents: DriverDocuments | null;
+  @Expose()
+  vehicle: Vehicle | null;
 }
 

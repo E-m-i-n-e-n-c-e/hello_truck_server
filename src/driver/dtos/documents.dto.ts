@@ -1,6 +1,6 @@
 import { DriverDocuments } from "@prisma/client";
-import { Expose, Type } from "class-transformer";
-import { IsDate, IsOptional, IsString, IsUrl, Matches } from "class-validator";
+import { Expose } from "class-transformer";
+import { IsOptional, IsString, IsUrl, Matches } from "class-validator";
 
 export class CreateDriverDocumentsDto {
   @IsString()

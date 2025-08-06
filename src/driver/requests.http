@@ -1,0 +1,155 @@
+
+# Check server url https://hello-truck-server.fly.dev/
+
+POST https://hello-truck-server.fly.dev/auth/driver/send-otp
+Content-Type: application/json
+
+{
+  "phoneNumber": "6300045921"
+}
+
+### Verify OTP
+POST https://hello-truck-server.fly.dev/auth/driver/verify-otp
+Content-Type: application/json
+
+{
+  "phoneNumber": "6300045921",
+  "otp": "123456"
+}
+
+### Get Profile
+GET http://localhost:3000/driver/profile
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+### Create Complete Profile (Onboarding)
+POST https://hello-truck-server.fly.dev/driver/profile
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "alternatePhone": "9876543210",
+  "referalCode": "REF123",
+  "photo": "https://firebase-storage-url.com/driver-photo.jpg",
+  "documents": {
+    "licenseUrl": "https://firebase-storage-url.com/license.jpg",
+    "rcBookUrl": "https://firebase-storage-url.com/rc-book.jpg",
+    "fcUrl": "https://firebase-storage-url.com/fc.jpg",
+    "insuranceUrl": "https://firebase-storage-url.com/insurance.jpg",
+    "aadharUrl": "https://firebase-storage-url.com/aadhar.jpg",
+    "panNumber": "ABCDE1234F",
+    "ebBillUrl": "https://firebase-storage-url.com/eb-bill.jpg"
+  },
+  "vehicle": {
+    "vehicleNumber": "TN09AB1234",
+    "vehicleType": "FOUR_WHEELER",
+    "vehicleBodyLength": 7.5,
+    "vehicleBodyType": "OPEN",
+    "fuelType": "DIESEL",
+    "vehicleImageUrl": "https://firebase-storage-url.com/vehicle.jpg",
+    "owner": {
+      "name": "John Doe",
+      "aadharNumber": "123456789012",
+      "contactNumber": "9876543210",
+      "addressLine1": "123 Main Street",
+      "landmark": "Near City Center",
+      "pincode": "600001",
+      "city": "Chennai",
+      "district": "Chennai",
+      "state": "Tamil Nadu"
+    }
+  },
+  "bankDetails": {
+    "accountHolderName": "John Doe",
+    "accountNumber": "1234567890",
+    "ifscCode": "SBIN0001234",
+    "bankName": "State Bank of India",
+    "accountType": "SAVINGS",
+    "upiId": "johndoe@upi"
+  }
+}
+
+### Get Upload URL
+GET https://hello-truck-server.fly.dev/driver/documents/upload-url?filePath=driver-documents/license_1753858240451.png&type=image/png
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+### Vehicle Endpoints
+
+### Get Vehicle Details
+GET https://hello-truck-server.fly.dev/driver/vehicle
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+### Create Vehicle
+POST https://hello-truck-server.fly.dev/driver/vehicle
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+{
+  "vehicleNumber": "TN09AB1234",
+  "vehicleType": "FOUR_WHEELER",
+  "vehicleBodyLength": 7.5,
+  "vehicleBodyType": "OPEN",
+  "fuelType": "DIESEL",
+  "vehicleImageUrl": "https://firebase-storage-url.com/vehicle.jpg",
+  "owner": {
+    "name": "John Doe",
+    "aadharNumber": "123456789012",
+    "contactNumber": "9876543210",
+    "addressLine1": "123 Main Street",
+    "landmark": "Near City Center",
+    "pincode": "600001",
+    "city": "Chennai",
+    "district": "Chennai",
+    "state": "Tamil Nadu"
+  }
+}
+
+### Update Vehicle
+PUT https://hello-truck-server.fly.dev/driver/vehicle
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+{
+  "vehicleNumber": "TN09AB5678",
+  "vehicleBodyLength": 8.0,
+  "fuelType": "PETROL"
+}
+
+### Bank Details Endpoints
+
+### Get Bank Details
+GET https://hello-truck-server.fly.dev/driver/bank-details
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+### Create Bank Details
+POST https://hello-truck-server.fly.dev/driver/bank-details
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+{
+  "accountHolderName": "John Doe",
+  "accountNumber": "1234567890",
+  "ifscCode": "SBIN0001234",
+  "bankName": "State Bank of India",
+  "accountType": "SAVINGS",
+  "upiId": "johndoe@upi"
+}
+
+### Update Bank Details
+PUT https://hello-truck-server.fly.dev/driver/bank-details
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6Ijk4Zjg4MmYxLWY1NWItNDYxMS05NmYzLWQ1ZTM4ZTNmYmQ2MSIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsImlhdCI6MTc1NDEyMjgzMCwiZXhwIjoxNzU0MTIzNzMwfQ.uApQxTPRTCz3YeWPEQ8DVEc0ry38N7WK9MF71wCJ420
+
+{
+  "accountNumber": "0987654321",
+  "upiId": "johndoe.new@upi"
+}
+
+
+
+

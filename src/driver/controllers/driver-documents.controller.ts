@@ -4,8 +4,8 @@ import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { User } from 'src/token/decorators/user.decorator';
-import { DocumentsService } from './documents/documents.service';
-import { DriverDocumentsResponseDto, ExpiryAlertsResponseDto, UpdateDriverDocumentsDto, UploadUrlResponseDto, uploadUrlDto } from './dtos/documents.dto';
+import { DocumentsService } from '../documents/documents.service';
+import { DriverDocumentsResponseDto, ExpiryAlertsResponseDto, UpdateDriverDocumentsDto, UploadUrlResponseDto, uploadUrlDto } from '../dtos/documents.dto';
 
 @Controller('driver/documents')
 @UseGuards(AccessTokenGuard, RolesGuard)

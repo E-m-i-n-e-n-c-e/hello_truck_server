@@ -3,10 +3,10 @@ import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
-import { ProfileService } from './profile/profile.service';
+import { ProfileService } from '../profile/profile.service';
 import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto } from './dtos/profile.dto';
+import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto } from '../dtos/profile.dto';
 
 @Controller('driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
