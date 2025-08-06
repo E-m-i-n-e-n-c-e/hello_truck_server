@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, UseGuards, Param, Put } from '@nestjs/common';
 import { User } from 'src/token/decorators/user.decorator';
-import { CreateGstDetailsDto, DeactivateGstDetailsDto, GstDetailsResponseDto, ReactivateGstDetailsDto, UpdateGstDetailsDto } from './dtos/gst-details.dto';
-import { GstService } from './gst/gst.service';
+import { CreateGstDetailsDto, DeactivateGstDetailsDto, GstDetailsResponseDto, ReactivateGstDetailsDto, UpdateGstDetailsDto } from '../dtos/gst-details.dto';
+import { GstService } from '../gst/gst.service';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
