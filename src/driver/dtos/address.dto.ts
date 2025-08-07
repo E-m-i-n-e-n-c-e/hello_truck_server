@@ -71,10 +71,9 @@ export class UpdateAddressDto implements Partial<DriverAddress> {
 }
 
 export class AddressResponseDto implements DriverAddress {
+  id: string;
   driverId: string;
 
-  @Expose()
-  id: string;
   @Expose()
   addressLine1: string;
   @Expose()

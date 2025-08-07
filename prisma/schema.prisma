@@ -17,20 +17,20 @@ enum VerificationStatus {
 }
 
 enum VehicleType {
-  threeWheeler
-  fourWheeler
+  THREE_WHEELER
+  FOUR_WHEELER
 }
 
 enum VehicleBodyType {
-  open
-  closed
+  OPEN
+  CLOSED
 }
 
 enum FuelType {
-  diesel
-  petrol
-  ev
-  cng
+  DIESEL
+  PETROL
+  EV
+  CNG
 }
 
 enum BankAccountType {
@@ -182,10 +182,10 @@ model Vehicle {
   driver            Driver          @relation(fields: [driverId], references: [id])
   vehicleNumber     String          @unique
   vehicleType       VehicleType
-  vehicleBodyLength Decimal         @db.Decimal(3,1) // 7.0 or 8.0 feet
+  vehicleBodyLength Decimal         @db.Decimal(3,1)
   vehicleBodyType   VehicleBodyType
   fuelType          FuelType
-  vehicleImageUrl   String?
+  vehicleImageUrl   String
   owner             VehicleOwner?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -198,7 +198,7 @@ model VehicleOwner {
   vehicleId     String   @unique
   vehicle       Vehicle  @relation(fields: [vehicleId], references: [id])
   name          String
-  aadharNumber  String   @unique
+  aadharUrl     String
   contactNumber String
   addressLine1  String
   landmark      String?
@@ -208,8 +208,6 @@ model VehicleOwner {
   state         String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  @@index([aadharNumber])
 }
 
 model DriverAddress {

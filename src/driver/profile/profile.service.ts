@@ -5,6 +5,7 @@ import { UpdateProfileDto, CreateDriverProfileDto } from '../dtos/profile.dto';
 import { Driver } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
+import { AddressService } from '../address/address.service';
 
 interface GetProfileOptions {
   includeDocuments?: boolean;
@@ -18,6 +19,7 @@ export class ProfileService {
     private readonly firebaseService: FirebaseService,
     private readonly documentsService: DocumentsService,
     private readonly vehicleService: VehicleService,
+    private readonly addressService: AddressService,
   ) {}
 
   async getProfile(
@@ -55,7 +57,7 @@ export class ProfileService {
       throw new BadRequestException('Profile already exists');
     }
 
-    const { googleIdToken, documents, vehicle, ...profileData } = createProfileDto;
+    const { googleIdToken, documents, vehicle, address, ...profileData } = createProfileDto;
     let email: string | undefined;
     if (googleIdToken) {
       email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
@@ -68,6 +70,11 @@ export class ProfileService {
       // Create vehicle if provided
       if (vehicle) {
         await this.vehicleService.createVehicle(userId, vehicle);
+      }
+
+      // Create address if provided
+      if (address) {
+        await this.addressService.createAddress(userId, address);
       }
 
       // Update driver profile

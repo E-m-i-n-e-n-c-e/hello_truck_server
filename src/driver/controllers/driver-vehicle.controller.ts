@@ -5,7 +5,8 @@ import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { User } from 'src/token/decorators/user.decorator';
 import { VehicleService } from '../vehicle/vehicle.service';
-import { VehicleResponseDto, VehicleOwnerResponseDto, CreateVehicleDto, UpdateVehicleDto, CreateVehicleOwnerDto, UpdateVehicleOwnerDto } from '../dtos/vehicle.dto';
+import { VehicleResponseDto, CreateVehicleDto, UpdateVehicleDto } from '../dtos/vehicle.dto';
+import { CreateVehicleOwnerDto, UpdateVehicleOwnerDto, VehicleOwnerResponseDto } from '../dtos/vehicle-owner.dto';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 
 @Controller('driver/vehicle')

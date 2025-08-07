@@ -153,3 +153,37 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRya
 
 
 
+### Create Complete Profile (Onboarding) - Test Request
+POST http://localhost:3000/driver/profile
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImEyNjY1OTZjLTU3YjctNDI0Yy04M2UyLTBjOGViNTYxMDNjYiIsInBob25lTnVtYmVyIjoiNjM0ODQ4NDg0OCIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOmZhbHNlLCJpYXQiOjE3NTQ1ODEwNzcsImV4cCI6MTc1NDU4MTk3N30.k_BVzKMXwx7eEojFRGMEVSTy9lRuKlF-J405VWDLysE
+
+{
+  "firstName": "sk",
+  "documents": {
+    "licenseUrl": "https://firebasestorage.googleapis.com/v0/b/elite-protocol-467015-c0.firebasestorage.app/o/driver-documents%2Flicense_1754580165133.jpg?alt=media&token=f288d60a-7e28-40cf-8cf8-be13bf389dfa",
+    "rcBookUrl": "https://firebasestorage.googleapis.com/v0/b/elite-protocol-467015-c0.firebasestorage.app/o/driver-documents%2FrcBook_1754580167158.jpg?alt=media&token=ce238043-5282-4473-a3e8-3834e4f5a86e",
+    "fcUrl": "https://firebasestorage.googleapis.com/v0/b/elite-protocol-467015-c0.firebasestorage.app/o/driver-documents%2Ffc_1754580169655.jpg?alt=media&token=23a2b6cf-48bc-4ba5-8246-73c00bf4c631",
+    "insuranceUrl": "https://firebasestorage.googleapis.com/v0/b/elite-protocol-467015-c0.firebasestorage.app/o/driver-documents%2Finsurance_1754580172135.jpg?alt=media&token=b90af456-478d-4c47-85b8-770189350655",
+    "aadharUrl": "https://firebasestorage.googleapis.com/v0/b/elite-protocol-467015-c0.firebasestorage.app/o/driver-documents%2Faadhar_1754580174395.jpg?alt=media&token=a4a6dcc7-23cb-4a36-bac6-c5cc30114ce9",
+    "panNumber": "ABCDE1234F",
+    "ebBillUrl": "https://firebasestorage.googleapis.com/v0/b/elite-protocol-467015-c0.firebasestorage.app/o/driver-documents%2FebBill_1754580176779.jpg?alt=media&token=1d54fd5d-e6eb-40b5-8bfa-ff8192d5e945"
+  },
+  "address": {
+    "addressLine1": "QM32+W2X, , Nechipuzhoor, Kerala",
+    "pincode": "686574",
+    "city": "Nechipuzhoor",
+    "district": "sjsj",
+    "state": "Kerala",
+    "latitude": 9.754987,
+    "longitude": 76.6501874
+  },
+  "vehicle": {
+    "vehicleNumber": "testtststst",
+    "vehicleType": "THREE_WHEELER",
+    "vehicleBodyLength": 20.5,
+    "vehicleBodyType": "OPEN",
+    "fuelType": "DIESEL",
+    "vehicleImageUrl": "https://firebasestorage.googleapis.com/v0/b/elite-protocol-467015-c0.firebasestorage.app/o/driver-documents%2FvehicleImage_1754580123265.jpg?alt=media&token=e7860ed1-2bab-434d-a5a9-f43fdf889294"
+  }
+}

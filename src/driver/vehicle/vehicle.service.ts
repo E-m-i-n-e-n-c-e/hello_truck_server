@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateVehicleDto, UpdateVehicleDto, CreateVehicleOwnerDto, UpdateVehicleOwnerDto } from '../dtos/vehicle.dto';
+import { CreateVehicleDto, UpdateVehicleDto} from '../dtos/vehicle.dto';
+import { CreateVehicleOwnerDto, UpdateVehicleOwnerDto } from '../dtos/vehicle-owner.dto';
 
 @Injectable()
 export class VehicleService {
@@ -107,17 +108,6 @@ export class VehicleService {
       throw new BadRequestException('Owner already exists for this vehicle');
     }
 
-    // Check if Aadhar number is already taken
-    if (createOwnerDto.aadharNumber) {
-      const existingAadhar = await this.prisma.vehicleOwner.findUnique({
-        where: { aadharNumber: createOwnerDto.aadharNumber },
-      });
-
-      if (existingAadhar) {
-        throw new BadRequestException('Aadhar number already exists');
-      }
-    }
-
     return await this.prisma.vehicleOwner.create({
       data: {
         ...createOwnerDto,
@@ -133,17 +123,6 @@ export class VehicleService {
 
     if (!owner) {
       throw new NotFoundException('Vehicle owner not found');
-    }
-
-    // Check if Aadhar number is being changed and if it's already taken
-    if (updateOwnerDto.aadharNumber && updateOwnerDto.aadharNumber !== owner.aadharNumber) {
-      const existingAadhar = await this.prisma.vehicleOwner.findUnique({
-        where: { aadharNumber: updateOwnerDto.aadharNumber },
-      });
-
-      if (existingAadhar) {
-        throw new BadRequestException('Aadhar number already exists');
-      }
     }
 
     return await this.prisma.vehicleOwner.update({

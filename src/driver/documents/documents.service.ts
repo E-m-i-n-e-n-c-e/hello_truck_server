@@ -22,16 +22,29 @@ export class DocumentsService {
       throw new BadRequestException('Documents already exist for this driver');
     }
 
-    const documents = await tx.driverDocuments.create({
-      data: {
-        ...createDocumentsDto,
-        driver: {
-          connect: { id: driverId }
-        }
-      },
-    });
+    try {
+      const documents = await tx.driverDocuments.create({
+        data: {
+          ...createDocumentsDto,
+          driver: {
+            connect: { id: driverId }
+          }
+        },
+      });
 
-    return documents;
+      return documents;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          // Unique constraint violation
+          const target = error.meta?.target as string[];
+          if (target?.includes('panNumber')) {
+            throw new BadRequestException('This PAN number is already registered. Please use a different PAN number.');
+          }
+        }
+      }
+      throw error;
+    }
   }
 
   async getDocuments(driverId: string): Promise<DriverDocuments> {

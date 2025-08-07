@@ -6,9 +6,10 @@ import { DocumentsModule } from '../documents/documents.module';
 import { VehicleModule } from '../vehicle/vehicle.module';
 import { TokenModule } from 'src/token/token.module';
 import { DriverProfileController } from '../controllers/driver-profile.controller';
+import { AddressModule } from '../address/address.module';
 
 @Module({
-  imports: [PrismaModule, FirebaseModule, DocumentsModule, VehicleModule, TokenModule],
+  imports: [PrismaModule, FirebaseModule, DocumentsModule, VehicleModule, TokenModule, AddressModule],
   controllers: [DriverProfileController],
   providers: [ProfileService],
   exports: [ProfileService]
