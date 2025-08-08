@@ -6,6 +6,7 @@ import { Driver } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { AddressService } from '../address/address.service';
+import { RazorpayService } from 'src/razorpay/razorpay.service';
 
 interface GetProfileOptions {
   includeDocuments?: boolean;
@@ -20,6 +21,7 @@ export class ProfileService {
     private readonly documentsService: DocumentsService,
     private readonly vehicleService: VehicleService,
     private readonly addressService: AddressService,
+    private readonly razorpayService: RazorpayService,
   ) {}
 
   async getProfile(
@@ -57,7 +59,7 @@ export class ProfileService {
       throw new BadRequestException('Profile already exists');
     }
 
-    const { googleIdToken, documents, vehicle, address, ...profileData } = createProfileDto;
+    const { googleIdToken, documents, vehicle, address, payoutDetails, ...profileData } = createProfileDto;
     let email: string | undefined;
     if (googleIdToken) {
       email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
@@ -77,12 +79,26 @@ export class ProfileService {
         await this.addressService.createAddress(userId, address);
       }
 
+      // Create payout details if provided
+      let contactId: string | null = null;
+      let fundAccountId: string | null = null;
+
+      if (payoutDetails) {
+        const driverName = profileData.lastName
+          ? `${profileData.firstName} ${profileData.lastName}`
+          : profileData.firstName;
+        contactId = await this.razorpayService.createContact(driver.phoneNumber, driverName);
+        fundAccountId = await this.razorpayService.createFundAccount(contactId, payoutDetails);
+      }
+
       // Update driver profile
       await tx.driver.update({
         where: { id: userId },
         data: {
           ...profileData,
           ...(email && { email }),
+          ...(contactId && { contactId }),
+          ...(fundAccountId && { fundAccountId }),
         },
       });
     });

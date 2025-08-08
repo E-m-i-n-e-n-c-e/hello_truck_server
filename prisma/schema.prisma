@@ -33,11 +33,6 @@ enum FuelType {
   CNG
 }
 
-enum BankAccountType {
-  SAVINGS
-  CURRENT
-}
-
 model Customer {
   id          String   @id @default(uuid())
   phoneNumber String   @unique
@@ -129,6 +124,8 @@ model Driver {
   alternatePhone     String?
   referalCode        String?
   photo              String?
+  contactId          String?
+  fundAccountId      String?
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
   createdAt          DateTime           @default(now())

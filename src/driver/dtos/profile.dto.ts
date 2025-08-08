@@ -5,6 +5,7 @@ import { CreateDriverDocumentsDto } from "./documents.dto";
 import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
 import { CreateAddressDto } from "./address.dto";
+import { CreatePayoutDetailsDto } from "src/razorpay/dtos/payout-details.dto";
 
 export class GetQueryDto {
   @ToBoolean()
@@ -55,6 +56,11 @@ export class CreateDriverProfileDto {
   @Type(() => CreateVehicleDto)
   @IsOptional()
   vehicle: CreateVehicleDto;
+
+  @ValidateNested()
+  @Type(() => CreatePayoutDetailsDto)
+  @IsOptional()
+  payoutDetails: CreatePayoutDetailsDto;
 }
 
 export class UpdateProfileDto implements Partial<Driver> {
@@ -84,6 +90,8 @@ export class UpdateProfileDto implements Partial<Driver> {
 export class ProfileResponseDto implements Driver {
   id: string;
   isActive: boolean;
+  contactId: string | null;
+  fundAccountId: string | null;
 
   @Expose()
   phoneNumber: string;

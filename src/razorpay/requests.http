@@ -1,0 +1,43 @@
+
+
+### Create Contact
+POST http://localhost:3000/razorpay/create-contact
+Content-Type: application/json
+
+{
+  "phoneNumber": "9876543210",
+  "name": "John Does"
+}
+
+### Create Fund Account with Bank Details
+POST http://localhost:3000/razorpay/create-fund-account
+Content-Type: application/json
+
+{
+  "contactId": "cont_R2vfwe8Df8gEgp",
+  "payoutDetails": {
+    "payoutMethod": "BANK_ACCOUNT",
+    "bankDetails": {
+      "accountHolderName": "John Doe",
+      "accountNumber": "1234567890",
+      "ifscCode": "HDFC0000001"
+    }
+  }
+}
+
+
+### Create Fund Account with VPA
+POST http://localhost:3000/razorpay/create-fund-account
+Content-Type: application/json
+
+{
+  "contactId": "cont_R2vieAAUYGOWDw",
+  "payoutDetails": {
+    "payoutMethod": "VPA",
+    "vpaDetails": {
+      "vpa": "john@okicici"
+    }
+  }
+}
+
+
