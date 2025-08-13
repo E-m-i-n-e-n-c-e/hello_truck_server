@@ -5,7 +5,7 @@ import { CreateDriverDocumentsDto } from "./documents.dto";
 import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
 import { CreateAddressDto } from "./address.dto";
-import { CreatePayoutDetailsDto } from "src/razorpay/dtos/payout-details.dto";
+import { CreatePayoutDetailsDto, UpdatePayoutDetailsDto } from "src/razorpay/dtos/payout-details.dto";
 
 export class GetQueryDto {
   @ToBoolean()
@@ -85,6 +85,11 @@ export class UpdateProfileDto implements Partial<Driver> {
   @IsOptional()
   @IsUrl()
   photo?: string; // Firebase Storage URL
+
+  @ValidateNested()
+  @Type(() => UpdatePayoutDetailsDto)
+  @IsOptional()
+  payoutDetails?: UpdatePayoutDetailsDto;
 }
 
 export class ProfileResponseDto implements Driver {

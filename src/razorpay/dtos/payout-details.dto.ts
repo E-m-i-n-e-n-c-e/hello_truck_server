@@ -23,7 +23,7 @@ export class CreateBankDetailsDto {
 export class CreateVpaDetailsDto {
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[a-zA-Z0-9\.\-_]{2,256}@[a-zA-Z0-9\.\-_]{2,64}$/i, { message: 'Invalid VPA' })
+  @Matches(/^[a-zA-Z0-9\.\-_]{2,256}@[a-zA-Z0-9\.\-_]{2,64}$/, { message: 'Invalid VPA' })
   vpa: string;
 }
 
@@ -37,3 +37,6 @@ export class CreatePayoutDetailsDto {
   @IsOptional()
   vpaDetails?: CreateVpaDetailsDto;
 }
+
+// Update Payout Details is same as Create Payout Details
+export class UpdatePayoutDetailsDto extends CreatePayoutDetailsDto {}

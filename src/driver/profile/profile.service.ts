@@ -107,7 +107,15 @@ export class ProfileService {
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
-    const { googleIdToken, ...profileData } = updateProfileDto;
+    const { googleIdToken, payoutDetails, ...profileData } = updateProfileDto;
+
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: userId },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver not found');
+    }
 
     // Extract email from Google ID token if provided
     let email: string | undefined;
@@ -115,11 +123,24 @@ export class ProfileService {
       email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
     }
 
+    // Create payout details if provided
+    let contactId: string | null = null;
+    let fundAccountId: string | null = null;
+    if (payoutDetails) {
+      const driverName = profileData.lastName
+        ? `${profileData.firstName} ${profileData.lastName}`
+        : profileData.firstName;
+      contactId = await this.razorpayService.createContact(driver.phoneNumber, driverName);
+      fundAccountId = await this.razorpayService.createFundAccount(contactId, payoutDetails);
+    }
+
     await this.prisma.driver.update({
       where: { id: userId },
       data: {
         ...profileData,
         ...(email && { email }),
+        ...(contactId && { contactId }),
+        ...(fundAccountId && { fundAccountId }),
       },
     });
 
