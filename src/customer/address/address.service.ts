@@ -40,7 +40,7 @@ export class AddressService {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           const target = error.meta?.target as string[];
-          if (target?.includes('unique_name_per_customer')) {
+          if (target?.includes('name')) {
             throw new BadRequestException('Address name already exists for this customer');
           }
         }

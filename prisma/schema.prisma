@@ -81,7 +81,6 @@ model SavedAddress {
   @@index([customerId])
   @@index([addressId])
   @@unique([name, customerId], name: "unique_name_per_customer")
-  @@unique([customerId, isDefault], name: "only_one_default_address_per_customer")
 }
 
 model CustomerGstDetails {

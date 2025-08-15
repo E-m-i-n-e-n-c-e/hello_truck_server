@@ -94,19 +94,15 @@ export class UpdateSavedAddressDto implements Partial<SavedAddress> {
   address?: UpdateAddressDto;
 }
 
-class AddressResponseDto implements Address {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-
+class AddressResponseDto  {
   @Expose()
   formattedAddress: string;
   @Expose()
   addressDetails: string | null;
   @Expose()
-  latitude: Decimal;
+  latitude: number;
   @Expose()
-  longitude: Decimal;
+  longitude: number;
 }
 
 // Response DTO for saved address with full address details
