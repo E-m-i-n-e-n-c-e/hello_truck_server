@@ -59,7 +59,7 @@ export class ProfileService {
       throw new BadRequestException('Profile already exists');
     }
 
-    const {googleIdToken, gstDetails, address, ...profileData } = createProfileDto;
+    const {googleIdToken, gstDetails, savedAddress, ...profileData } = createProfileDto;
     let email: string | undefined;
     if(googleIdToken) {
       email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
@@ -70,8 +70,8 @@ export class ProfileService {
         await this.gstService.addGstDetails(userId, gstDetails, tx);
       }
 
-      if(address) {
-        await this.addressService.createAddress(userId, address);
+      if(savedAddress) {
+        await this.addressService.createSavedAddress(userId, savedAddress, tx);
       }
 
       await tx.customer.update({

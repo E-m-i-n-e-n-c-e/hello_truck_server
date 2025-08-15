@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { User } from 'src/token/decorators/user.decorator';
-import { CreateAddressDto, UpdateAddressDto, AddressResponseDto } from '../dtos/address.dto';
+import { CreateSavedAddressDto, UpdateSavedAddressDto, SavedAddressResponseDto } from '../dtos/address.dto';
 import { AddressService } from '../address/address.service';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { seconds } from '@nestjs/throttler';
@@ -18,57 +18,57 @@ export class CustomerAddressController {
   constructor(private readonly addressService: AddressService) {}
 
   @Post()
-  @Serialize(AddressResponseDto)
-  async createAddress(
+  @Serialize(SavedAddressResponseDto)
+  async createSavedAddress(
     @User('userId') userId: string,
-    @Body() createAddressDto: CreateAddressDto,
-  ): Promise<AddressResponseDto> {
-    return this.addressService.createAddress(userId, createAddressDto);
+    @Body() createSavedAddressDto: CreateSavedAddressDto,
+  ): Promise<SavedAddressResponseDto> {
+    return this.addressService.createSavedAddress(userId, createSavedAddressDto);
   }
 
   @Get()
-  @Serialize(AddressResponseDto)
-  async getAddresses(
+  @Serialize(SavedAddressResponseDto)
+  async getSavedAddresses(
     @User('userId') userId: string,
-  ): Promise<AddressResponseDto[]> {
-    return this.addressService.getAddresses(userId);
+  ): Promise<SavedAddressResponseDto[]> {
+    return this.addressService.getSavedAddresses(userId);
   }
 
   @Get(':id')
-  @Serialize(AddressResponseDto)
-  async getAddressById(
+  @Serialize(SavedAddressResponseDto)
+  async getSavedAddressById(
     @User('userId') userId: string,
     @Param('id') id: string,
-  ): Promise<AddressResponseDto> {
-    return this.addressService.getAddressById(userId, id);
+  ): Promise<SavedAddressResponseDto> {
+    return this.addressService.getSavedAddressById(userId, id);
   }
 
   @Put(':id')
-  @Serialize(AddressResponseDto)
-  async updateAddress(
+  @Serialize(SavedAddressResponseDto)
+  async updateSavedAddress(
     @User('userId') userId: string,
     @Param('id') id: string,
-    @Body() updateAddressDto: UpdateAddressDto,
-  ): Promise<AddressResponseDto> {
-    return this.addressService.updateAddress(userId, id, updateAddressDto);
+    @Body() updateSavedAddressDto: UpdateSavedAddressDto,
+  ): Promise<SavedAddressResponseDto> {
+    return this.addressService.updateSavedAddress(userId, id, updateSavedAddressDto);
   }
 
   @Delete(':id')
   @Serialize(SuccessResponseDto)
-  async deleteAddress(
+  async deleteSavedAddress(
     @User('userId') userId: string,
     @Param('id') id: string,
   ): Promise<SuccessResponseDto> {
-    await this.addressService.deleteAddress(userId, id);
+    await this.addressService.deleteSavedAddress(userId, id);
     return { success: true, message: 'Address deleted successfully' };
   }
 
   @Post(':id/default')
-  @Serialize(AddressResponseDto)
-  async setDefaultAddress(
+  @Serialize(SavedAddressResponseDto)
+  async setDefaultSavedAddress(
     @User('userId') userId: string,
     @Param('id') id: string,
-  ): Promise<AddressResponseDto> {
-    return this.addressService.setDefaultAddress(userId, id);
+  ): Promise<SavedAddressResponseDto> {
+    return this.addressService.setDefaultSavedAddress(userId, id);
   }
 }

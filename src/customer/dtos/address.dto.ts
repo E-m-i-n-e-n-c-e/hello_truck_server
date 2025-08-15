@@ -1,75 +1,60 @@
-import { IsString, IsOptional, IsBoolean, IsLatitude, IsLongitude, IsPhoneNumber, Matches, Length } from 'class-validator';
-import { Expose } from 'class-transformer';
-import { CustomerAddress } from '@prisma/client';
+import { IsString, IsOptional, IsBoolean, IsLatitude, IsLongitude, IsPhoneNumber, Matches, Length, IsNotEmpty, ValidateNested } from 'class-validator';
+import { Expose, Type } from 'class-transformer';
+import { Address, SavedAddress } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
-export class CreateAddressDto implements Partial<CustomerAddress> {
+// DTO for creating a new address
+class CreateAddressDto implements Partial<Address> {
   @IsString()
-  addressLine1: string;
+  @IsNotEmpty()
+  formattedAddress: string;
 
   @IsOptional()
   @IsString()
-  landmark?: string;
-
-  @IsString()
-  @Length(6, 6, { message: 'Pincode must be exactly 6 characters' })
-  @Matches(/^[0-9]{6}$/, { message: 'Invalid pincode format' })
-  pincode: string;
-
-  @IsString()
-  city: string;
-
-  @IsString()
-  district: string;
-
-  @IsString()
-  state: string;
+  addressDetails?: string;
 
   @IsLatitude()
   latitude: Decimal;
 
   @IsLongitude()
   longitude: Decimal;
+}
 
-  @IsOptional()
-  @IsPhoneNumber('IN')
-  phoneNumber?: string;
+// DTO for creating a saved address (links customer to address)
+export class CreateSavedAddressDto implements Partial<SavedAddress> {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
   @IsOptional()
   @IsString()
-  label?: string;
+  contactName?: string;
+
+  @IsOptional()
+  @IsPhoneNumber('IN')
+  contactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  noteToDriver?: string;
 
   @IsOptional()
   @IsBoolean()
   isDefault?: boolean;
+
+  @ValidateNested()
+  @Type(() => CreateAddressDto)
+  address: CreateAddressDto;
 }
 
-export class UpdateAddressDto implements Partial<CustomerAddress> {
+class UpdateAddressDto implements Partial<Address> {
   @IsOptional()
   @IsString()
-  addressLine1?: string;
+  formattedAddress?: string;
 
   @IsOptional()
   @IsString()
-  landmark?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(6, 6, { message: 'Pincode must be exactly 6 characters' })
-  @Matches(/^[0-9]{6}$/, { message: 'Invalid pincode format' })
-  pincode?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @IsOptional()
-  @IsString()
-  district?: string;
-
-  @IsOptional()
-  @IsString()
-  state?: string;
+  addressDetails?: string;
 
   @IsOptional()
   @IsLatitude()
@@ -78,45 +63,70 @@ export class UpdateAddressDto implements Partial<CustomerAddress> {
   @IsOptional()
   @IsLongitude()
   longitude?: Decimal;
+}
 
+// DTO for updating a saved address
+export class UpdateSavedAddressDto implements Partial<SavedAddress> {
   @IsOptional()
-  @IsPhoneNumber('IN')
-  phoneNumber?: string;
+  @IsString()
+  name?: string;
 
   @IsOptional()
   @IsString()
-  label?: string;
+  contactName?: string;
+
+  @IsOptional()
+  @IsPhoneNumber('IN')
+  contactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  noteToDriver?: string;
 
   @IsOptional()
   @IsBoolean()
   isDefault?: boolean;
+
+  // Optional address updates
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdateAddressDto)
+  address?: UpdateAddressDto;
 }
 
-export class AddressResponseDto implements CustomerAddress {
-  customerId: string;
+class AddressResponseDto implements Address {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
 
   @Expose()
-  id: string;
+  formattedAddress: string;
   @Expose()
-  addressLine1: string;
-  @Expose()
-  landmark: string | null;
-  @Expose()
-  pincode: string;
-  @Expose()
-  city: string;
-  @Expose()
-  district: string;
-  @Expose()
-  state: string;
+  addressDetails: string | null;
   @Expose()
   latitude: Decimal;
   @Expose()
   longitude: Decimal;
+}
+
+// Response DTO for saved address with full address details
+export class SavedAddressResponseDto implements SavedAddress {
+  customerId: string;
+  addressId: string;
+
   @Expose()
-  phoneNumber: string | null;
+  id: string;
   @Expose()
-  label: string | null;
+  name: string;
+  @Expose()
+  @Type(() => AddressResponseDto)
+  address?: AddressResponseDto;
+  @Expose()
+  contactName: string | null;
+  @Expose()
+  contactPhone: string | null;
+  @Expose()
+  noteToDriver: string | null;
   @Expose()
   isDefault: boolean;
   @Expose()
@@ -124,3 +134,7 @@ export class AddressResponseDto implements CustomerAddress {
   @Expose()
   updatedAt: Date;
 }
+
+
+
+

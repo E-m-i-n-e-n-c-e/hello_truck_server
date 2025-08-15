@@ -1,52 +1,73 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateAddressDto, UpdateAddressDto } from '../dtos/address.dto';
-import { CustomerAddress } from '@prisma/client';
+import { CreateSavedAddressDto, UpdateSavedAddressDto } from '../dtos/address.dto';
+import { Prisma, SavedAddress } from '@prisma/client';
 
 @Injectable()
 export class AddressService {
   constructor(private prisma: PrismaService) {}
 
-  async createAddress(userId: string, createAddressDto: CreateAddressDto): Promise<CustomerAddress> {
+  async createSavedAddress(userId: string, createSavedAddressDto: CreateSavedAddressDto, tx: Prisma.TransactionClient = this.prisma): Promise<SavedAddress> {
     // If this is the first address or isDefault is true, handle default address setting
-    if (createAddressDto.isDefault) {
-      await this.prisma.customerAddress.updateMany({
+    if (createSavedAddressDto.isDefault) {
+      await tx.savedAddress.updateMany({
         where: { customerId: userId, isDefault: true },
         data: { isDefault: false },
       });
     }
 
     // If this is the first address, make it default regardless of input
-    const addressCount = await this.prisma.customerAddress.count({
+    const addressCount = await tx.savedAddress.count({
       where: { customerId: userId },
     });
-
-    const address = await this.prisma.customerAddress.create({
+    const { address: addressData, ...savedAddressData } = createSavedAddressDto;
+    try {
+    const address = await tx.savedAddress.create({
       data: {
-        ...createAddressDto,
-        isDefault: addressCount === 0 ? true : createAddressDto.isDefault ?? false,
+        ...savedAddressData,
+        isDefault: addressCount === 0 ? true : createSavedAddressDto.isDefault ?? false,
         customer: {
           connect: { id: userId },
+        },
+        address: {
+          create: addressData,
         },
       },
     });
 
-    return address;
+      return address;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          if (target?.includes('unique_name_per_customer')) {
+            throw new BadRequestException('Address name already exists for this customer');
+          }
+        }
+      }
+      throw error;
+    }
   }
 
-  async getAddresses(userId: string): Promise<CustomerAddress[]> {
-    return this.prisma.customerAddress.findMany({
+  async getSavedAddresses(userId: string): Promise<SavedAddress[]> {
+    return this.prisma.savedAddress.findMany({
       where: { customerId: userId },
       orderBy: [
         { isDefault: 'desc' },
         { createdAt: 'desc' },
       ],
+      include: {
+        address: true,
+      },
     });
   }
 
-  async getAddressById(userId: string, id: string): Promise<CustomerAddress> {
-    const address = await this.prisma.customerAddress.findFirst({
+  async getSavedAddressById(userId: string, id: string): Promise<SavedAddress> {
+    const address = await this.prisma.savedAddress.findFirst({
       where: { id, customerId: userId },
+      include: {
+        address: true,
+      },
     });
 
     if (!address) {
@@ -56,13 +77,16 @@ export class AddressService {
     return address;
   }
 
-  async updateAddress(
+  async updateSavedAddress(
     userId: string,
     id: string,
-    updateAddressDto: UpdateAddressDto,
-  ): Promise<CustomerAddress> {
-    const address = await this.prisma.customerAddress.findFirst({
+    updateSavedAddressDto: UpdateSavedAddressDto,
+  ): Promise<SavedAddress> {
+    const address = await this.prisma.savedAddress.findFirst({
       where: { id, customerId: userId },
+      include: {
+        address: true,
+      },
     });
 
     if (!address) {
@@ -70,41 +94,62 @@ export class AddressService {
     }
 
     // Handle default address changes in a transaction
-    if (updateAddressDto.isDefault) {
-      await this.prisma.customerAddress.updateMany({
+    if (updateSavedAddressDto.isDefault) {
+      await this.prisma.savedAddress.updateMany({
         where: { customerId: userId, isDefault: true },
         data: { isDefault: false },
       });
     }
 
-    return this.prisma.customerAddress.update({
+    const { address: addressData, ...savedAddressData } = updateSavedAddressDto;
+    try {
+    return this.prisma.savedAddress.update({
       where: { id },
-      data: updateAddressDto,
+      data: {
+        ...savedAddressData,
+        address: {
+          update: addressData,
+        },
+      },
     });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          if (target?.includes('unique_name_per_customer')) {
+            throw new BadRequestException('Address name already exists for this customer');
+          }
+        }
+      }
+      throw error;
+    }
   }
 
-  async deleteAddress(userId: string, id: string): Promise<void> {
-    const address = await this.prisma.customerAddress.findFirst({
+  async deleteSavedAddress(userId: string, id: string): Promise<void> {
+    const address = await this.prisma.savedAddress.findFirst({
       where: { id, customerId: userId },
+      include: {
+        address: true,
+      },
     });
 
     if (!address) {
       throw new NotFoundException('Address not found');
     }
 
-    await this.prisma.customerAddress.delete({
+    await this.prisma.savedAddress.delete({
       where: { id },
     });
 
     // If the deleted address was default and other addresses exist, make the most recent one default
     if (address.isDefault) {
-      const remainingAddress = await this.prisma.customerAddress.findFirst({
+      const remainingAddress = await this.prisma.savedAddress.findFirst({
         where: { customerId: userId },
         orderBy: { createdAt: 'desc' },
       });
 
       if (remainingAddress) {
-        await this.prisma.customerAddress.update({
+        await this.prisma.savedAddress.update({
           where: { id: remainingAddress.id },
           data: { isDefault: true },
         });
@@ -112,9 +157,12 @@ export class AddressService {
     }
   }
 
-  async setDefaultAddress(userId: string, id: string): Promise<CustomerAddress> {
-    const address = await this.prisma.customerAddress.findFirst({
+  async setDefaultSavedAddress(userId: string, id: string): Promise<SavedAddress> {
+    const address = await this.prisma.savedAddress.findFirst({
       where: { id, customerId: userId },
+      include: {
+        address: true,
+      },
     });
 
     if (!address) {
@@ -123,21 +171,21 @@ export class AddressService {
 
     // Handle default address change in a transaction
     await this.prisma.$transaction([
-      this.prisma.customerAddress.updateMany({
+      this.prisma.savedAddress.updateMany({
         where: { customerId: userId, isDefault: true },
         data: { isDefault: false },
       }),
-      this.prisma.customerAddress.update({
+      this.prisma.savedAddress.update({
         where: { id },
         data: { isDefault: true },
       }),
     ]);
 
-    return this.getAddressById(userId, id);
+    return this.getSavedAddressById(userId, id);
   }
 
-  async deleteAllAddresses(userId: string): Promise<void> {
-    await this.prisma.customerAddress.deleteMany({
+  async deleteAllSavedAddresses(userId: string): Promise<void> {
+    await this.prisma.savedAddress.deleteMany({
       where: { customerId: userId },
     });
   }

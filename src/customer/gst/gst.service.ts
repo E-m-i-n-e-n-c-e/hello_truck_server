@@ -7,7 +7,7 @@ import { CustomerGstDetails, Prisma } from '@prisma/client';
 export class GstService {
   constructor(private prisma: PrismaService) {}
 
-  async addGstDetails(userId: string, createGstDetailsDto: CreateGstDetailsDto, tx: Prisma.TransactionClient= this.prisma) {
+  async addGstDetails(userId: string, createGstDetailsDto: CreateGstDetailsDto, tx: Prisma.TransactionClient = this.prisma) {
     const existingGst = await tx.customerGstDetails.findUnique({
       where: { gstNumber: createGstDetailsDto.gstNumber }
     });
