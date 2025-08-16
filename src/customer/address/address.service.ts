@@ -33,6 +33,9 @@ export class AddressService {
           create: addressData,
         },
       },
+      include: {
+        address: true,
+      },
     });
 
       return address;
@@ -111,6 +114,9 @@ export class AddressService {
           update: addressData,
         },
       },
+      include: {
+        address: true,
+      },
     });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -182,6 +188,21 @@ export class AddressService {
     ]);
 
     return this.getSavedAddressById(userId, id);
+  }
+
+  async getDefaultSavedAddress(userId: string): Promise<SavedAddress> {
+    const address = await this.prisma.savedAddress.findFirst({
+      where: { customerId: userId, isDefault: true },
+      include: {
+        address: true,
+      },
+    });
+
+    if (!address) {
+      throw new NotFoundException('Default address not found');
+    }
+
+    return address;
   }
 
   async deleteAllSavedAddresses(userId: string): Promise<void> {

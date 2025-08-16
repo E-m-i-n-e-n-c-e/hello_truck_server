@@ -34,6 +34,14 @@ export class CustomerAddressController {
     return this.addressService.getSavedAddresses(userId);
   }
 
+  @Get('default')
+  @Serialize(SavedAddressResponseDto)
+  async getDefaultSavedAddress(
+    @User('userId') userId: string,
+  ): Promise<SavedAddressResponseDto> {
+    return this.addressService.getDefaultSavedAddress(userId);
+  }
+
   @Get(':id')
   @Serialize(SavedAddressResponseDto)
   async getSavedAddressById(
@@ -63,7 +71,7 @@ export class CustomerAddressController {
     return { success: true, message: 'Address deleted successfully' };
   }
 
-  @Post(':id/default')
+  @Post('default/:id')
   @Serialize(SavedAddressResponseDto)
   async setDefaultSavedAddress(
     @User('userId') userId: string,

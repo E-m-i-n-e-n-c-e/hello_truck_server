@@ -26,13 +26,12 @@ export class CreateSavedAddressDto implements Partial<SavedAddress> {
   @IsNotEmpty()
   name: string;
 
-  @IsOptional()
   @IsString()
-  contactName?: string;
+  @IsNotEmpty()
+  contactName: string;
 
-  @IsOptional()
   @IsPhoneNumber('IN')
-  contactPhone?: string;
+  contactPhone: string;
 
   @IsOptional()
   @IsString()

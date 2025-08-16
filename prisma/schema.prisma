@@ -67,8 +67,8 @@ model Address {
 model SavedAddress {
   id             String    @id @default(uuid())
   name           String
-  contactName    String?
-  contactPhone   String?
+  contactName    String
+  contactPhone   String
   noteToDriver   String?
   customerId     String
   customer       Customer  @relation(fields: [customerId], references: [id])
@@ -233,4 +233,3 @@ model DriverAddress {
 
   @@index([driverId])
 }
-
