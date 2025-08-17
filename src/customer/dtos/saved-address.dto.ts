@@ -93,7 +93,7 @@ export class UpdateSavedAddressDto implements Partial<SavedAddress> {
   address?: UpdateAddressDto;
 }
 
-class AddressResponseDto  {
+class AddressResponseDto {
   @Expose()
   formattedAddress: string;
   @Expose()
@@ -117,9 +117,9 @@ export class SavedAddressResponseDto implements SavedAddress {
   @Type(() => AddressResponseDto)
   address?: AddressResponseDto;
   @Expose()
-  contactName: string | null;
+  contactName: string;
   @Expose()
-  contactPhone: string | null;
+  contactPhone: string;
   @Expose()
   noteToDriver: string | null;
   @Expose()

@@ -73,14 +73,6 @@ export class UpdateDriverDocumentsDto {
   ebBillUrl?: string;
 }
 
-export class uploadUrlDto {
-  @IsString()
-  filePath: string;
-
-  @IsString()
-  type: string;
-}
-
 export class DriverDocumentsResponseDto implements DriverDocuments {
   id: string;
   driverId: string;
@@ -116,13 +108,4 @@ export class ExpiryAlertsResponseDto {
   licenseAlert?: string;
   @Expose()
   insuranceAlert?: string;
-}
-
-export class UploadUrlResponseDto {
-  @Expose()
-  signedUrl: string;
-  @Expose()
-  publicUrl: string;
-  @Expose()
-  token: string;
 }

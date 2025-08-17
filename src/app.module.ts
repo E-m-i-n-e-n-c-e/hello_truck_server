@@ -9,6 +9,7 @@ import { CustomerModule } from './customer/customer.module';
 import { TokenModule } from './token/token.module';
 import { CustomThrottlerGuard } from './token/guards/custom-throttler.guard';
 import { DriverModule } from './driver/driver.module';
+import { BookingModule } from './booking/booking.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { DriverModule } from './driver/driver.module';
     TokenModule,
     CustomerModule,
     DriverModule,
+    BookingModule,
   ],
   providers: [ {
     provide: APP_GUARD,

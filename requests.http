@@ -22,7 +22,7 @@ Content-Type: application/json
 ### Create saved address
 POST http://localhost:3000/customer/addresses
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiZDYzZDI3NjItZWJmZi00NTE5LWExOGItMWNiNzI4ODE5NWE4IiwicGhvbmVOdW1iZXIiOiI2MzAwMDQxMTIzIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6ZmFsc2UsImlhdCI6MTc1NTI1OTk3MywiZXhwIjoxNzU1MjYwODczfQ.RGh9dn7BYe5fHs2bMWWJ6Z98XCbTluQ_hX5-Tc3b0nU
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 {
   "name": "Home 1",
@@ -40,12 +40,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 
 ### Get saved addresses
 GET http://localhost:3000/customer/addresses
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiZDYzZDI3NjItZWJmZi00NTE5LWExOGItMWNiNzI4ODE5NWE4IiwicGhvbmVOdW1iZXIiOiI2MzAwMDQxMTIzIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6ZmFsc2UsImlhdCI6MTc1NTI1OTk3MywiZXhwIjoxNzU1MjYwODczfQ.RGh9dn7BYe5fHs2bMWWJ6Z98XCbTluQ_hX5-Tc3b0nU
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 ### Create user profile
 POST http://localhost:3000/customer/profile
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiZDYzZDI3NjItZWJmZi00NTE5LWExOGItMWNiNzI4ODE5NWE4IiwicGhvbmVOdW1iZXIiOiI2MzAwMDQxMTIzIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6ZmFsc2UsImlhdCI6MTc1NTI1OTk3MywiZXhwIjoxNzU1MjYwODczfQ.RGh9dn7BYe5fHs2bMWWJ6Z98XCbTluQ_hX5-Tc3b0nU
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 {
   "firstName": "John",
@@ -59,12 +59,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 }
 ### Get user profile
 GET http://localhost:3000/customer/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiZDYzZDI3NjItZWJmZi00NTE5LWExOGItMWNiNzI4ODE5NWE4IiwicGhvbmVOdW1iZXIiOiI2MzAwMDQxMTIzIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6ZmFsc2UsImlhdCI6MTc1NTI1OTk3MywiZXhwIjoxNzU1MjYwODczfQ.RGh9dn7BYe5fHs2bMWWJ6Z98XCbTluQ_hX5-Tc3b0nU
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 ### Update user profile
 PUT http://localhost:3000/customer/profile
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiNzM0ZDJjMDQtM2ViZC00NTI4LTg1ZmQtNGYxYmRhZmJmMTczIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzUzMjk1NDg1LCJleHAiOjE3NTMyOTYzODV9.F5TC3lWHZS3sBdjPIyB5nNdhQJL1x3f-ZaEP9eMxuw8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 {
   "email": "john.doe@example.com"
@@ -72,12 +72,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 
 ### get gst details
 GET http://localhost:3000/customer/gst/
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRhMWM4YmEtOTA1My00MmEzLWJjZmMtZmU3MzJlMDFlYjA2IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6ZmFsc2UsImlhdCI6MTc1MzM4NzA0MywiZXhwIjoxNzUzMzg3OTQzfQ.jsEU0SpQGI9OwKcWYaIHxbO6b3K6xRr7ajcrCeElzHI
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 ### Add GST details
 POST http://localhost:3000/customer/gst
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRhMWM4YmEtOTA1My00MmEzLWJjZmMtZmU3MzJlMDFlYjA2IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6ZmFsc2UsImlhdCI6MTc1MzM4NzA0MywiZXhwIjoxNzUzMzg3OTQzfQ.jsEU0SpQGI9OwKcWYaIHxbO6b3K6xRr7ajcrCeElzHI
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 {
   "gstNumber": "27AAACF2234C1Z8",
@@ -88,7 +88,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 ### Update GST details
 PUT http://localhost:3000/customer/gst/b394e6f4-e40f-4a5e-a6ca-1cf715c4f95c
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRhMWM4YmEtOTA1My00MmEzLWJjZmMtZmU3MzJlMDFlYjA2IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6ZmFsc2UsImlhdCI6MTc1MzM4NzA0MywiZXhwIjoxNzUzMzg3OTQzfQ.jsEU0SpQGI9OwKcWYaIHxbO6b3K6xRr7ajcrCeElzHI
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 {
 
@@ -100,11 +100,145 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 ### Deactivate GST details
 POST http://localhost:3000/customer/gst/deactivate
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiNzM0ZDJjMDQtM2ViZC00NTI4LTg1ZmQtNGYxYmRhZmJmMTczIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzUzMjk1NDg1LCJleHAiOjE3NTMyOTYzODV9.F5TC3lWHZS3sBdjPIyB5nNdhQJL1x3f-ZaEP9eMxuw8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
 {
   "id": "da41269f-9325-492b-9aad-045432a1003a"
 }
 
+### Get booking estimate with all vehicle options
+POST http://localhost:3000/bookings/customer/estimate
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 
+{
+  "pickupAddress": {
+    "latitude": 19.0760,
+    "longitude": 72.8777,
+    "formattedAddress": "Mumbai, Maharashtra, India"
+  },
+  "dropAddress": {
+    "latitude": 19.2183,
+    "longitude": 72.9781,
+    "formattedAddress": "Thane, Maharashtra, India"
+  },
+  "packageDetails": {
+    "packageType": "PERSONAL",
+    "productType": "NON_AGRICULTURAL",
+    "nonAgricultural": {
+      "averageWeight": 25,
+      "numberOfProducts": 2,
+      "packageDescription": "Electronics package"
+    }
+  }
+}
+
+### Get booking estimate for heavy package (should show limited vehicle options)
+POST http://localhost:3000/bookings/customer/estimate
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+
+{
+  "pickupAddress": {
+    "latitude": 19.0760,
+    "longitude": 72.8777,
+    "formattedAddress": "Mumbai, Maharashtra, India"
+  },
+  "dropAddress": {
+    "latitude": 19.2183,
+    "longitude": 72.9781,
+    "formattedAddress": "Thane, Maharashtra, India"
+  },
+  "packageDetails": {
+    "packageType": "COMMERCIAL",
+    "productType": "AGRICULTURAL",
+    "agricultural": {
+      "productName": "Rice",
+      "approximateWeight": 800,
+      "weightUnit": "KG"
+    }
+  }
+}
+
+### Create a new booking
+POST http://localhost:3000/bookings/customer
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+
+{
+  "pickupAddress": {
+    "latitude": 19.0760,
+    "longitude": 72.8777,
+    "formattedAddress": "Mumbai, Maharashtra, India"
+  },
+  "dropAddress": {
+    "latitude": 19.2183,
+    "longitude": 72.9781,
+    "formattedAddress": "Thane, Maharashtra, India"
+  },
+  "package": {
+    "packageType": "PERSONAL",
+    "productType": "NON_AGRICULTURAL",
+    "nonAgricultural": {
+      "averageWeight": 25,
+      "numberOfProducts": 2,
+      "packageDescription": "Electronics package"
+    }
+  },
+  "selectedVehicleType": "THREE_WHEELER"
+}
+
+### Get active bookings
+GET http://localhost:3000/bookings/customer/active
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+### Get booking history
+GET http://localhost:3000/bookings/customer/history
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+### Get specific booking (replace {bookingId} with actual ID)
+GET http://localhost:3000/bookings/customer/{bookingId}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+### Cancel a booking (replace {bookingId} with actual ID)
+DELETE http://localhost:3000/bookings/customer/{bookingId}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+### Update a booking (replace {bookingId} with actual ID)
+PUT http://localhost:3000/bookings/customer/{bookingId}
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+{
+  "dropAddress": {
+    "latitude": 19.2183,
+    "longitude": 72.9781,
+    "formattedAddress": "Updated Drop Address, Thane, Maharashtra, India"
+  }
+}
+
+### Reschedule a booking (replace {bookingId} with actual ID)
+POST http://localhost:3000/bookings/customer/{bookingId}/reschedule
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+{
+  "scheduledAt": "2024-01-15T10:00:00Z"
+}
+
+### Rate a completed booking (replace {bookingId} with actual ID)
+POST http://localhost:3000/bookings/customer/{bookingId}/rate
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+{
+  "rating": 5,
+  "review": "Excellent service! Driver was very professional and delivered on time."
+}
+
+### Get upload URL for documents
+GET http://localhost:3000/bookings/customer/upload-url?filePath=bookings/documents&type=image
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+### Get booking tracking (replace {bookingId} with actual ID)
+GET http://localhost:3000/bookings/customer/{bookingId}/tracking
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+### Get pending bookings
+GET http://localhost:3000/bookings/customer/pending
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+### Get completed bookings
+GET http://localhost:3000/bookings/customer/completed
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
 

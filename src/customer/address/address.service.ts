@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateSavedAddressDto, UpdateSavedAddressDto } from '../dtos/address.dto';
+import { CreateSavedAddressDto, UpdateSavedAddressDto } from '../dtos/saved-address.dto';
 import { Prisma, SavedAddress } from '@prisma/client';
 
 @Injectable()

@@ -17,6 +17,7 @@ enum VerificationStatus {
 }
 
 enum VehicleType {
+  TWO_WHEELER
   THREE_WHEELER
   FOUR_WHEELER
 }
@@ -33,6 +34,47 @@ enum FuelType {
   CNG
 }
 
+enum PackageType {
+  PERSONAL
+  COMMERCIAL
+}
+
+enum ProductType {
+  AGRICULTURAL
+  NON_AGRICULTURAL
+}
+
+enum WeightUnit {
+  KG
+  QUINTAL
+}
+
+enum DimensionUnit {
+  CM
+  INCHES
+}
+
+enum BookingStatus {
+  PENDING
+  DRIVER_ASSIGNED
+  CONFIRMED
+  PICKUP_ARRIVED
+  PICKUP_VERIFIED
+  IN_TRANSIT
+  DROP_ARRIVED
+  DROP_VERIFIED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum AssignmentStatus {
+  OFFERED
+  ACCEPTED
+  REJECTED
+  AUTO_REJECTED
+}
+
 model Customer {
   id          String   @id @default(uuid())
   phoneNumber String   @unique
@@ -47,6 +89,7 @@ model Customer {
   sessions    CustomerSession[]
   gstDetails  CustomerGstDetails[]
   addresses   SavedAddress[]
+  bookings    Booking[]
 
   @@index([isActive])
 }
@@ -57,9 +100,19 @@ model Address {
   addressDetails   String?
   latitude         Decimal        @db.Decimal(10, 8)
   longitude        Decimal        @db.Decimal(11, 8)
+
+  // Contact fields for bookings
+  contactName      String?
+  contactPhone     String?
+  noteToDriver     String?
+
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+
+  // Relations
   savedAddresses   SavedAddress[]
+  pickupBookings   Booking[]      @relation("PickupAddress")
+  dropBookings     Booking[]      @relation("DropAddress")
 
   @@index([latitude, longitude])
 }
@@ -143,6 +196,8 @@ model Driver {
   address            DriverAddress?
   documents          DriverDocuments?
   vehicle            Vehicle?
+  bookings           Booking[]
+  assignments        BookingAssignment[]
 
   @@index([isActive, verificationStatus])
 }
@@ -232,4 +287,96 @@ model DriverAddress {
   updatedAt     DateTime  @updatedAt
 
   @@index([driverId])
+}
+
+model Package {
+  id                    String             @id @default(uuid())
+
+  // Package Type
+  packageType          PackageType         @default(PERSONAL)
+  productType          ProductType
+
+  // Agricultural Product Fields
+  productName          String?
+  approximateWeight    Decimal?            @db.Decimal(10,2)
+  weightUnit           WeightUnit          @default(KG)
+
+  // Non-Agricultural Product Fields
+  averageWeight        Decimal?            @db.Decimal(10,2)
+  bundleWeight         Decimal?            @db.Decimal(10,2)
+  numberOfProducts     Int?
+  length               Decimal?            @db.Decimal(10,2)
+  width                Decimal?            @db.Decimal(10,2)
+  height               Decimal?            @db.Decimal(10,2)
+  dimensionUnit        DimensionUnit?      @default(CM)
+  description          String?
+  packageImageUrl      String?
+
+  // Commercial Use Documents
+  gstBillUrl           String?
+  transportDocUrls     String[]
+
+  // Relations
+  bookings             Booking[]
+
+  // Timestamps
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+}
+
+model Booking {
+  id                    String              @id @default(uuid())
+  customerId           String
+  customer             Customer            @relation(fields: [customerId], references: [id])
+
+  // Package Details
+  packageId            String
+  package              Package             @relation(fields: [packageId], references: [id])
+
+  // Address References (with contact info embedded)
+  pickupAddressId      String
+  pickupAddress        Address             @relation("PickupAddress", fields: [pickupAddressId], references: [id])
+  dropAddressId        String
+  dropAddress          Address             @relation("DropAddress", fields: [dropAddressId], references: [id])
+
+  // Pricing & Route
+  estimatedCost        Decimal             @db.Decimal(10,2)
+  finalCost            Decimal?            @db.Decimal(10,2)
+  distanceKm           Decimal             @db.Decimal(10,2)
+  baseFare             Decimal             @db.Decimal(10,2)
+  distanceCharge       Decimal             @db.Decimal(10,2)
+  weightMultiplier     Decimal             @db.Decimal(3,2) @default(1.0)
+  vehicleMultiplier    Decimal             @db.Decimal(3,2) @default(1.0)
+  suggestedVehicleType VehicleType
+
+  // Booking Status & Assignment
+  status               BookingStatus       @default(PENDING)
+  assignments          BookingAssignment[]
+  assignedDriver       Driver?             @relation(fields: [assignedDriverId], references: [id])
+  assignedDriverId     String?
+
+  // Timestamps
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  scheduledAt          DateTime?
+
+  @@index([customerId, status])
+  @@index([assignedDriverId, status])
+  @@index([status, createdAt])
+}
+
+model BookingAssignment {
+  id          String            @id @default(uuid())
+  bookingId   String
+  booking     Booking           @relation(fields: [bookingId], references: [id])
+  driverId    String
+  driver      Driver            @relation(fields: [driverId], references: [id])
+  status      AssignmentStatus  @default(OFFERED)
+  offeredAt   DateTime          @default(now())
+  respondedAt DateTime?
+
+  @@unique([bookingId, driverId])
+  @@index([bookingId, status])
+  @@index([driverId, status])
+  @@index([status, offeredAt])
 }

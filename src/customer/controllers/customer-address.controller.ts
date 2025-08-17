@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { User } from 'src/token/decorators/user.decorator';
-import { CreateSavedAddressDto, UpdateSavedAddressDto, SavedAddressResponseDto } from '../dtos/address.dto';
+import { CreateSavedAddressDto, UpdateSavedAddressDto, SavedAddressResponseDto } from '../dtos/saved-address.dto';
 import { AddressService } from '../address/address.service';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { seconds } from '@nestjs/throttler';
