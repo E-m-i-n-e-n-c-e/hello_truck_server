@@ -27,11 +27,11 @@ export class BookingResponseDto {
   @Expose()
   id: string;
   @Expose()
-  pickupAddress?: BookingAddressResponseDto;
+  pickupAddress: BookingAddressResponseDto;
   @Expose()
-  dropAddress?: BookingAddressResponseDto;
+  dropAddress: BookingAddressResponseDto;
   @Expose()
-  package?: PackageDetailsResponseDto;
+  package: PackageDetailsResponseDto;
   @Expose()
   estimatedCost: number;
   @Expose()

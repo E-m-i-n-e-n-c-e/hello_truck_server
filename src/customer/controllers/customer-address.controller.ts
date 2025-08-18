@@ -22,7 +22,7 @@ export class CustomerAddressController {
   async createSavedAddress(
     @User('userId') userId: string,
     @Body() createSavedAddressDto: CreateSavedAddressDto,
-  ): Promise<SavedAddressResponseDto> {
+  )  {
     return this.addressService.createSavedAddress(userId, createSavedAddressDto);
   }
 
@@ -30,7 +30,7 @@ export class CustomerAddressController {
   @Serialize(SavedAddressResponseDto)
   async getSavedAddresses(
     @User('userId') userId: string,
-  ): Promise<SavedAddressResponseDto[]> {
+  ) {
     return this.addressService.getSavedAddresses(userId);
   }
 
@@ -38,7 +38,7 @@ export class CustomerAddressController {
   @Serialize(SavedAddressResponseDto)
   async getDefaultSavedAddress(
     @User('userId') userId: string,
-  ): Promise<SavedAddressResponseDto> {
+  ) {
     return this.addressService.getDefaultSavedAddress(userId);
   }
 
@@ -47,7 +47,7 @@ export class CustomerAddressController {
   async getSavedAddressById(
     @User('userId') userId: string,
     @Param('id') id: string,
-  ): Promise<SavedAddressResponseDto> {
+  ) {
     return this.addressService.getSavedAddressById(userId, id);
   }
 
@@ -57,7 +57,7 @@ export class CustomerAddressController {
     @User('userId') userId: string,
     @Param('id') id: string,
     @Body() updateSavedAddressDto: UpdateSavedAddressDto,
-  ): Promise<SavedAddressResponseDto> {
+  ) {
     return this.addressService.updateSavedAddress(userId, id, updateSavedAddressDto);
   }
 
@@ -69,14 +69,5 @@ export class CustomerAddressController {
   ): Promise<SuccessResponseDto> {
     await this.addressService.deleteSavedAddress(userId, id);
     return { success: true, message: 'Address deleted successfully' };
-  }
-
-  @Post('default/:id')
-  @Serialize(SavedAddressResponseDto)
-  async setDefaultSavedAddress(
-    @User('userId') userId: string,
-    @Param('id') id: string,
-  ): Promise<SavedAddressResponseDto> {
-    return this.addressService.setDefaultSavedAddress(userId, id);
   }
 }

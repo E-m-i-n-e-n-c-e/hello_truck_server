@@ -115,7 +115,7 @@ export class SavedAddressResponseDto implements SavedAddress {
   name: string;
   @Expose()
   @Type(() => AddressResponseDto)
-  address?: AddressResponseDto;
+  address: AddressResponseDto;
   @Expose()
   contactName: string;
   @Expose()
