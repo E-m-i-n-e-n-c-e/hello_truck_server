@@ -8,26 +8,39 @@ export class PricingService {
   private readonly BASE_FARE = 100.00;
   private readonly PER_KM_RATE = 50.00;
 
-  // Weight multipliers based on actual weight ranges
-  private getWeightMultiplier(totalWeightInKg: number): number {
-    if (totalWeightInKg <= 50) return 1.0;      // Light packages
-    if (totalWeightInKg <= 200) return 1.1;     // Medium packages
-    if (totalWeightInKg <= 500) return 1.2;     // Heavy packages
-    return 1.5;                                 // Very heavy packages
+  // Distance-based pricing tiers for better competitiveness
+  private getDistanceMultiplier(distanceKm: number): number {
+    if (distanceKm <= 5) return 1.0;      // Local delivery
+    if (distanceKm <= 15) return 0.95;    // Short distance discount
+    if (distanceKm <= 50) return 0.90;    // Medium distance discount
+    if (distanceKm <= 100) return 0.85;   // Long distance discount
+    return 0.80;                          // Very long distance discount
   }
 
-  // Vehicle type multipliers
+  // Weight multipliers based on actual weight ranges - more granular
+  private getWeightMultiplier(totalWeightInKg: number): number {
+    if (totalWeightInKg <= 10) return 1.0;     // Very light packages
+    if (totalWeightInKg <= 25) return 1.05;    // Light packages
+    if (totalWeightInKg <= 50) return 1.1;     // Medium-light packages
+    if (totalWeightInKg <= 100) return 1.15;   // Medium packages
+    if (totalWeightInKg <= 200) return 1.25;   // Medium-heavy packages
+    if (totalWeightInKg <= 500) return 1.4;    // Heavy packages
+    if (totalWeightInKg <= 1000) return 1.6;   // Very heavy packages
+    return 1.8;                                // Extremely heavy packages
+  }
+
+  // Vehicle type multipliers - more realistic pricing
   private readonly VEHICLE_MULTIPLIERS = {
-    [VehicleType.TWO_WHEELER]: 1.0,
-    [VehicleType.THREE_WHEELER]: 1.2,
-    [VehicleType.FOUR_WHEELER]: 1.5,
+    [VehicleType.TWO_WHEELER]: 0.8,    // Most economical
+    [VehicleType.THREE_WHEELER]: 1.0,  // Standard pricing
+    [VehicleType.FOUR_WHEELER]: 1.3,   // Premium service
   };
 
-  // Weight limits for each vehicle type (in KG)
+  // Weight limits for each vehicle type (in KG) - more realistic
   private readonly WEIGHT_LIMITS = {
-    [VehicleType.TWO_WHEELER]: 50,
-    [VehicleType.THREE_WHEELER]: 500,
-    [VehicleType.FOUR_WHEELER]: 2000,
+    [VehicleType.TWO_WHEELER]: 25,     // Reduced for safety
+    [VehicleType.THREE_WHEELER]: 300,  // More realistic limit
+    [VehicleType.FOUR_WHEELER]: 1500,  // Realistic truck capacity
   };
 
   /**
@@ -68,10 +81,10 @@ export class PricingService {
       totalWeightInKg = totalWeightInKg * numberOfProducts;
     }
 
-    // Suggest vehicle based on weight
-    if (totalWeightInKg <= 50) {
+    // Suggest vehicle based on weight with safety margins
+    if (totalWeightInKg <= 10) {
       return VehicleType.TWO_WHEELER;
-    } else if (totalWeightInKg <= 500) {
+    } else if (totalWeightInKg <= 50) {
       return VehicleType.THREE_WHEELER;
     } else {
       return VehicleType.FOUR_WHEELER;

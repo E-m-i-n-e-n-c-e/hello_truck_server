@@ -75,6 +75,13 @@ enum AssignmentStatus {
   AUTO_REJECTED
 }
 
+enum DriverStatus {
+  AVAILABLE
+  ONLINE
+  OFFLINE
+  ON_RIDE
+}
+
 model Customer {
   id          String   @id @default(uuid())
   phoneNumber String   @unique
@@ -188,8 +195,10 @@ model Driver {
   photo              String?
   contactId          String?
   fundAccountId      String?
+  score              Int                @default(0)
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
+  driverStatus       DriverStatus       @default(OFFLINE)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   sessions           DriverSession[]
@@ -198,6 +207,7 @@ model Driver {
   vehicle            Vehicle?
   bookings           Booking[]
   assignments        BookingAssignment[]
+  statusLogs         DriverStatusLog[]
 
   @@index([isActive, verificationStatus])
 }
@@ -287,6 +297,17 @@ model DriverAddress {
   updatedAt     DateTime  @updatedAt
 
   @@index([driverId])
+}
+
+model DriverStatusLog {
+  id                String   @id @default(uuid())
+  driverId          String
+  driver            Driver   @relation(fields: [driverId], references: [id])
+  status            DriverStatus
+  statusChangedAt   DateTime @default(now())
+
+  @@index([driverId, status])
+  @@index([statusChangedAt])
 }
 
 model Package {

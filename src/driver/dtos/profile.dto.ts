@@ -1,7 +1,7 @@
-import { $Enums, Driver, DriverDocuments, Vehicle } from "@prisma/client";
+import { $Enums, Driver, DriverDocuments, DriverStatus, DriverStatusLog, Vehicle } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
-import { IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
-import { CreateDriverDocumentsDto } from "./documents.dto";
+import { IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
+import { CreateDriverDocumentsDto, DriverDocumentsResponseDto } from "./documents.dto";
 import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
 import { CreateAddressDto } from "./address.dto";
@@ -19,6 +19,7 @@ export class GetQueryDto {
 
 export class CreateDriverProfileDto {
   @IsString()
+  @IsNotEmpty()
   firstName: string;
 
   @IsString()
@@ -97,6 +98,7 @@ export class ProfileResponseDto implements Driver {
   isActive: boolean;
   contactId: string | null;
   fundAccountId: string | null;
+  driverStatus: $Enums.DriverStatus;
 
   @Expose()
   phoneNumber: string;
@@ -119,8 +121,15 @@ export class ProfileResponseDto implements Driver {
   @Expose()
   updatedAt: Date;
   @Expose()
-  documents: DriverDocuments | null;
+  @Type(() => DriverDocumentsResponseDto)
+  documents: DriverDocumentsResponseDto | null;
   @Expose()
   vehicle: Vehicle | null;
+  @Expose()
+  score: number;
 }
 
+export class UpdateDriverStatusDto implements Partial<DriverStatusLog> {
+  @IsEnum(DriverStatus)
+  status: DriverStatus;
+}

@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/auth/firebase/firebase.service';
 import { UpdateProfileDto, CreateDriverProfileDto } from '../dtos/profile.dto';
-import { Driver } from '@prisma/client';
+import { Driver, DriverStatus } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { AddressService } from '../address/address.service';
@@ -71,12 +71,12 @@ export class ProfileService {
 
       // Create vehicle if provided
       if (vehicle) {
-        await this.vehicleService.createVehicle(userId, vehicle);
+        await this.vehicleService.createVehicle(userId, vehicle, tx);
       }
 
       // Create address if provided
       if (address) {
-        await this.addressService.createAddress(userId, address);
+        await this.addressService.createAddress(userId, address, tx);
       }
 
       // Create payout details if provided
@@ -125,7 +125,7 @@ export class ProfileService {
 
     // Create payout details if provided
     let contactId: string | null = null;
-    let fundAccountId: string | null = null;
+    let fundAccountId: string | null = null
     if (payoutDetails) {
       const driverName = profileData.lastName
         ? `${profileData.firstName} ${profileData.lastName}`
@@ -145,5 +145,25 @@ export class ProfileService {
     });
 
     return { success: true, message: 'Profile updated successfully' };
+  }
+
+  async updateDriverStatus(userId: string, status: DriverStatus) {
+    await this.prisma.$transaction(async (tx) => {
+      // Update the driver's status
+      await tx.driver.update({
+        where: { id: userId },
+        data: { driverStatus: status },
+      });
+
+      // Log the status change
+      await tx.driverStatusLog.create({
+        data: {
+          driverId: userId,
+          status: status,
+        },
+      });
+    });
+
+    return { success: true, message: 'Driver status updated successfully' };
   }
 }

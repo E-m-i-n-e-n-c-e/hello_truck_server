@@ -6,7 +6,7 @@ import { RolesGuard } from 'src/token/guards/roles.guard';
 import { ProfileService } from '../profile/profile.service';
 import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto } from '../dtos/profile.dto';
+import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto, UpdateDriverStatusDto } from '../dtos/profile.dto';
 
 @Controller('driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -37,5 +37,13 @@ export class DriverProfileController {
   ) {
     return this.profileService.updateProfile(userId, updateProfileDto);
   }
-}
 
+  @Put('status')
+  @Serialize(SuccessResponseDto)
+  async updateDriverStatus(
+    @User('userId') userId: string,
+    @Body() updateDriverStatusDto: UpdateDriverStatusDto,
+  ) {
+    return this.profileService.updateDriverStatus(userId, updateDriverStatusDto.status);
+  }
+}

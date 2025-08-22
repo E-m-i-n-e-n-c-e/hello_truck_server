@@ -2,16 +2,17 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateVehicleDto, UpdateVehicleDto} from '../dtos/vehicle.dto';
 import { CreateVehicleOwnerDto, UpdateVehicleOwnerDto } from '../dtos/vehicle-owner.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class VehicleService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createVehicle(driverId: string, createVehicleDto: CreateVehicleDto) {
+  async createVehicle(driverId: string, createVehicleDto: CreateVehicleDto, tx: Prisma.TransactionClient = this.prisma) {
     const { owner, ...vehicleData } = createVehicleDto;
 
     // Check if vehicle already exists for this driver
-    const existingVehicle = await this.prisma.vehicle.findUnique({
+    const existingVehicle = await tx.vehicle.findUnique({
       where: { driverId },
     });
 
@@ -20,7 +21,7 @@ export class VehicleService {
     }
 
     // Check if vehicle number is already taken
-    const existingVehicleNumber = await this.prisma.vehicle.findUnique({
+    const existingVehicleNumber = await tx.vehicle.findUnique({
       where: { vehicleNumber: vehicleData.vehicleNumber },
     });
 
@@ -28,7 +29,6 @@ export class VehicleService {
       throw new BadRequestException('Vehicle number already exists');
     }
 
-    return await this.prisma.$transaction(async (tx) => {
       // Create vehicle
       const vehicle = await tx.vehicle.create({
         data: {
@@ -51,7 +51,6 @@ export class VehicleService {
       }
 
       return vehicle;
-    });
   }
 
   async updateVehicle(driverId: string, updateVehicleDto: UpdateVehicleDto) {
