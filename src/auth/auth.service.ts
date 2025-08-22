@@ -11,14 +11,13 @@ export class AuthService {
     private prisma: PrismaService,
     private otpService: OtpService,
     private tokenService: TokenService,
-  ) {}
+  ) { }
 
   async sendOtp(phoneNumber: string) {
     return this.otpService.sendOtp(phoneNumber);
   }
 
-  async verifyCustomerOtp(verifyOtpDto: VerifyOtpDto) {
-    const { phoneNumber, otp, staleRefreshToken } = verifyOtpDto;
+  async verifyCustomerOtp(verifyOtpDto: VerifyOtpDto) {const { phoneNumber, otp, staleRefreshToken, fcmToken } = verifyOtpDto;
 
     await this.otpService.verifyOtp(phoneNumber, otp);
 
@@ -32,8 +31,10 @@ export class AuthService {
       });
     }
 
-    const accessToken = await this.tokenService.generateAccessToken(customer, 'customer');
-    const newRefreshToken = await this.tokenService.generateRefreshToken(customer.id, 'customer', staleRefreshToken);
+    const newRefreshToken = await this.tokenService.generateRefreshToken(customer.id, 'customer', staleRefreshToken, fcmToken);
+    const sessionsId = newRefreshToken.split('.', 2)[0];
+    const accessToken = await this.tokenService.generateAccessToken(customer, 'customer', sessionsId);
+
     return { accessToken, refreshToken: newRefreshToken };
   }
 
@@ -65,8 +66,10 @@ export class AuthService {
       });
     }
 
-    const accessToken = await this.tokenService.generateAccessToken(driver, 'driver');
     const newRefreshToken = await this.tokenService.generateRefreshToken(driver.id, 'driver', staleRefreshToken);
+    const sessionsId = newRefreshToken.split('.', 2)[0];
+    const accessToken = await this.tokenService.generateAccessToken(driver, 'driver', sessionsId);
+
     return { accessToken, refreshToken: newRefreshToken };
   }
 

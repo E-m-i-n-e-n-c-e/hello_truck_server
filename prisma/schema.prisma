@@ -168,7 +168,13 @@ model CustomerSession {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // FCM & device metadata
+  fcmToken        String?
+  lastNotifiedAt  DateTime?
+
   @@index([expiresAt])
+  @@index([customerId])
+  @@index([fcmToken])
 }
 
 model OtpVerification {
@@ -244,7 +250,13 @@ model DriverSession {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // FCM & device metadata
+  fcmToken        String?
+  lastNotifiedAt  DateTime?
+
   @@index([expiresAt])
+  @@index([driverId])
+  @@index([fcmToken])
 }
 
 model Vehicle {

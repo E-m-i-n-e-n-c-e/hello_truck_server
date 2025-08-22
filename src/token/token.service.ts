@@ -8,27 +8,29 @@ import { UserType, User, UserToken } from 'src/common/types/user-session.types';
 export class TokenService {
   constructor(private sessionService: SessionService, private jwtService: JwtService) {}
 
-  async generateAccessToken(user: User, userType: UserType): Promise<string> {
+  async generateAccessToken(user: User, userType: UserType, sessionId: string): Promise<string> {
     const hasCompletedOnboarding = user.firstName !== null;
     const accessToken = await this.jwtService.signAsync({
       userType,
       userId: user.id,
       phoneNumber: user.phoneNumber,
       hasCompletedOnboarding,
+      sessionId,
     });
 
     return accessToken;
   }
 
-  async generateRefreshToken(userId: string, userType: UserType, staleRefreshToken?: string): Promise<string> {
+  async generateRefreshToken(userId: string, userType: UserType, staleRefreshToken?: string, fcmToken?: string): Promise<string> {
     // If a stale refresh token is provided, delete the session
     if (staleRefreshToken) {
       await this.sessionService.deleteSession(staleRefreshToken.split('.', 2)[0], userType);
     }
     // Create a new session
-    const session = await this.sessionService.createSession(userId, userType);
+    const session = await this.sessionService.createSession(userId, userType, fcmToken);
 
-    return `${session.id}.${session.token}`;
+    const refreshToken = `${session.id}.${session.token}`;
+    return refreshToken;
   }
 
   async refreshAccessToken(refreshToken: string, userType: UserType): Promise<{ accessToken: string; refreshToken: string}> {
@@ -60,7 +62,7 @@ export class TokenService {
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // Extend 30 days
     });
 
-    const accessToken = await this.generateAccessToken(session.user, userType);
+    const accessToken = await this.generateAccessToken(session.user, userType, session.id);
 
     return {
       accessToken,

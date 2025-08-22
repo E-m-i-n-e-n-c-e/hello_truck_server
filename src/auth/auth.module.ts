@@ -6,14 +6,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuthGateway } from './auth.gateway';
 import { OtpModule } from './otp/otp.module';
 import { TokenModule } from '../token/token.module';
-import { FirebaseModule } from './firebase/firebase.module';
 
 @Module({
   imports: [
     PrismaModule,
     OtpModule,
     TokenModule,
-    FirebaseModule,
   ],
   controllers: [CustomerAuthController, DriverAuthController],
   providers: [AuthService, AuthGateway],

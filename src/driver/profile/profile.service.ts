@@ -166,4 +166,8 @@ export class ProfileService {
 
     return { success: true, message: 'Driver status updated successfully' };
   }
+
+  async upsertFcmToken(sessionId: string, fcmToken: string) {
+    await this.firebaseService.upsertFcmToken({sessionId, fcmToken, userType: 'driver'});
+  }
 }

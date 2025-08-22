@@ -2,12 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as crypto from 'crypto';
 import { UserType, Session, SessionWithUser } from 'src/common/types/user-session.types';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class SessionService {
   constructor(private prisma: PrismaService) {}
 
-  async createSession(userId: string, userType: UserType): Promise<Session> {
+  async createSession(userId: string, userType: UserType, fcmToken?: string): Promise<Session> {
     const token = crypto.randomBytes(64).toString('hex');
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
 
@@ -17,6 +18,7 @@ export class SessionService {
           customerId: userId,
           token,
           expiresAt,
+          fcmToken,
         },
       });
       return session;
@@ -26,6 +28,7 @@ export class SessionService {
           driverId: userId,
           token,
           expiresAt,
+          fcmToken,
         },
       });
       return session;
@@ -50,6 +53,16 @@ export class SessionService {
     }
   }
 
+  async findSessionsByUserId(userId: string, userType: UserType): Promise<SessionWithUser[]> {
+    if (userType === 'customer') {
+      const sessions = await this.prisma.customerSession.findMany({ where: { customerId: userId }, include: { customer: true } });
+      return sessions.map(session => ({ ...session, user: session.customer }));
+    } else {
+      const sessions = await this.prisma.driverSession.findMany({ where: { driverId: userId }, include: { driver: true } });
+      return sessions.map(session => ({ ...session, user: session.driver }));
+    }
+  }
+
   async updateSession(sessionId: string, userType: UserType, data: Partial<Session>): Promise<void> {
     if (userType === 'customer') {
       await this.prisma.customerSession.updateMany({ where: { id: sessionId }, data });
@@ -57,6 +70,15 @@ export class SessionService {
       await this.prisma.driverSession.updateMany({ where: { id: sessionId }, data });
     }
   }
+
+  async updateSessionsByUserId(userId: string, userType: UserType, data: Partial<Session>): Promise<void> {
+    if (userType === 'customer') {
+      await this.prisma.customerSession.updateMany({ where: { customerId: userId }, data });
+    } else {
+      await this.prisma.driverSession.updateMany({ where: { driverId: userId }, data });
+    }
+  }
+
 
   async deleteSession(sessionId: string, userType: UserType): Promise<void> {
     if (userType === 'customer') {

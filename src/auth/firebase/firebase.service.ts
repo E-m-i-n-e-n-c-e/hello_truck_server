@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { OAuth2Client } from 'google-auth-library';
 import { v4 as uuidv4 } from 'uuid';
+import { UserType } from 'src/common/types/user-session.types';
+import { SessionService } from 'src/token/session/session.service';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -10,7 +12,7 @@ export class FirebaseService implements OnModuleInit {
   private app: admin.app.App;
   private googleClient: OAuth2Client;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService, private sessionService: SessionService) {}
 
   async onModuleInit() {
     try {
@@ -119,5 +121,49 @@ export class FirebaseService implements OnModuleInit {
       throw new BadRequestException('Email not verified or not found');
     }
     return googleData.email;
+  }
+
+  async upsertFcmToken(params: {
+    sessionId: string;
+    fcmToken: string;
+    userType: UserType;
+  }) {
+    const { sessionId, fcmToken, userType } = params;
+
+    await this.sessionService.updateSession(sessionId, userType, { fcmToken });
+  }
+
+  async sendNotification(token: string, payload: admin.messaging.MessagingPayload) {
+    return this.app.messaging().send({
+      token,
+      notification: payload.notification,
+      data: payload.data,
+    });
+  }
+
+  async notify(userId: string, userType: UserType, payload: admin.messaging.MessagingPayload) {
+    const sessions = await this.sessionService.findSessionsByUserId(userId, userType);
+
+    if (sessions.length === 0) return { successCount: 0, failureCount: 0 };
+
+    const tokens = sessions.map(s => s.fcmToken!) as string[];
+
+    const res = await this.app.messaging().sendEachForMulticast({
+      tokens,
+      notification: payload.notification,
+      data: payload.data,
+    });
+
+    await this.sessionService.updateSessionsByUserId(userId, userType, { lastNotifiedAt: new Date() });
+
+    return res;
+  }
+
+  async subscribeToTopic(token: string, topic: string) {
+    return this.app.messaging().subscribeToTopic(token, topic);
+  }
+
+  async unsubscribeFromTopic(token: string, topic: string) {
+    return this.app.messaging().unsubscribeFromTopic(token, topic);
   }
 }

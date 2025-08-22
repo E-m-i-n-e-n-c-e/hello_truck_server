@@ -7,6 +7,7 @@ import { ProfileService } from '../profile/profile.service';
 import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto, UpdateDriverStatusDto } from '../dtos/profile.dto';
+import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
 
 @Controller('driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -45,5 +46,14 @@ export class DriverProfileController {
     @Body() updateDriverStatusDto: UpdateDriverStatusDto,
   ) {
     return this.profileService.updateDriverStatus(userId, updateDriverStatusDto.status);
+  }
+
+  @Put('fcm-token')
+  @Serialize(SuccessResponseDto)
+  async upsertFcmToken(
+    @User('sessionId') sessionId: string,
+    @Body() upsertFcmTokenDto: UsertFcmTokenDto,
+  ) {
+    return this.profileService.upsertFcmToken(sessionId, upsertFcmTokenDto.fcmToken);
   }
 }

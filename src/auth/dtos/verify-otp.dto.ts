@@ -14,4 +14,8 @@ export class VerifyOtpDto {
   @IsOptional()
   @IsString()
   staleRefreshToken?: string;
+
+  @IsOptional()
+  @IsString()
+  fcmToken?: string;
 }

@@ -85,4 +85,8 @@ export class ProfileService {
     });
     return {success:true, message:'Profile created successfully'};
   }
+
+  async upsertFcmToken(sessionId: string, fcmToken: string) {
+    await this.firebaseService.upsertFcmToken({sessionId, fcmToken, userType: 'customer'});
+  }
 }

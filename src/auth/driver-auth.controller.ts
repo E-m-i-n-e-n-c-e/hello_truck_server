@@ -27,7 +27,7 @@ export class DriverAuthController {
     return this.authService.verifyDriverOtp(body);
   }
 
-  @Throttle({ default: { ttl: seconds(60), limit: 20 } })
+  @Throttle({ default: { ttl: seconds(60), limit: 40 } })
   @Post('logout')
   @Serialize(SuccessResponseDto)
   @HttpCode(HttpStatus.OK)
@@ -35,7 +35,7 @@ export class DriverAuthController {
     return this.authService.logoutDriver(body.refreshToken);
   }
 
-  @Throttle({ default: { ttl: seconds(60), limit: 20 } })
+  @Throttle({ default: { ttl: seconds(60), limit: 40 } })
   @Post('refresh-token')
   @Serialize(TokenResponseDto)
   @HttpCode(HttpStatus.OK)

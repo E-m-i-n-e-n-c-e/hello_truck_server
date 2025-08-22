@@ -8,6 +8,7 @@ import { seconds, Throttle } from '@nestjs/throttler';
 import { ProfileService } from '../profile/profile.service';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
+import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
 
 @Controller('customer/profile')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -40,5 +41,14 @@ export class CustomerProfileController {
     @Body() createProfileDto: CreateProfileDto,
   ): Promise<SuccessResponseDto> {
     return this.profileService.createProfile(userId, createProfileDto);
+  }
+
+  @Put('fcm-token')
+  @Serialize(SuccessResponseDto)
+  async upsertFcmToken(
+    @User('sessionId') sessionId: string,
+    @Body() upsertFcmTokenDto: UsertFcmTokenDto,
+  ) {
+    return this.profileService.upsertFcmToken(sessionId, upsertFcmTokenDto.fcmToken);
   }
 }
