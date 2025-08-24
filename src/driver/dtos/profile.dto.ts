@@ -1,11 +1,12 @@
-import { $Enums, Driver, DriverDocuments, DriverStatus, DriverStatusLog, Vehicle } from "@prisma/client";
+import { $Enums, Driver, DriverStatus, DriverStatusLog, Vehicle } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
-import { IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
+import { IsBoolean, IsEnum, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
 import { CreateDriverDocumentsDto, DriverDocumentsResponseDto } from "./documents.dto";
 import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
 import { CreateAddressDto } from "./address.dto";
 import { CreatePayoutDetailsDto, UpdatePayoutDetailsDto } from "src/razorpay/dtos/payout-details.dto";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export class GetQueryDto {
   @ToBoolean()
@@ -99,6 +100,9 @@ export class ProfileResponseDto implements Driver {
   contactId: string | null;
   fundAccountId: string | null;
   driverStatus: $Enums.DriverStatus;
+  latitude: Decimal | null;
+  longitude: Decimal | null;
+  lastSeenAt: Date | null;
 
   @Expose()
   phoneNumber: string;
@@ -132,4 +136,12 @@ export class ProfileResponseDto implements Driver {
 export class UpdateDriverStatusDto implements Partial<DriverStatusLog> {
   @IsEnum(DriverStatus)
   status: DriverStatus;
+}
+
+export class UpdateLocationDto implements Partial<Driver> {
+  @IsLatitude()
+  latitude: Decimal;
+
+  @IsLongitude()
+  longitude: Decimal;
 }

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/auth/firebase/firebase.service';
-import { UpdateProfileDto, CreateDriverProfileDto } from '../dtos/profile.dto';
+import { UpdateProfileDto, CreateDriverProfileDto, UpdateLocationDto } from '../dtos/profile.dto';
 import { Driver, DriverStatus } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
@@ -169,5 +169,12 @@ export class ProfileService {
 
   async upsertFcmToken(sessionId: string, fcmToken: string) {
     await this.firebaseService.upsertFcmToken({sessionId, fcmToken, userType: 'driver'});
+  }
+
+  async updateLocation(userId: string, updateLocationDto: UpdateLocationDto) {
+    await this.prisma.driver.update({
+      where: { id: userId },
+      data: { latitude: updateLocationDto.latitude, longitude: updateLocationDto.longitude, lastSeenAt: new Date() },
+    });
   }
 }

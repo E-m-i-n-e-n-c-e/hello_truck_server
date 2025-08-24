@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { DriverStatus } from '@prisma/client';
 
 @Injectable()
 export class CronService {
@@ -32,5 +33,16 @@ export class CronService {
       },
     });
     console.log(`Cleaned up ${result.count} expired sessions`);
+  }
+
+  // Reset all drivers to unavailable every day at midnight
+  @Cron('0 0 * * *')
+  async resetDriverAvailability() {
+    const result = await this.prisma.driver.updateMany({
+      data: {
+        driverStatus: DriverStatus.UNAVAILABLE
+      }
+    });
+    console.log(`Reset ${result.count} drivers to UNAVAILABLE at midnight`);
   }
 }

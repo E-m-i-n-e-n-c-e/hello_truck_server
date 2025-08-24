@@ -77,9 +77,26 @@ enum AssignmentStatus {
 
 enum DriverStatus {
   AVAILABLE
-  ONLINE
-  OFFLINE
+  UNAVAILABLE
   ON_RIDE
+  RIDE_OFFERED
+}
+
+enum LifecycleEventType {
+  PICKUP_ARRIVED
+  PICKUP_VERIFIED
+  IN_TRANSIT
+  DROP_ARRIVED
+  DROP_VERIFIED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum ReferralStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 model Customer {
@@ -97,6 +114,8 @@ model Customer {
   gstDetails  CustomerGstDetails[]
   addresses   SavedAddress[]
   bookings    Booking[]
+  referrals   CustomerReferral[] @relation("ReferredBy")
+  referredBy  CustomerReferral[] @relation("ReferredCustomer")
 
   @@index([isActive])
 }
@@ -177,6 +196,21 @@ model CustomerSession {
   @@index([fcmToken])
 }
 
+model CustomerReferral {
+  id                  String         @id @default(uuid())
+  referredById        String
+  referredBy          Customer       @relation("ReferredBy", fields: [referredById], references: [id])
+  referredCustomerId  String
+  referredCustomer    Customer       @relation("ReferredCustomer", fields: [referredCustomerId], references: [id])
+  referralCodeUsed    String
+  referralStatus      ReferralStatus @default(PENDING)
+  rewardAmount        Decimal?       @db.Decimal(10,2)
+  createdAt           DateTime       @default(now())
+
+  @@unique([referredById, referredCustomerId])
+  @@index([referralStatus])
+}
+
 model OtpVerification {
   id          String   @id @default(uuid())
   phoneNumber String
@@ -188,6 +222,7 @@ model OtpVerification {
 
   @@index([phoneNumber, verified, expiresAt, createdAt])
   @@index([expiresAt])
+  @@index([phoneNumber, verified])
 }
 
 model Driver {
@@ -202,11 +237,16 @@ model Driver {
   contactId          String?
   fundAccountId      String?
   score              Int                @default(0)
+  latitude           Decimal?           @db.Decimal(10, 8)
+  longitude          Decimal?           @db.Decimal(11, 8)
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
-  driverStatus       DriverStatus       @default(OFFLINE)
+  driverStatus       DriverStatus       @default(UNAVAILABLE)
   createdAt          DateTime           @default(now())
+  lastSeenAt         DateTime?
   updatedAt          DateTime           @updatedAt
+
+  // Relations
   sessions           DriverSession[]
   address            DriverAddress?
   documents          DriverDocuments?
@@ -214,8 +254,11 @@ model Driver {
   bookings           Booking[]
   assignments        BookingAssignment[]
   statusLogs         DriverStatusLog[]
+  referrals          DriverReferral[]    @relation("ReferredBy")
+  referredBy         DriverReferral[]    @relation("ReferredDriver")
 
   @@index([isActive, verificationStatus])
+  @@index([lastSeenAt, driverStatus])
 }
 
 model DriverDocuments {
@@ -257,6 +300,21 @@ model DriverSession {
   @@index([expiresAt])
   @@index([driverId])
   @@index([fcmToken])
+}
+
+model DriverReferral {
+  id                  String         @id @default(uuid())
+  referredById        String
+  referredBy          Driver         @relation("ReferredBy", fields: [referredById], references: [id])
+  referredDriverId    String
+  referredDriver      Driver         @relation("ReferredDriver", fields: [referredDriverId], references: [id])
+  referralCodeUsed    String
+  referralStatus      ReferralStatus @default(PENDING)
+  rewardAmount        Decimal?       @db.Decimal(10,2)
+  createdAt           DateTime       @default(now())
+
+  @@unique([referredById, referredDriverId])
+  @@index([referralStatus])
 }
 
 model Vehicle {
@@ -388,6 +446,9 @@ model Booking {
   assignedDriver       Driver?             @relation(fields: [assignedDriverId], references: [id])
   assignedDriverId     String?
 
+  // Status logs
+  statusLogs           BookingStatusLog[]
+
   // Timestamps
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
@@ -396,6 +457,7 @@ model Booking {
   @@index([customerId, status])
   @@index([assignedDriverId, status])
   @@index([status, createdAt])
+  @@index([packageId])
 }
 
 model BookingAssignment {
@@ -413,3 +475,15 @@ model BookingAssignment {
   @@index([driverId, status])
   @@index([status, offeredAt])
 }
+
+model BookingStatusLog {
+  id          String              @id @default(uuid())
+  bookingId   String
+  booking     Booking             @relation(fields: [bookingId], references: [id])
+  status      BookingStatus
+  statusChangedAt   DateTime            @default(now())
+
+  @@index([bookingId, status])
+  @@index([statusChangedAt])
+}
+

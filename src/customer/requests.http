@@ -100,4 +100,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
   "id": "da41269f-9325-492b-9aad-045432a1003a"
 }
 
-
+POST http://localhost:3000/customer/notify-all-sessions
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+{
+  "title": "Test Notification",
+  "body": "This is a test notification"
+}

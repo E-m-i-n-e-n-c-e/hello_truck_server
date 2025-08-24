@@ -4,6 +4,7 @@ import * as admin from 'firebase-admin';
 import { OAuth2Client } from 'google-auth-library';
 import { v4 as uuidv4 } from 'uuid';
 import { UserType } from 'src/common/types/user-session.types';
+import { AppMessagingPayload } from 'src/common/types/fcm.types';
 import { SessionService } from 'src/token/session/session.service';
 
 @Injectable()
@@ -133,7 +134,7 @@ export class FirebaseService implements OnModuleInit {
     await this.sessionService.updateSession(sessionId, userType, { fcmToken });
   }
 
-  async sendNotification(token: string, payload: admin.messaging.MessagingPayload) {
+  async sendNotification(token: string, payload: AppMessagingPayload) {
     return this.app.messaging().send({
       token,
       notification: payload.notification,
@@ -141,12 +142,12 @@ export class FirebaseService implements OnModuleInit {
     });
   }
 
-  async notify(userId: string, userType: UserType, payload: admin.messaging.MessagingPayload) {
+  async notifyAllSessions(userId: string, userType: UserType, payload: AppMessagingPayload) {
     const sessions = await this.sessionService.findSessionsByUserId(userId, userType);
 
     if (sessions.length === 0) return { successCount: 0, failureCount: 0 };
 
-    const tokens = sessions.map(s => s.fcmToken!) as string[];
+    const tokens = sessions.filter(s => s.fcmToken).map(s => s.fcmToken!);
 
     const res = await this.app.messaging().sendEachForMulticast({
       tokens,
@@ -155,7 +156,7 @@ export class FirebaseService implements OnModuleInit {
     });
 
     await this.sessionService.updateSessionsByUserId(userId, userType, { lastNotifiedAt: new Date() });
-
+    console.log('Notification sent to all sessions', res);
     return res;
   }
 
