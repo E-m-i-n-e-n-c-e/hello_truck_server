@@ -119,41 +119,37 @@ export class BookingAssignmentService {
     const rows = await this.prisma.$queryRaw<any[]>`
       SELECT d.id as "driverId",
              d.score as "driverScore",
-             6371 * acos(
-               cos(radians(${lat})) * cos(radians(CAST(d.latitude AS double precision))) *
-               cos(radians(CAST(d.longitude AS double precision)) - radians(${lng})) +
-               sin(radians(${lat})) * sin(radians(CAST(d.latitude AS double precision)))
-             ) AS "distanceKm",
-             (
-               (6371 * acos(
+             d.latitude as "driverLatitude",
+             d.longitude as "driverLongitude",
+             distance_km AS "distanceKm",
+             (distance_km * 0.7) + (100 - LEAST(GREATEST(d.score, 0), 100)) * 0.3 AS "combinedScore"
+      FROM (
+        SELECT d.id,
+               d.score,
+               d.latitude,
+               d.longitude,
+               6371 * acos(
                  cos(radians(${lat})) * cos(radians(CAST(d.latitude AS double precision))) *
                  cos(radians(CAST(d.longitude AS double precision)) - radians(${lng})) +
                  sin(radians(${lat})) * sin(radians(CAST(d.latitude AS double precision)))
-               )) * 0.7 - (LEAST(GREATEST(d.score, 0), 100) / 20.0) * 0.3
-             ) AS "combinedScore"
-      FROM "Driver" d
-      WHERE d."isActive" = true
-        AND d."verificationStatus" = 'VERIFIED'
-        AND d."isOnline" = true
-        AND d."driverStatus" = 'AVAILABLE'
-        AND d.latitude IS NOT NULL
-        AND d.longitude IS NOT NULL
-        AND d.updatedAt > NOW() - INTERVAL '15 minutes'
-        AND (
-          6371 * acos(
-            cos(radians(${lat})) * cos(radians(CAST(d.latitude AS double precision))) *
-            cos(radians(CAST(d.longitude AS double precision)) - radians(${lng})) +
-            sin(radians(${lat})) * sin(radians(CAST(d.latitude AS double precision)))
-          )
-        ) <= 15
-        AND d.id <> ALL(${Array.from(excludeDriverIds)})
+               ) AS distance_km
+        FROM "Driver" d
+        WHERE d."isActive" = true
+          AND d."verificationStatus" = 'VERIFIED'
+          AND d."driverStatus" = 'AVAILABLE'
+          AND d.latitude IS NOT NULL
+          AND d.longitude IS NOT NULL
+          AND d.lastSeenAt > NOW() - INTERVAL '1 minute'
+          AND d.id <> ALL(${Array.from(excludeDriverIds)})
+      ) sub
+      WHERE distance_km <= ${radiusKm}
       ORDER BY "combinedScore" ASC
       LIMIT 1;
     `;
 
     const row = rows[0];
     if (!row) return null;
-    if (Number(row.distanceKm) > radiusKm) return null;
+
     return {
       driverId: row.driverId as string,
       distanceKm: Number(row.distanceKm),

@@ -3,6 +3,7 @@ import { ProductType, VehicleType, WeightUnit } from '@prisma/client';
 import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-estimate.dto';
 import { PricingService } from '../pricing/pricing.service';
 import { PackageDetailsDto } from '../dtos/package.dto';
+import * as geolib from 'geolib';
 
 @Injectable()
 export class BookingEstimateService {
@@ -19,12 +20,11 @@ export class BookingEstimateService {
     this.validateEstimateRequest(estimateRequest);
 
     // Calculate distance
-    const distanceKm = this.pricingService.calculateDistance(
-      estimateRequest.pickupAddress.latitude,
-      estimateRequest.pickupAddress.longitude,
-      estimateRequest.dropAddress.latitude,
-      estimateRequest.dropAddress.longitude,
+    const distance = geolib.getDistance(
+      { latitude: estimateRequest.pickupAddress.latitude, longitude: estimateRequest.pickupAddress.longitude },
+      { latitude: estimateRequest.dropAddress.latitude, longitude: estimateRequest.dropAddress.longitude },
     );
+    const distanceKm = distance / 1000; // Convert to km
 
     // Calculate total weight using pricing service
     const totalWeightInKg = this.calculateTotalWeight(estimateRequest.packageDetails);

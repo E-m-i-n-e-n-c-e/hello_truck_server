@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { getPreciseDistance } from 'geolib';
 import { VehicleType, WeightUnit } from '@prisma/client';
 
 @Injectable()
@@ -7,15 +6,6 @@ export class PricingService {
   // Base pricing configuration
   private readonly BASE_FARE = 100.00;
   private readonly PER_KM_RATE = 50.00;
-
-  // Distance-based pricing tiers for better competitiveness
-  private getDistanceMultiplier(distanceKm: number): number {
-    if (distanceKm <= 5) return 1.0;      // Local delivery
-    if (distanceKm <= 15) return 0.95;    // Short distance discount
-    if (distanceKm <= 50) return 0.90;    // Medium distance discount
-    if (distanceKm <= 100) return 0.85;   // Long distance discount
-    return 0.80;                          // Very long distance discount
-  }
 
   // Weight multipliers based on actual weight ranges - more granular
   private getWeightMultiplier(totalWeightInKg: number): number {
@@ -43,22 +33,7 @@ export class PricingService {
     [VehicleType.FOUR_WHEELER]: 1500,  // Realistic truck capacity
   };
 
-  /**
-   * Calculate precise distance between two points using geolib
-   */
-  calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    const distanceInMeters = getPreciseDistance(
-      { latitude: lat1, longitude: lon1 },
-      { latitude: lat2, longitude: lon2 }
-    );
 
-    return distanceInMeters / 1000; // Convert to kilometers
-  }
 
   /**
    * Suggest vehicle type based on package details

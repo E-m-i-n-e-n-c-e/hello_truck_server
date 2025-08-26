@@ -17,8 +17,14 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user : UserToken = request.user;
+    let user: UserToken;
+    if (context.getType() === 'ws') {
+      const client = context.switchToWs().getClient();
+      user = client.data.user;
+    } else {
+      const request = context.switchToHttp().getRequest();
+      user = request.user;
+    }
 
     if (!user) {
       throw new ForbiddenException('Access denied');
