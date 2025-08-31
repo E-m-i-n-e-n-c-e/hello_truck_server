@@ -9,19 +9,19 @@ import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto, UpdateDriverStatusDto } from '../dtos/profile.dto';
 import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
 
-@Controller('driver')
+@Controller('driver/profile')
 @UseGuards(AccessTokenGuard, RolesGuard)
 @Roles('driver')
 export class DriverProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  @Get('profile')
+  @Get()
   @Serialize(ProfileResponseDto)
   async getProfile(@User('userId') userId: string, @Query() getQueryDto: GetQueryDto) {
     return this.profileService.getProfile(userId, getQueryDto);
   }
 
-  @Post('profile')
+  @Post()
   @Serialize(SuccessResponseDto)
   async createProfile(
     @User('userId') userId: string,
@@ -30,7 +30,7 @@ export class DriverProfileController {
     return this.profileService.createProfile(userId, createProfileDto);
   }
 
-  @Put('profile')
+  @Put()
   @Serialize(SuccessResponseDto)
   async updateProfile(
     @User('userId') userId: string,

@@ -1,6 +1,6 @@
-import { $Enums, Driver, DriverStatus, DriverStatusLog, Vehicle } from "@prisma/client";
+import { Driver, DriverStatus, DriverStatusLog, Vehicle, VerificationStatus } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
-import { IsBoolean, IsEnum, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
+import { IsIn, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
 import { CreateDriverDocumentsDto, DriverDocumentsResponseDto } from "./documents.dto";
 import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
@@ -99,10 +99,8 @@ export class ProfileResponseDto implements Driver {
   isActive: boolean;
   contactId: string | null;
   fundAccountId: string | null;
-  driverStatus: $Enums.DriverStatus;
   latitude: Decimal | null;
   longitude: Decimal | null;
-  lastSeenAt: Date | null;
 
   @Expose()
   phoneNumber: string;
@@ -119,11 +117,15 @@ export class ProfileResponseDto implements Driver {
   @Expose()
   photo: string | null;
   @Expose()
-  verificationStatus: $Enums.VerificationStatus;
+  verificationStatus: VerificationStatus;
+  @Expose()
+  driverStatus: DriverStatus;
   @Expose()
   createdAt: Date;
   @Expose()
   updatedAt: Date;
+  @Expose()
+  lastSeenAt: Date | null;
   @Expose()
   @Type(() => DriverDocumentsResponseDto)
   documents: DriverDocumentsResponseDto | null;
@@ -134,7 +136,7 @@ export class ProfileResponseDto implements Driver {
 }
 
 export class UpdateDriverStatusDto implements Partial<DriverStatusLog> {
-  @IsEnum(DriverStatus)
+  @IsIn([DriverStatus.AVAILABLE, DriverStatus.UNAVAILABLE])
   status: DriverStatus;
 }
 

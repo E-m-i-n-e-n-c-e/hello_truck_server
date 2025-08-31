@@ -4,15 +4,15 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { ProfileService } from './profile/profile.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { TokenService } from 'src/token/token.service';
 
 @WebSocketGateway({
   namespace: '/driver',
@@ -20,18 +20,42 @@ import { Decimal } from '@prisma/client/runtime/library';
     origin: '*',
   },
 })
-@UseGuards(AccessTokenGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Roles('driver')
-export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(DriverGateway.name);
 
   constructor(
-    private prisma: PrismaService,
     private profileService: ProfileService,
+    private tokenService: TokenService,
   ) { }
+
+  afterInit(server: Server) {
+    // Add authentication middleware to this specific gateway
+    server.use(async (socket: Socket, next: (err?: Error) => void) => {
+      try {
+        const token = socket.handshake.auth?.token;
+
+        if (!token) {
+          return next(new Error('Authentication error: No token provided'));
+        }
+
+        // Validate token
+        const user = await this.tokenService.validateAccessToken(token);
+
+        // Store user data in socket
+        socket.data.user = user;
+
+        next();
+      } catch (error) {
+        console.log('❌ Auth error:', error.message);
+        next(new Error('Authentication error: Invalid token'));
+      }
+    });
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -79,6 +103,6 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private isValidCoordinate(lat: Decimal, lng: Decimal): boolean {
-    return lat.gte(-90) && lat.lte(90) && lng.gte(-180) && lng.lte(180);
+    return Number(lat) >= -90 && Number(lat) <= 90 && Number(lng) >= -180 && Number(lng) <= 180;
   }
 }
