@@ -1,17 +1,18 @@
 import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
 import { randomInt } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
-// Run npm install bcrypt and npm install @types/bcrypt --save-dev
-
 @Injectable()
 export class OtpService {
+  private readonly OTP_EXPIRY_SECONDS = 60; // 60 seconds
+  private readonly MAX_RETRY_COUNT = 5;
+
   constructor(
-    private prisma: PrismaService,
-    private configService: ConfigService, // Assuming you have a config service for environment variables
+    private redisService: RedisService,
+    private configService: ConfigService,
   ) {}
 
   // Send OTP
@@ -20,16 +21,18 @@ export class OtpService {
     // const otp = randomInt(100000, 999999).toString(); // 6-digit OTP
     const otp = '123456';
     const hashedOtp = await bcrypt.hash(otp, 10);
-    const expiresAt = new Date(Date.now() + 60 * 1000); // OTP valid for 60 seconds
 
-    // Store OTP in database
-    await this.prisma.otpVerification.create({
-      data: {
-        phoneNumber,
-        otp:hashedOtp,
-        expiresAt,
-      },
-    });
+    // Create OTP data object
+    const otpData = {
+      otp: hashedOtp,
+      retryCount: 0,
+      createdAt: Date.now(),
+      phoneNumber: phoneNumber,
+    };
+
+    // Store in Redis with expiration
+    await this.redisService.set(`otp:${phoneNumber}`, JSON.stringify(otpData), 'EX', this.OTP_EXPIRY_SECONDS);
+
     // Send OTP via SMS using 2Factor API
     const apiKey = this.configService.get<string>('TWO_FACTOR_API_KEY');
     const url = `https://2factor.in/API/V1/${apiKey}/SMS/+91${phoneNumber}/${otp}/HelloTruckOtpTemplate`;
@@ -55,41 +58,34 @@ export class OtpService {
   // Verify OTP
   async verifyOtp(phoneNumber: string, otp: string): Promise<boolean> {
     // Find the most recent OTP for this phone number
-    const otpVerification = await this.prisma.otpVerification.findFirst({
-      where: {
-        phoneNumber,
-        verified: false,
-        expiresAt: {
-          gt: new Date(),
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const key = `otp:${phoneNumber}`;
+    const otpDataStr = await this.redisService.get(key);
+    const otpData = JSON.parse(otpDataStr || '{}');
 
-    if (!otpVerification) {
+    if (!otpDataStr || !otpData || !otpData.otp) {
       throw new BadRequestException('Invalid or expired OTP');
     }
 
-    const isValidOtp = await bcrypt.compare(otp, otpVerification.otp);
-    if (!isValidOtp) {
-      await this.prisma.otpVerification.update({
-      where: { id: otpVerification.id },
-      data: { retryCount: { increment: 1 } },
-      });
-      throw new BadRequestException('Invalid OTP');
-    }
-
-    if( otpVerification.retryCount > 5) {
+    const retryCount = otpData.retryCount || 0;
+    if(retryCount >= this.MAX_RETRY_COUNT) {
+      await this.redisService.del(key);
       throw new BadRequestException('Too many attempts, please request a new OTP');
     }
 
-    // Mark OTP as verified
-    await this.prisma.otpVerification.update({
-      where: { id: otpVerification.id },
-      data: { verified: true },
-    });
+    const isValidOtp = await bcrypt.compare(otp, otpData.otp);
+    if (!isValidOtp) {
+      const ttl = await this.redisService.ttl(key);
+      await this.redisService.set(
+        key,
+        JSON.stringify({ ...otpData, retryCount: retryCount + 1 }),
+        'EX',
+        (typeof ttl === 'number' && ttl > 0) ? ttl : this.OTP_EXPIRY_SECONDS
+      );
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    // Delete verified OTP
+    await this.redisService.del(key);
 
     return true;
   }

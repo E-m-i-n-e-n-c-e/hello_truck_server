@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { OtpService } from './otp.service';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [RedisModule],
   providers: [OtpService],
   exports: [OtpService]
 })
