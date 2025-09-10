@@ -6,9 +6,11 @@ import { FirebaseModule } from 'src/auth/firebase/firebase.module';
 import { BookingCustomerService } from './services/booking-customer.service';
 import { BookingEstimateService } from './services/booking-estimate.service';
 import { BookingAssignmentService } from './services/booking-assignment.service';
+import { RedisModule } from 'src/redis/redis.module';
+import { AssignmentModule } from './assignment/assignment.module';
 
 @Module({
-  imports: [PricingModule, TokenModule, FirebaseModule],
+  imports: [PricingModule, TokenModule, FirebaseModule, RedisModule, AssignmentModule],
   controllers: [BookingCustomerController],
   providers: [BookingCustomerService, BookingEstimateService, BookingAssignmentService],
   exports: [BookingCustomerService, BookingAssignmentService],

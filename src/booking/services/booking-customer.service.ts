@@ -6,6 +6,7 @@ import { BookingEstimateRequestDto } from '../dtos/booking-estimate.dto';
 import { Booking, BookingStatus } from '@prisma/client';
 import { FirebaseService } from 'src/auth/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
+import { BookingAssignmentService } from './booking-assignment.service';
 
 @Injectable()
 export class BookingCustomerService {
@@ -13,6 +14,7 @@ export class BookingCustomerService {
     private readonly prisma: PrismaService,
     private readonly bookingEstimateService: BookingEstimateService,
     private readonly firebaseService: FirebaseService,
+    private readonly bookingAssignmentService: BookingAssignmentService,
   ) {}
 
   /**
@@ -40,68 +42,74 @@ export class BookingCustomerService {
       throw new BadRequestException('Selected vehicle type is not available for this booking');
     }
 
-    // Create addresses first
-    const pickupAddress = await this.prisma.address.create({
-      data: {
-        formattedAddress: createRequest.pickupAddress.formattedAddress,
-        addressDetails: createRequest.pickupAddress.addressDetails,
-        latitude: createRequest.pickupAddress.latitude,
-        longitude: createRequest.pickupAddress.longitude,
-      },
-    });
+    // Use transaction for address, package, and booking creation
+    const booking = await this.prisma.$transaction(async (tx) => {
+      // Create addresses first
+      const pickupAddress = await tx.address.create({
+        data: {
+          formattedAddress: createRequest.pickupAddress.formattedAddress,
+          addressDetails: createRequest.pickupAddress.addressDetails,
+          latitude: createRequest.pickupAddress.latitude,
+          longitude: createRequest.pickupAddress.longitude,
+        },
+      });
 
-    const dropAddress = await this.prisma.address.create({
-      data: {
-        formattedAddress: createRequest.dropAddress.formattedAddress,
-        addressDetails: createRequest.dropAddress.addressDetails,
-        latitude: createRequest.dropAddress.latitude,
-        longitude: createRequest.dropAddress.longitude,
-      },
-    });
+      const dropAddress = await tx.address.create({
+        data: {
+          formattedAddress: createRequest.dropAddress.formattedAddress,
+          addressDetails: createRequest.dropAddress.addressDetails,
+          latitude: createRequest.dropAddress.latitude,
+          longitude: createRequest.dropAddress.longitude,
+        },
+      });
 
-    // Create package
-    const packageData = await this.prisma.package.create({
-      data: {
-        packageType: createRequest.package.packageType,
-        productType: createRequest.package.productType,
-        productName: createRequest.package.agricultural?.productName,
-        approximateWeight: createRequest.package.agricultural?.approximateWeight,
-        weightUnit: createRequest.package.agricultural?.weightUnit,
-        averageWeight: createRequest.package.nonAgricultural?.averageWeight,
-        bundleWeight: createRequest.package.nonAgricultural?.bundleWeight,
-        numberOfProducts: createRequest.package.nonAgricultural?.numberOfProducts,
-        length: createRequest.package.nonAgricultural?.packageDimensions?.length,
-        width: createRequest.package.nonAgricultural?.packageDimensions?.width,
-        height: createRequest.package.nonAgricultural?.packageDimensions?.height,
-        dimensionUnit: createRequest.package.nonAgricultural?.packageDimensions?.unit,
-        description: createRequest.package.nonAgricultural?.packageDescription,
-        packageImageUrl: createRequest.package.nonAgricultural?.packageImageUrl,
-        gstBillUrl: createRequest.package.gstBillUrl,
-        transportDocUrls: createRequest.package.transportDocUrls,
-      },
-    });
+      // Create package
+      const packageData = await tx.package.create({
+        data: {
+          packageType: createRequest.package.packageType,
+          productType: createRequest.package.productType,
+          productName: createRequest.package.agricultural?.productName,
+          approximateWeight: createRequest.package.agricultural?.approximateWeight,
+          weightUnit: createRequest.package.agricultural?.weightUnit,
+          averageWeight: createRequest.package.nonAgricultural?.averageWeight,
+          bundleWeight: createRequest.package.nonAgricultural?.bundleWeight,
+          numberOfProducts: createRequest.package.nonAgricultural?.numberOfProducts,
+          length: createRequest.package.nonAgricultural?.packageDimensions?.length,
+          width: createRequest.package.nonAgricultural?.packageDimensions?.width,
+          height: createRequest.package.nonAgricultural?.packageDimensions?.height,
+          dimensionUnit: createRequest.package.nonAgricultural?.packageDimensions?.unit,
+          description: createRequest.package.nonAgricultural?.packageDescription,
+          packageImageUrl: createRequest.package.nonAgricultural?.packageImageUrl,
+          gstBillUrl: createRequest.package.gstBillUrl,
+          transportDocUrls: createRequest.package.transportDocUrls,
+        },
+      });
 
-    // Create booking
-    const booking = await this.prisma.booking.create({
-      data: {
-        customerId: userId,
-        packageId: packageData.id,
-        pickupAddressId: pickupAddress.id,
-        dropAddressId: dropAddress.id,
-        estimatedCost: selectedVehicleOption.estimatedCost,
-        distanceKm: estimate.distanceKm,
-        baseFare: selectedVehicleOption.breakdown.baseFare,
-        distanceCharge: selectedVehicleOption.breakdown.distanceCharge,
-        weightMultiplier: selectedVehicleOption.breakdown.weightMultiplier,
-        vehicleMultiplier: selectedVehicleOption.breakdown.vehicleMultiplier,
-        suggestedVehicleType: createRequest.selectedVehicleType,
-        status: BookingStatus.PENDING,
-      },
-      include: {
-        package: true,
-        pickupAddress: true,
-        dropAddress: true,
-      },
+      // Create booking
+      const booking = await tx.booking.create({
+        data: {
+          customerId: userId,
+          packageId: packageData.id,
+          pickupAddressId: pickupAddress.id,
+          dropAddressId: dropAddress.id,
+          estimatedCost: selectedVehicleOption.estimatedCost,
+          distanceKm: estimate.distanceKm,
+          baseFare: selectedVehicleOption.breakdown.baseFare,
+          distanceCharge: selectedVehicleOption.breakdown.distanceCharge,
+          weightMultiplier: selectedVehicleOption.breakdown.weightMultiplier,
+          vehicleMultiplier: selectedVehicleOption.breakdown.vehicleMultiplier,
+          suggestedVehicleType: createRequest.selectedVehicleType,
+          status: BookingStatus.PENDING,
+        },
+        include: {
+          package: true,
+          pickupAddress: true,
+          dropAddress: true,
+        },
+      }); 
+      await this.bookingAssignmentService.advance(booking.id, false);
+
+      return booking;
     });
 
     return booking;
@@ -208,6 +216,8 @@ export class BookingCustomerService {
       where: { id: bookingId },
       data: { status: BookingStatus.CANCELLED },
     });
+    
+    await this.bookingAssignmentService.advance(booking.id, false);
   }
 
   /**

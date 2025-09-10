@@ -7,6 +7,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { AddressService } from '../address/address.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
+import { RedisService } from 'src/redis/redis.service';
 
 interface GetProfileOptions {
   includeDocuments?: boolean;
@@ -22,6 +23,7 @@ export class ProfileService {
     private readonly vehicleService: VehicleService,
     private readonly addressService: AddressService,
     private readonly razorpayService: RazorpayService,
+    private readonly redisService: RedisService,
   ) {}
 
   async getProfile(
@@ -176,5 +178,6 @@ export class ProfileService {
       where: { id: userId },
       data: { latitude: updateLocationDto.latitude, longitude: updateLocationDto.longitude, lastSeenAt: new Date() },
     });
+    await this.redisService.geoadd('active_drivers', Number(updateLocationDto.longitude), Number(updateLocationDto.latitude), userId);
   }
 }

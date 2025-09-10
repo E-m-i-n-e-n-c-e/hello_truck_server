@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Address, AssignmentStatus, Booking, BookingStatus, DriverStatus, Prisma } from '@prisma/client';
+import { Address, AssignmentStatus, Booking, BookingStatus, DriverStatus, Prisma, VerificationStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { FcmEventType } from 'src/common/types/fcm.types';
 import { FirebaseService } from 'src/auth/firebase/firebase.service';
 import * as crypto from 'crypto';
+import { RedisService } from 'src/redis/redis.service';
+import { Job, Queue, Worker } from 'bullmq';
 
 @Injectable()
 export class BookingAssignmentService {
@@ -15,39 +16,39 @@ export class BookingAssignmentService {
   private readonly ESCALATE_AFTER_MS = 120_000;    // 2m
   private readonly FINALIZE_AFTER_MS = 300_000; // 5m
 
+  private readonly queue: Queue;
+  private readonly worker: Worker;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly firebase: FirebaseService,
-  ) {}
-
-  // Process all pending bookings every 10 seconds
-  @Cron(CronExpression.EVERY_10_SECONDS)
-  async processAllPendingBookings() {
-    const pendingBookings = await this.prisma.booking.findMany({
-      where: {
-        status: {
-          in: [BookingStatus.PENDING, BookingStatus.DRIVER_ASSIGNED]
-        },
-        createdAt: {
-          gte: new Date(Date.now() - 1000 * 60 * 60 * 1) // 1 hour
-        }
-      },
-      select: { id: true }
+    private readonly redisService: RedisService,
+  ) {
+    this.queue = new Queue('booking-assignment', {
+      connection: this.redisService,
     });
 
-    for (const booking of pendingBookings) {
-      try {
-        await this.advance(booking.id);
-      } catch (error) {
-        this.logger.error(`Failed to advance booking ${booking.id}:`, error);
-      }
+    // Create worker to process jobs
+    this.worker = new Worker('booking-assignment', async (job: Job<{ bookingId: string }>) => {
+      await this.processJob(job);
+    }, {
+      connection: this.redisService,
+      concurrency: 5, // Process 5 jobs concurrently
+    });
+  }
+
+  // Process job from queue
+  private async processJob(job: Job<{ bookingId: string }>) {
+    const { name, data } = job;
+    if (name === 'advance-booking') {
+      await this.advance(data.bookingId);
     }
   }
 
-  // Idempotent step: call on create and then periodically via cron
-  async advance(bookingId: string) {
+  // Idempotent step: call once per booking
+  async advance(bookingId: string, scheduleNext: boolean = true) {
     await this.prisma.$transaction(async (tx) => {
-      const booking = await this.lockAndRetrieveBooking(bookingId, tx);
+      const booking = await this.lockAndRetrieveBooking(bookingId, tx, scheduleNext);
       if (!booking) return;
 
       // If already accepted → done
@@ -76,8 +77,22 @@ export class BookingAssignmentService {
         // no offers yet, start with first one
         const radiusKm = timeSinceBooking > this.ESCALATE_AFTER_MS ? 10 : 5;
         const next = await this.pickBestCandidate(booking, radiusKm, new Set());
-        if (!next) return;
-        await this.assignDriver(bookingId, next.driverId, tx);
+        if (!next) {
+          // No driver found, schedule retry
+          if (scheduleNext) {
+            await this.scheduleRetry(bookingId);
+          }
+          return;
+        }
+        try {
+          await this.assignDriver(bookingId, next.driverId, tx);
+        } catch (error) {
+          // Schedule next check if error
+          if (scheduleNext) {
+            await this.scheduleRetry(bookingId);
+          }
+          this.logger.error(`Error assigning driver ${next.driverId} to booking ${bookingId}:`, error);
+        }
         return;
       }
 
@@ -86,8 +101,11 @@ export class BookingAssignmentService {
       const elapsedMs = Date.now() - lastOfferedAt.getTime();
 
       if (last.status === AssignmentStatus.OFFERED) {
-        // If last offer is still pending, return early
+        // If last offer is still pending, schedule next check and return
         if (elapsedMs < this.OFFER_TIMEOUT_MS) {
+          if (scheduleNext) {
+            await this.scheduleRetry(bookingId);
+          }
           return;
         }
 
@@ -102,10 +120,31 @@ export class BookingAssignmentService {
       const alreadyOffered = new Set(assignments.map(a => a.driverId));
       const radiusKm = elapsedMs > this.ESCALATE_AFTER_MS ? 10 : 5;
       const next = await this.pickBestCandidate(booking, radiusKm, alreadyOffered);
-      if (!next) return; // nothing to offer in this step
+      if (!next) {
+        // No more drivers, schedule retry
+        if (scheduleNext) {
+          await this.scheduleRetry(bookingId);
+        }
+        return;
+      }
 
-      await this.assignDriver(bookingId, next.driverId, tx);
+      try {
+        await this.assignDriver(bookingId, next.driverId, tx);
+      } catch (error) {
+        // Schedule next check if error
+        if (scheduleNext) {
+          await this.scheduleRetry(bookingId);
+        }
+        this.logger.error(`Error assigning driver ${next.driverId} to booking ${bookingId}:`, error);
+      }
     });
+  }
+
+  // Schedule retry with delay
+  private async scheduleRetry(bookingId: string) {
+    await this.queue.add('advance-booking', {
+      bookingId
+    }, { delay: 5000 }); // 5 second delay
   }
 
   private async pickBestCandidate(
@@ -116,45 +155,44 @@ export class BookingAssignmentService {
     const lat = Number(booking.pickupAddress.latitude);
     const lng = Number(booking.pickupAddress.longitude);
 
-    const rows = await this.prisma.$queryRaw<any[]>`
-      SELECT d.id as "driverId",
-             d.score as "driverScore",
-             d.latitude as "driverLatitude",
-             d.longitude as "driverLongitude",
-             distance_km AS "distanceKm",
-             (distance_km * 0.7) + (100 - LEAST(GREATEST(d.score, 0), 100)) * 0.3 AS "combinedScore"
-      FROM (
-        SELECT d.id,
-               d.score,
-               d.latitude,
-               d.longitude,
-               6371 * acos(
-                 cos(radians(${lat})) * cos(radians(CAST(d.latitude AS double precision))) *
-                 cos(radians(CAST(d.longitude AS double precision)) - radians(${lng})) +
-                 sin(radians(${lat})) * sin(radians(CAST(d.latitude AS double precision)))
-               ) AS distance_km
-        FROM "Driver" d
-        WHERE d."isActive" = true
-          AND d."verificationStatus" = 'VERIFIED'
-          AND d."driverStatus" = 'AVAILABLE'
-          AND d.latitude IS NOT NULL
-          AND d.longitude IS NOT NULL
-          AND d.lastSeenAt > NOW() - INTERVAL '1 minute'
-          AND d.id <> ALL(${Array.from(excludeDriverIds)})
-      ) sub
-      WHERE distance_km <= ${radiusKm}
-      ORDER BY "combinedScore" ASC
-      LIMIT 1;
-    `;
+    const rawNearby = await this.redisService.georadius('active_drivers', lng, lat, radiusKm, 'km', 'WITHDIST') as [string, string][];
+    const nearbyMap = new Map(rawNearby.map(([id, dist]) => [id, Number(dist)]));
 
-    const row = rows[0];
-    if (!row) return null;
+    // Exclude already offered drivers
+    const filteredDriverIds = Array.from(nearbyMap.keys()).filter(id => !excludeDriverIds.has(id));
+
+    if (filteredDriverIds.length === 0) return null;
+
+    // Step 2: Fetch driver metadata from Postgres
+    const drivers = await this.prisma.driver.findMany({
+      where: {
+        id: { in: filteredDriverIds },
+        isActive: true,
+        verificationStatus: VerificationStatus.VERIFIED,
+        driverStatus: DriverStatus.AVAILABLE,
+        lastSeenAt: { gte: new Date(Date.now() - 60 * 1000) }, // last 1 min
+      },
+    });
+
+    if (drivers.length === 0) return null;
+
+    // Step 3: Map distances to drivers
+    const driversWithDistance = drivers.map(d => {
+      const distanceKm = nearbyMap.get(d.id) ?? radiusKm * 100;
+      const combinedScore = 0.7 * distanceKm - 0.3 * (d.score / 10);
+      return { ...d, distanceKm, combinedScore};
+    });
+
+    // Step 4: Sort by combined score (lower distance, higher score)
+    driversWithDistance.sort((a, b) => {
+      return a.combinedScore - b.combinedScore;
+    });
 
     return {
-      driverId: row.driverId as string,
-      distanceKm: Number(row.distanceKm),
-      driverScore: Number(row.driverScore) || 0,
-      combinedScore: Number(row.combinedScore),
+      driverId: driversWithDistance[0].id,
+      driverScore: driversWithDistance[0].score,
+      distanceKm: driversWithDistance[0].distanceKm,
+      combinedScore: driversWithDistance[0].combinedScore,
     };
   }
 
@@ -189,14 +227,17 @@ export class BookingAssignmentService {
     });
   }
 
-  private async lockAndRetrieveBooking(bookingId: string, tx: Prisma.TransactionClient): Promise<Booking & { pickupAddress: Address } | null> {
+  private async lockAndRetrieveBooking(bookingId: string, tx: Prisma.TransactionClient, scheduleNext: boolean): Promise<Booking & { pickupAddress: Address } | null> {
     // Try to acquire advisory lock for this booking
     const gotLock = await tx.$queryRaw<{ pg_try_advisory_xact_lock: boolean }[]>`
       SELECT pg_try_advisory_xact_lock(${this.hashToBigInt(bookingId)}) AS pg_try_advisory_xact_lock
     `;
 
     if (!gotLock[0]?.pg_try_advisory_xact_lock) {
-      // Another transaction is already processing this booking
+      // Another transaction is already processing this booking. Schedule retry.
+      if(scheduleNext) {
+        await this.scheduleRetry(bookingId);
+      }
       return null;
     }
 

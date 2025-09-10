@@ -13,6 +13,7 @@ import { Roles } from 'src/token/decorators/roles.decorator';
 import { ProfileService } from './profile/profile.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { TokenService } from 'src/token/token.service';
+import { seconds, Throttle } from '@nestjs/throttler';
 
 @WebSocketGateway({
   namespace: '/driver',
@@ -78,6 +79,7 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
   }
 
   @SubscribeMessage('update-location')
+  @Throttle({ default: { ttl: seconds(2), limit: 1 } })
   async handleLocationUpdate(client: Socket, payload: {
     latitude: Decimal;
     longitude: Decimal;

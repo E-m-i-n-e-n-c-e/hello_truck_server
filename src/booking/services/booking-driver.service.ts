@@ -50,8 +50,9 @@ export class BookingDriverService {
         where: { id: assignment.driver.id },
         data: { driverStatus: DriverStatus.ON_RIDE }
       });
-    });
 
+      await this.bookingAssignmentService.advance(assignment.booking.id, false); 
+    });
   }
 
 
@@ -94,9 +95,9 @@ export class BookingDriverService {
         where: { id: assignment.driver.id },
         data: { driverStatus: DriverStatus.AVAILABLE }
       });
+
+      await this.bookingAssignmentService.advance(assignment.booking.id, false);
     });
-    // Immediately advance the booking so a new driver can be assigned
-    await this.bookingAssignmentService.advance(assignment.booking.id);
   }
 
   getDriverAssignment(driverId: string): Promise<BookingAssignment & { booking: Booking } | null> {
