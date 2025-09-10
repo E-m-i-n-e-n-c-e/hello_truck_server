@@ -6,7 +6,7 @@ import { BookingEstimateRequestDto } from '../dtos/booking-estimate.dto';
 import { Booking, BookingStatus } from '@prisma/client';
 import { FirebaseService } from 'src/auth/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
-import { BookingAssignmentService } from './booking-assignment.service';
+import { AssignmentService } from '../assignment/assignment.service';
 
 @Injectable()
 export class BookingCustomerService {
@@ -14,7 +14,7 @@ export class BookingCustomerService {
     private readonly prisma: PrismaService,
     private readonly bookingEstimateService: BookingEstimateService,
     private readonly firebaseService: FirebaseService,
-    private readonly bookingAssignmentService: BookingAssignmentService,
+    private readonly bookingAssignmentService: AssignmentService,
   ) {}
 
   /**
@@ -107,7 +107,7 @@ export class BookingCustomerService {
           dropAddress: true,
         },
       }); 
-      await this.bookingAssignmentService.advance(booking.id, false);
+      await this.bookingAssignmentService.onBookingCreated(booking.id);
 
       return booking;
     });
@@ -217,7 +217,7 @@ export class BookingCustomerService {
       data: { status: BookingStatus.CANCELLED },
     });
     
-    await this.bookingAssignmentService.advance(booking.id, false);
+    await this.bookingAssignmentService.onBookingCancelled(booking.id);
   }
 
   /**

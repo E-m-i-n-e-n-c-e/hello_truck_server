@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking } from '@prisma/client';
-import { BookingAssignmentService } from './booking-assignment.service';
+import { AssignmentService } from '../assignment/assignment.service';
 
 @Injectable()
 export class BookingDriverService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly bookingAssignmentService: BookingAssignmentService,
+    private readonly bookingAssignmentService: AssignmentService,
   ) { }
 
   async acceptBooking(driverAssignmentId: string): Promise<void> {
@@ -51,7 +51,7 @@ export class BookingDriverService {
         data: { driverStatus: DriverStatus.ON_RIDE }
       });
 
-      await this.bookingAssignmentService.advance(assignment.booking.id, false); 
+      await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id); 
     });
   }
 
@@ -96,7 +96,7 @@ export class BookingDriverService {
         data: { driverStatus: DriverStatus.AVAILABLE }
       });
 
-      await this.bookingAssignmentService.advance(assignment.booking.id, false);
+      await this.bookingAssignmentService.onDriverReject(assignment.booking.id, assignment.driver.id);
     });
   }
 

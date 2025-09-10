@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BookingCustomerController } from './controllers/booking-estimate.controller';
+import { BookingCustomerController } from './controllers/booking-customer.controller';
 import { PricingModule } from './pricing/pricing.module';
 import { TokenModule } from 'src/token/token.module';
 import { FirebaseModule } from 'src/auth/firebase/firebase.module';
