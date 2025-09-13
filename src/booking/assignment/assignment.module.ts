@@ -4,7 +4,7 @@ import { FirebaseModule } from 'src/auth/firebase/firebase.module';
 import { RedisModule } from 'src/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
 import { AssignmentService } from './assignment.service';
-import { AssignmentProcessor } from './assignment.processor';
+import { AssignmentWorker } from './assignment.worker';
 import { RedisService } from 'src/redis/redis.service';
 
 @Module({
@@ -13,16 +13,20 @@ import { RedisService } from 'src/redis/redis.service';
     FirebaseModule,
     RedisModule,
     BullModule.forRootAsync({
-      useFactory: async (redisService: RedisService) => ({
-        connection: redisService,
-      }),
       inject: [RedisService],
+      useFactory: (redisService: RedisService) => ({
+        connection: redisService.bullClient,
+        defaultJobOptions: {
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 1000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      }),
     }),
-    BullModule.registerQueue({
-      name: 'booking-assignment',
-    }),
+    BullModule.registerQueue({ name: 'booking-assignment' }),
   ],
-  providers: [AssignmentService, AssignmentProcessor],
+  providers: [AssignmentService, AssignmentWorker],
   exports: [AssignmentService],
 })
 export class AssignmentModule {}

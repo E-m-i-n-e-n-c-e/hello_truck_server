@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
-import { DriverStatus } from '@prisma/client';
+import { BookingStatus, DriverStatus } from '@prisma/client';
 
 @Injectable()
 export class CronService {
@@ -9,17 +9,21 @@ export class CronService {
 
   // @Cron('*/5 * * * * *') // Runs every 5 seconds for testing purposes
 
-  // Cleanup expired OTPs every 2 minutes
+  // Mark expired bookings as expired every 10 minutes
   @Cron('*/2 * * * *')
-  async cleanupExpiredOtps() {
-    const result = await this.prisma.otpVerification.deleteMany({
+  async cleanupExpiredBookings() {
+    const result = await this.prisma.booking.updateMany({
       where: {
-        expiresAt: {
-          lt: new Date(),
+        status: BookingStatus.PENDING,
+        createdAt: {
+          lt: new Date(Date.now() - 10 * 60 * 1000),  // 10 minutes
         },
       },
+      data: {
+        status: BookingStatus.EXPIRED,
+      },
     });
-    console.log(`Cleaned up ${result.count} expired OTPs`);
+    console.log(`Cleaned up ${result.count} expired bookings`);
   }
 
   // Cleanup expired sessions every day at midnight

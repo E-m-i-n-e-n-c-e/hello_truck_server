@@ -51,7 +51,7 @@ export class BookingDriverService {
         data: { driverStatus: DriverStatus.ON_RIDE }
       });
 
-      await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id); 
+      await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
     });
   }
 

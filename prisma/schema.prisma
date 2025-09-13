@@ -10,95 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum VerificationStatus {
-  PENDING
-  VERIFIED
-  REJECTED
-}
-
-enum VehicleType {
-  TWO_WHEELER
-  THREE_WHEELER
-  FOUR_WHEELER
-}
-
-enum VehicleBodyType {
-  OPEN
-  CLOSED
-}
-
-enum FuelType {
-  DIESEL
-  PETROL
-  EV
-  CNG
-}
-
-enum PackageType {
-  PERSONAL
-  COMMERCIAL
-}
-
-enum ProductType {
-  AGRICULTURAL
-  NON_AGRICULTURAL
-}
-
-enum WeightUnit {
-  KG
-  QUINTAL
-}
-
-enum DimensionUnit {
-  CM
-  INCHES
-}
-
-enum BookingStatus {
-  PENDING
-  DRIVER_ASSIGNED
-  CONFIRMED
-  PICKUP_ARRIVED
-  PICKUP_VERIFIED
-  IN_TRANSIT
-  DROP_ARRIVED
-  DROP_VERIFIED
-  COMPLETED
-  CANCELLED
-  EXPIRED
-}
-
-enum AssignmentStatus {
-  OFFERED
-  ACCEPTED
-  REJECTED
-  AUTO_REJECTED
-}
-
-enum DriverStatus {
-  AVAILABLE
-  UNAVAILABLE
-  ON_RIDE
-  RIDE_OFFERED
-}
-
-enum LifecycleEventType {
-  PICKUP_ARRIVED
-  PICKUP_VERIFIED
-  IN_TRANSIT
-  DROP_ARRIVED
-  DROP_VERIFIED
-  COMPLETED
-  CANCELLED
-  EXPIRED
-}
-
-enum ReferralStatus {
-  PENDING
-  COMPLETED
-  FAILED
-}
-
 model Customer {
   id          String   @id @default(uuid())
   phoneNumber String   @unique
@@ -209,20 +120,6 @@ model CustomerReferral {
 
   @@unique([referredById, referredCustomerId])
   @@index([referralStatus])
-}
-
-model OtpVerification {
-  id          String   @id @default(uuid())
-  phoneNumber String
-  otp         String
-  retryCount  Int      @default(0)
-  expiresAt   DateTime
-  verified    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  @@index([phoneNumber, verified, expiresAt, createdAt])
-  @@index([expiresAt])
-  @@index([phoneNumber, verified])
 }
 
 model Driver {
@@ -487,3 +384,93 @@ model BookingStatusLog {
   @@index([statusChangedAt])
 }
 
+
+// Enums
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum VehicleType {
+  TWO_WHEELER
+  THREE_WHEELER
+  FOUR_WHEELER
+}
+
+enum VehicleBodyType {
+  OPEN
+  CLOSED
+}
+
+enum FuelType {
+  DIESEL
+  PETROL
+  EV
+  CNG
+}
+
+enum PackageType {
+  PERSONAL
+  COMMERCIAL
+}
+
+enum ProductType {
+  AGRICULTURAL
+  NON_AGRICULTURAL
+}
+
+enum WeightUnit {
+  KG
+  QUINTAL
+}
+
+enum DimensionUnit {
+  CM
+  INCHES
+}
+
+enum BookingStatus {
+  PENDING
+  DRIVER_ASSIGNED
+  CONFIRMED
+  PICKUP_ARRIVED
+  PICKUP_VERIFIED
+  IN_TRANSIT
+  DROP_ARRIVED
+  DROP_VERIFIED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum AssignmentStatus {
+  OFFERED
+  ACCEPTED
+  REJECTED
+  AUTO_REJECTED
+}
+
+enum DriverStatus {
+  AVAILABLE
+  UNAVAILABLE
+  ON_RIDE
+  RIDE_OFFERED
+}
+
+enum LifecycleEventType {
+  PICKUP_ARRIVED
+  PICKUP_VERIFIED
+  IN_TRANSIT
+  DROP_ARRIVED
+  DROP_VERIFIED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum ReferralStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
