@@ -174,10 +174,15 @@ export class ProfileService {
   }
 
   async updateLocation(userId: string, updateLocationDto: UpdateLocationDto) {
-    await this.prisma.driver.update({
-      where: { id: userId },
-      data: { latitude: updateLocationDto.latitude, longitude: updateLocationDto.longitude, lastSeenAt: new Date() },
-    });
-    await this.redisService.geoadd('active_drivers', Number(updateLocationDto.longitude), Number(updateLocationDto.latitude), userId);
+    await this.redisService
+      .multi()
+      .setex(`driver:${userId}:lastSeen`, 30, '1') // TTL auto-expires after 30s
+      .geoadd(
+        'active_drivers',
+        Number(updateLocationDto.longitude),
+        Number(updateLocationDto.latitude),
+        userId
+      )
+      .exec();
   }
 }

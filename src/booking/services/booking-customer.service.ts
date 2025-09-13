@@ -106,7 +106,7 @@ export class BookingCustomerService {
           pickupAddress: true,
           dropAddress: true,
         },
-      }); 
+      });
       await this.bookingAssignmentService.onBookingCreated(booking.id);
 
       return booking;
@@ -216,7 +216,7 @@ export class BookingCustomerService {
       where: { id: bookingId },
       data: { status: BookingStatus.CANCELLED },
     });
-    
+
     await this.bookingAssignmentService.onBookingCancelled(booking.id);
   }
 

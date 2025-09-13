@@ -246,8 +246,14 @@ export class AssignmentService {
     this.logger.log(`[pickBestCandidate] Searching for drivers within ${radiusKm}km of (${lat}, ${lng}) for booking ${booking.id}. Excluding: ${Array.from(excludeDriverIds).join(', ') || '(none)'}`);
 
     const rawNearby = (await this.redisService.georadius('active_drivers', lng, lat, radiusKm, 'km', 'WITHDIST')) as [string, string][];
-    this.logger.log(`[pickBestCandidate] Found ${rawNearby.length} nearby drivers in Redis for booking ${booking.id}.`);
-    const nearbyMap = new Map(rawNearby.map(([id, dist]) => [id, Number(dist)]));
+
+    const keys = rawNearby.map(([id]) => `driver:${id}:lastSeen`);
+    const existsList = keys.length > 0 ? await this.redisService.mget(keys) : [];
+
+    // 4. Filter out expired drivers
+    const filteredNearby = rawNearby.filter((_, idx) => existsList[idx] !== null);
+    this.logger.log(`[pickBestCandidate] Found ${filteredNearby.length} nearby drivers in Redis for booking ${booking.id}.`);
+    const nearbyMap = new Map(filteredNearby.map(([id, dist]) => [id, Number(dist)]));
     const filteredDriverIds = Array.from(nearbyMap.keys()).filter((id) => !excludeDriverIds.has(id));
     this.logger.log(`[pickBestCandidate] Filtered to ${filteredDriverIds.length} drivers after exclusion for booking ${booking.id}.`);
 
@@ -262,7 +268,6 @@ export class AssignmentService {
         isActive: true,
         verificationStatus: VerificationStatus.VERIFIED,
         driverStatus: DriverStatus.AVAILABLE,
-        lastSeenAt: { gte: new Date(Date.now() - 60 * 1000) }, // 1 minute
       },
     });
     this.logger.log(`[pickBestCandidate] Found ${drivers.length} eligible drivers in DB for booking ${booking.id}.`);
