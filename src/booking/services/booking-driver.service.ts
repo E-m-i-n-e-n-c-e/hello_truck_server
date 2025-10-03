@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking } from '@prisma/client';
+import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 
 @Injectable()
@@ -100,12 +100,113 @@ export class BookingDriverService {
     });
   }
 
-  getDriverAssignment(driverId: string): Promise<BookingAssignment & { booking: Booking } | null> {
-    return this.prisma.bookingAssignment.findFirst({
-      where: { driverId, status: AssignmentStatus.OFFERED },
+  async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<BookingAssignment & { booking: Booking } | null> {
+    return tx.bookingAssignment.findFirst({
+      where: { driverId, status: { in: [AssignmentStatus.OFFERED, AssignmentStatus.ACCEPTED] } },
       include: {
         booking: true,
       }
+    });
+  }
+
+  async pickupArrived(driverId: string): Promise<void> {
+    const assignment = await this.getDriverAssignment(driverId);
+    if (!assignment) {
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+    }
+    await this.prisma.booking.update({
+      where: { id: assignment.booking.id, status: BookingStatus.PICKUP_ARRIVED },
+      data: { status: BookingStatus.PICKUP_VERIFIED }
+    });
+  }
+
+  async dropArrived(driverId: string): Promise<void> {
+    const assignment = await this.getDriverAssignment(driverId);
+    if (!assignment) {
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+    }
+    await this.prisma.booking.update({
+      where: { id: assignment.booking.id, status: BookingStatus.DROP_ARRIVED },
+      data: { status: BookingStatus.DROP_VERIFIED }
+    });
+  }
+
+  async verifyPickup(driverId: string): Promise<void> {
+    const assignment = await this.getDriverAssignment(driverId);
+    if (!assignment) {
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+    }
+    await this.prisma.booking.update({
+      where: { id: assignment.booking.id, status: BookingStatus.PICKUP_ARRIVED },
+      data: { status: BookingStatus.PICKUP_VERIFIED }
+    });
+  }
+
+  async verifyDrop(driverId: string): Promise<void> {
+    const assignment = await this.getDriverAssignment(driverId);
+    if (!assignment) {
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+    }
+    await this.prisma.booking.update({
+      where: { id: assignment.booking.id, status: BookingStatus.DROP_ARRIVED },
+      data: { status: BookingStatus.DROP_VERIFIED }
+    });
+  }
+
+  async startRide(driverId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.driver.update({
+        where: { id: driverId },
+        data: { driverStatus: DriverStatus.ON_RIDE }
+      });
+      const assignment = await this.getDriverAssignment(driverId, tx);
+      if (!assignment) {
+        throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+      }
+      await tx.booking.update({
+          where: { id: assignment.booking.id, status: BookingStatus.PICKUP_VERIFIED },
+          data: { status: BookingStatus.IN_TRANSIT }
+        });
+    });
+  }
+
+  async finishRide(driverId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.driver.update({
+        where: { id: driverId },
+        data: { driverStatus: DriverStatus.AVAILABLE }
+      });
+      const assignment = await this.getDriverAssignment(driverId, tx);
+      if (!assignment) {
+        throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+      }
+      await tx.booking.update({
+        where: { id: assignment.booking.id, status: BookingStatus.DROP_VERIFIED },
+        data: { status: BookingStatus.COMPLETED }
+      });
+    });
+  }
+
+  async getAssignmentHistory(driverId: string) {
+    return this.prisma.bookingAssignment.findMany({
+      where: {
+        driverId,
+        status: AssignmentStatus.ACCEPTED,
+        booking: {
+          status: BookingStatus.COMPLETED,
+        },
+      },
+      include: {
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+          },
+        },
+      },
+      orderBy: { offeredAt: 'desc' },
+      take: 10,
     });
   }
 }

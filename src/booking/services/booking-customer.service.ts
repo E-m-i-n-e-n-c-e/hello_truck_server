@@ -84,6 +84,8 @@ export class BookingCustomerService {
           transportDocUrls: createRequest.package.transportDocUrls,
         },
       });
+      const pickupOtp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+      const dropOtp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
 
       // Create booking
       const booking = await tx.booking.create({
@@ -100,6 +102,8 @@ export class BookingCustomerService {
           vehicleMultiplier: selectedVehicleOption.breakdown.vehicleMultiplier,
           suggestedVehicleType: createRequest.selectedVehicleType,
           status: BookingStatus.PENDING,
+          pickupOtp: pickupOtp,
+          dropOtp: dropOtp,
         },
         include: {
           package: true,

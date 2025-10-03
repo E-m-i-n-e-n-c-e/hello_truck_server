@@ -337,6 +337,10 @@ model Booking {
   vehicleMultiplier    Decimal             @db.Decimal(3,2) @default(1.0)
   suggestedVehicleType VehicleType
 
+  // OTPs
+  pickupOtp            String?
+  dropOtp              String?
+
   // Booking Status & Assignment
   status               BookingStatus       @default(PENDING)
   assignments          BookingAssignment[]
