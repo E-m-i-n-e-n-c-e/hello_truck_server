@@ -1,4 +1,5 @@
 ### Create Booking (Customer)
+
 POST http://localhost:3000/bookings/customer
 Authorization: Bearer 6300045929
 Content-Type: application/json
@@ -28,3 +29,29 @@ Content-Type: application/json
 }
 
 
+
+### Driver - Verify Pickup OTP
+POST http://localhost:3000/bookings/driver/pickup/verify
+Authorization: Bearer DRIVER_TOKEN
+Content-Type: application/json
+
+{
+  "otp": "123456"
+}
+
+### Driver - Verify Drop OTP
+POST http://localhost:3000/bookings/driver/drop/verify
+Authorization: Bearer DRIVER_TOKEN
+Content-Type: application/json
+
+{
+  "otp": "654321"
+}
+
+### Driver - Start Ride
+POST http://localhost:3000/bookings/driver/start
+Authorization: Bearer DRIVER_TOKEN
+
+### Driver - Finish Ride
+POST http://localhost:3000/bookings/driver/finish
+Authorization: Bearer DRIVER_TOKEN

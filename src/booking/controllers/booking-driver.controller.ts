@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { Roles } from 'src/token/decorators/roles.decorator';
@@ -33,6 +33,42 @@ export class BookingDriverController {
   @Post('reject/:assignmentId')
   rejectBooking(@Param('assignmentId') assignmentId: string) {
     return this.bookingDriverService.rejectBooking(assignmentId);
+  }
+
+  // Pickup arrived
+  @Post('pickup/arrived')
+  pickupArrived(@User('userId') driverId: string) {
+    return this.bookingDriverService.pickupArrived(driverId);
+  }
+
+  //Drop arrived
+  @Post('drop/arrived')
+  dropArrived(@User('userId') driverId: string) {
+    return this.bookingDriverService.dropArrived(driverId);
+  }
+
+  // Verify pickup OTP
+  @Post('pickup/verify')
+  verifyPickup(@User('userId') driverId: string, @Body('otp') otp: string) {
+    return this.bookingDriverService.verifyPickup(driverId, otp);
+  }
+
+  // Verify drop OTP
+  @Post('drop/verify')
+  verifyDrop(@User('userId') driverId: string, @Body('otp') otp: string) {
+    return this.bookingDriverService.verifyDrop(driverId, otp);
+  }
+
+  // Start ride (transition from PICKUP_VERIFIED -> IN_TRANSIT)
+  @Post('start')
+  startRide(@User('userId') driverId: string) {
+    return this.bookingDriverService.startRide(driverId);
+  }
+
+  // Finish ride (transition from DROP_VERIFIED -> COMPLETED)
+  @Post('finish')
+  finishRide(@User('userId') driverId: string) {
+    return this.bookingDriverService.finishRide(driverId);
   }
 }
 

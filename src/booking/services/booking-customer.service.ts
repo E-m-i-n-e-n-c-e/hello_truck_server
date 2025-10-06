@@ -86,6 +86,7 @@ export class BookingCustomerService {
       });
       const pickupOtp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
       const dropOtp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+      console.log("Otp generated", pickupOtp, dropOtp);
 
       // Create booking
       const booking = await tx.booking.create({
