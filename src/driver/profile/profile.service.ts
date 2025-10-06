@@ -150,6 +150,20 @@ export class ProfileService {
   }
 
   async updateDriverStatus(userId: string, status: DriverStatus) {
+    // Fetch current driver status
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: userId },
+      select: { driverStatus: true },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver not found');
+    }
+
+    if (driver.driverStatus === 'ON_RIDE' || driver.driverStatus === 'RIDE_OFFERED') {
+      throw new BadRequestException('Cannot update status while driver is on a ride or has a ride offered');
+    }
+
     await this.prisma.$transaction(async (tx) => {
       // Update the driver's status
       await tx.driver.update({

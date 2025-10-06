@@ -4,12 +4,12 @@ Authorization: Bearer 6300045929
 Content-Type: application/json
 
 {
-  "pickupAddress": {
+  "dropAddress": {
     "formattedAddress": "QJ4X+G6, Vallichira, Nechipuzhoor, Kerala 686635, India",
     "latitude": 9.7560312,
     "longitude": 76.6479833
   },
-  "dropAddress": {
+  "pickupAddress": {
     "formattedAddress": "Rama Bhaathi Nilayam, Plot 122/A, 301, Moti Nagar Phase III, Kalyan Nagar, Moti Nagar, Hyderabad, Telangana 500114, India",
     "latitude": 17.4510495,
     "longitude": 78.42151087

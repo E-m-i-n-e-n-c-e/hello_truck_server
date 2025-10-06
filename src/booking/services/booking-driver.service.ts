@@ -104,7 +104,13 @@ export class BookingDriverService {
     return tx.bookingAssignment.findFirst({
       where: { driverId, status: { in: [AssignmentStatus.OFFERED, AssignmentStatus.ACCEPTED] } },
       include: {
-        booking: true,
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+          },
+        },
       }
     });
   }
@@ -131,24 +137,30 @@ export class BookingDriverService {
     });
   }
 
-  async verifyPickup(driverId: string): Promise<void> {
+  async verifyPickup(driverId: string, pickupOtp: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
       throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
+    if (assignment.booking.pickupOtp !== pickupOtp) {
+      throw new BadRequestException('Invalid OTP');
+    }
     await this.prisma.booking.update({
-      where: { id: assignment.booking.id, status: BookingStatus.PICKUP_ARRIVED },
+      where: { id: assignment.booking.id },
       data: { status: BookingStatus.PICKUP_VERIFIED }
     });
   }
 
-  async verifyDrop(driverId: string): Promise<void> {
+  async verifyDrop(driverId: string, dropOtp: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
       throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
+    if (assignment.booking.dropOtp !== dropOtp) {
+      throw new BadRequestException('Invalid OTP');
+    }
     await this.prisma.booking.update({
-      where: { id: assignment.booking.id, status: BookingStatus.DROP_ARRIVED },
+      where: { id: assignment.booking.id },
       data: { status: BookingStatus.DROP_VERIFIED }
     });
   }

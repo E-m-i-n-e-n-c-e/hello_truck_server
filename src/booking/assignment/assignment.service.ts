@@ -57,6 +57,7 @@ export class AssignmentService {
 
   async tryToAssignDriver(job: Job<AssignJobData>) {
     const { bookingId, attempt } = job.data;
+    let assignedDriverId: string | null = null;
 
     // Acquire lock before processing
     const lockKey = `booking:${bookingId}:processing`;
@@ -105,10 +106,20 @@ export class AssignmentService {
 
         this.logger.log(`[tryToAssignDriver] Assigning driver ${next.driverId} (score: ${next.driverScore}, distance: ${next.distanceKm}km, combinedScore: ${next.combinedScore}) to booking ${bookingId}`);
         await this.setAttempt(bookingId, attempt);
-        await this.assignDriverTx(bookingId, next.driverId, tx);
+        assignedDriverId = await this.assignDriverTx(bookingId, next.driverId, tx);
       });
     } finally {
       await this.redisService.del(lockKey);
+      if(assignedDriverId) {
+        this.logger.log(`[tryToAssignDriver] Notifying driver ${assignedDriverId} of assignment for booking ${bookingId}.`);
+        await this.firebase.notifyAllSessions(assignedDriverId, 'driver', {
+          notification: {
+            title: 'New Ride Offer',
+            body: 'You have been offered a ride',
+          },
+          data: { event: FcmEventType.DriverAssignmentOffered, bookingId },
+        });
+      }
     }
   }
 
@@ -203,7 +214,7 @@ export class AssignmentService {
     await this.redisService.set(key, attempt, 'EX', 3600); // 1 hour expiry
   }
 
-  private async assignDriverTx(bookingId: string, driverId: string, tx: Prisma.TransactionClient) {
+  private async assignDriverTx(bookingId: string, driverId: string, tx: Prisma.TransactionClient) : Promise<string> {
     this.logger.log(`[assignDriverTx] Assigning driver ${driverId} to booking ${bookingId}. Creating assignment and updating statuses.`);
     await tx.bookingAssignment.create({
       data: { bookingId, driverId, status: AssignmentStatus.OFFERED, offeredAt: new Date() },
@@ -213,11 +224,8 @@ export class AssignmentService {
       data: { status: BookingStatus.DRIVER_ASSIGNED, assignedDriverId: driverId },
     });
     await tx.driver.update({ where: { id: driverId }, data: { driverStatus: DriverStatus.RIDE_OFFERED } });
-    this.logger.log(`[assignDriverTx] Notifying driver ${driverId} of assignment for booking ${bookingId}.`);
-    await this.firebase.notifyAllSessions(driverId, 'driver', {
-      data: { event: FcmEventType.DriverAssignmentOffered, bookingId },
-    });
     await this.scheduleTimeoutJob(bookingId, driverId);
+    return driverId;
   }
 
   private async retrieveBookingDetails(
