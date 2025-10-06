@@ -84,8 +84,10 @@ export class BookingCustomerService {
           transportDocUrls: createRequest.package.transportDocUrls,
         },
       });
-      const pickupOtp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
-      const dropOtp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+      // const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
+      // const dropOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
+      const pickupOtp = '1234';
+      const dropOtp = '1234';
       console.log("Otp generated", pickupOtp, dropOtp);
 
       // Create booking
