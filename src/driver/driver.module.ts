@@ -5,10 +5,11 @@ import { VehicleModule } from './vehicle/vehicle.module';
 import { AddressModule } from './address/address.module';
 import { TokenModule } from 'src/token/token.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { RedisModule } from 'src/redis/redis.module';
 import { DriverGateway } from './driver.gateway';
 
 @Module({
-  imports: [TokenModule, PrismaModule, ProfileModule, DocumentsModule, VehicleModule, AddressModule],
+  imports: [TokenModule, PrismaModule, ProfileModule, DocumentsModule, VehicleModule, AddressModule, RedisModule],
   providers: [DriverGateway],
   exports: [DriverGateway],
 })

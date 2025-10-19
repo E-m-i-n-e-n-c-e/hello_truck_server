@@ -7,6 +7,8 @@ import { Booking, BookingStatus } from '@prisma/client';
 import { FirebaseService } from 'src/auth/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { AssignmentService } from '../assignment/assignment.service';
+import { RedisService } from 'src/redis/redis.service';
+import { Response, Request } from 'express';
 
 @Injectable()
 export class BookingCustomerService {
@@ -15,6 +17,7 @@ export class BookingCustomerService {
     private readonly bookingEstimateService: BookingEstimateService,
     private readonly firebaseService: FirebaseService,
     private readonly bookingAssignmentService: AssignmentService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -47,6 +50,10 @@ export class BookingCustomerService {
       // Create addresses first
       const pickupAddress = await tx.address.create({
         data: {
+          addressName: createRequest.pickupAddress.addressName,
+          contactName: createRequest.pickupAddress.contactName,
+          contactPhone: createRequest.pickupAddress.contactPhone,
+          noteToDriver: createRequest.pickupAddress.noteToDriver,
           formattedAddress: createRequest.pickupAddress.formattedAddress,
           addressDetails: createRequest.pickupAddress.addressDetails,
           latitude: createRequest.pickupAddress.latitude,
@@ -56,6 +63,10 @@ export class BookingCustomerService {
 
       const dropAddress = await tx.address.create({
         data: {
+          addressName: createRequest.dropAddress.addressName,
+          contactName: createRequest.dropAddress.contactName,
+          contactPhone: createRequest.dropAddress.contactPhone,
+          noteToDriver: createRequest.dropAddress.noteToDriver,
           formattedAddress: createRequest.dropAddress.formattedAddress,
           addressDetails: createRequest.dropAddress.addressDetails,
           latitude: createRequest.dropAddress.latitude,
@@ -146,6 +157,7 @@ export class BookingCustomerService {
         package: true,
         pickupAddress: true,
         dropAddress: true,
+        assignedDriver: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -170,6 +182,7 @@ export class BookingCustomerService {
         package: true,
         pickupAddress: true,
         dropAddress: true,
+        assignedDriver: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -264,5 +277,85 @@ export class BookingCustomerService {
       uploadUrlDto.type
     );
     return uploadUrl;
+  }
+
+  /**
+   * Get driver navigation updates via SSE
+   */
+  async getDriverNavigationUpdates(
+    userId: string,
+    bookingId: string,
+    response: Response,
+    request: Request,
+  ): Promise<void> {
+    // Verify the booking belongs to the user and has an assigned driver
+    const booking = await this.prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        customerId: userId,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (!booking.assignedDriverId) {
+      throw new BadRequestException('No driver assigned to this booking');
+    }
+
+    const driverId = booking.assignedDriverId;
+
+    // Set SSE headers (hardened)
+    response.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    response.setHeader('Cache-Control', 'no-cache, no-transform');
+    response.setHeader('Connection', 'keep-alive');
+    response.setHeader('X-Accel-Buffering', 'no');
+    if (typeof (response as any).flushHeaders === 'function') {
+      (response as any).flushHeaders();
+    }
+
+    // Suggest client retry interval
+    response.write('retry: 10000\n\n');
+
+    // Send initial data from Redis
+    try {
+      const redisKey = `driver_navigation:${driverId}`;
+      const cachedData = await this.redisService.get(redisKey);
+
+      if (cachedData) {
+        const navigationData = JSON.parse(cachedData);
+        response.write(`data: ${JSON.stringify(navigationData)}\n\n`);
+      }
+    } catch (error) {
+      console.error('Error reading cached navigation data:', error);
+    }
+
+    // Set up Redis subscription for real-time updates (booking-scoped) using shared subscriber
+    const sseKey = `driver_navigation_updates:${driverId}`;
+
+    // Heartbeat to keep connection alive through proxies
+    const heartbeat = setInterval(() => {
+      try { response.write(`: ping\n\n`); } catch (_) {}
+    }, 25000); // 25 seconds
+
+    const handler = (message: string) => {
+      try {
+        const navigationData = JSON.parse(message);
+        response.write(`data: ${JSON.stringify(navigationData)}\n\n`);
+      } catch (error) {
+        // Fallback to raw
+        response.write(`data: ${message}\n\n`);
+      }
+    };
+
+    await this.redisService.subscribeChannel(sseKey, handler);
+
+    // Handle client disconnect
+    request.on('close', async () => {
+      clearInterval(heartbeat);
+      await this.redisService.unsubscribeChannel(sseKey, handler);
+      response.end();
+    });
   }
 }

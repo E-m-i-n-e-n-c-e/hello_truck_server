@@ -38,6 +38,8 @@ model Address {
   latitude         Decimal        @db.Decimal(10, 8)
   longitude        Decimal        @db.Decimal(11, 8)
 
+  addressName      String?
+
   // Contact fields for bookings
   contactName      String?
   contactPhone     String?
@@ -314,6 +316,7 @@ model Package {
 
 model Booking {
   id                    String              @id @default(uuid())
+  bookingNumber         BigInt              @unique @default(autoincrement())
   customerId           String
   customer             Customer            @relation(fields: [customerId], references: [id])
 
@@ -340,6 +343,18 @@ model Booking {
   // OTPs
   pickupOtp            String?
   dropOtp              String?
+
+  // Payment
+  paymentLinkUrl       String?
+  rzpOrderId           String?
+  rzpPaymentId         String?
+
+  // time stats
+  pickupArrivedAt      DateTime?
+  pickupVerifiedAt     DateTime?
+  dropArrivedAt        DateTime?
+  dropVerifiedAt       DateTime?
+  completedAt          DateTime?
 
   // Booking Status & Assignment
   status               BookingStatus       @default(PENDING)

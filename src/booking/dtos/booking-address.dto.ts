@@ -4,6 +4,20 @@ import { Expose } from "class-transformer";
 import { IsLatitude, IsLongitude, IsString, IsOptional, IsNotEmpty } from "class-validator";
 
 export class CreateBookingAddressDto {
+  @IsString()
+  @IsOptional()
+  addressName?: string;
+
+  @IsString()
+  contactName: string;
+
+  @IsString()
+  contactPhone: string;
+
+  @IsOptional()
+  @IsString()
+  noteToDriver?: string;
+
   @IsLatitude()
   latitude: number;
 
@@ -20,6 +34,14 @@ export class CreateBookingAddressDto {
 }
 
 export class BookingAddressResponseDto {
+  @Expose()
+  addressName: string | null;
+  @Expose()
+  contactName: string | null;
+  @Expose()
+  contactPhone: string | null;
+  @Expose()
+  noteToDriver: string | null;
   @Expose()
   latitude: number;
   @Expose()

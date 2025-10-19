@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, Query, Param, Delete, Put } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Query, Param, Delete, Put, Res, Req } from '@nestjs/common';
 import { User } from 'src/token/decorators/user.decorator';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
@@ -11,6 +11,7 @@ import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { BookingEstimateService } from '../services/booking-estimate.service';
+import { Response, Request } from 'express';
 
 @Controller('bookings/customer')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -77,5 +78,15 @@ export class BookingCustomerController {
     @Query() uploadUrlDto: uploadUrlDto,
   ) {
     return this.bookingCustomerService.getUploadUrl(userId, uploadUrlDto);
+  }
+
+  @Get('driver-navigation/:bookingId')
+  async getDriverNavigationUpdates(
+    @User('userId') userId: string,
+    @Param('bookingId') bookingId: string,
+    @Res() response: Response,
+    @Req() request: Request,
+  ) {
+    return this.bookingCustomerService.getDriverNavigationUpdates(userId, bookingId, response, request);
   }
 }

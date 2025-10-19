@@ -14,6 +14,8 @@ import { ProfileService } from './profile/profile.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { TokenService } from 'src/token/token.service';
 import { seconds, Throttle } from '@nestjs/throttler';
+import { RedisService } from 'src/redis/redis.service';
+import { BookingDriverService } from 'src/booking/services/booking-driver.service';
 
 @WebSocketGateway({
   namespace: '/driver',
@@ -32,6 +34,7 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
   constructor(
     private profileService: ProfileService,
     private tokenService: TokenService,
+    private redisService: RedisService,
   ) { }
 
   afterInit(server: Server) {
@@ -101,6 +104,60 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
 
     } catch (error) {
       this.logger.error(`Failed to update location for driver ${driverId}:`, error);
+    }
+  }
+
+  @SubscribeMessage('driver-navigation-update')
+  @Throttle({ default: { ttl: seconds(2), limit: 1 } })
+  async handleNavigationUpdate(client: Socket, payload: {
+    remainingTime: number;
+    remainingDistance: number;
+    timeToNextDestinationSeconds: number;
+    distanceToNextDestinationMeters: number;
+    timeToFinalDestinationSeconds: number;
+    distanceToFinalDestinationMeters: number;
+    latitude: number;
+    longitude: number;
+    routePolyline: string;
+    sentAt: string;
+  }) {
+    const user = client.data.user;
+    const driverId = user.userId;
+
+    try {
+
+      // Calculate transformed values
+      const timeToPickup = Math.max(payload.remainingTime || 0, payload.timeToNextDestinationSeconds || 0);
+      const distanceToPickup = Math.max(payload.remainingDistance || 0, payload.distanceToNextDestinationMeters || 0);
+      const timeToDrop = Math.max(timeToPickup, payload.timeToFinalDestinationSeconds || 0);
+      const distanceToDrop = Math.max(distanceToPickup, payload.distanceToFinalDestinationMeters || 0);
+
+      // Create the transformed data object
+      const transformedData = {
+        timeToPickup,
+        timeToDrop,
+        distanceToPickup,
+        distanceToDrop,
+        location: {
+          latitude: Number(payload.latitude),
+          longitude: Number(payload.longitude)
+        },
+        route: payload.routePolyline,
+        sentAt: payload.sentAt || new Date().toISOString()
+      };
+
+      // Store in Redis with driver ID as key
+      const redisKey = `driver_navigation:${driverId}`;
+      await this.redisService.set(redisKey, JSON.stringify(transformedData), 'EX', 300);
+
+      // Publish update for SSE listeners scoped to driver
+      const sseKey = `driver_navigation_updates:${driverId}`;
+      await this.redisService.publish(sseKey, JSON.stringify(transformedData));
+
+      this.logger.log(`Driver ${driverId} navigation data stored and published`);
+
+    } catch (error) {
+      this.logger.error(`Failed to process navigation update for driver ${driverId}:`, error);
     }
   }
 
