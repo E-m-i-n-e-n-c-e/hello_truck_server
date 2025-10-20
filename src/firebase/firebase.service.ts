@@ -147,7 +147,9 @@ export class FirebaseService implements OnModuleInit {
 
     if (sessions.length === 0) return { successCount: 0, failureCount: 0 };
 
-    const tokens = sessions.filter(s => s.fcmToken).map(s => s.fcmToken!);
+    // Remove duplicate tokens
+    const tokenSet = new Set(sessions.filter(s => s.fcmToken).map(s => s.fcmToken!));
+    const tokens = Array.from(tokenSet);
 
     const res = await this.app.messaging().sendEachForMulticast({
       tokens,
