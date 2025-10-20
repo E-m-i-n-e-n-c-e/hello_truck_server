@@ -3,7 +3,7 @@ import { BookingCustomerController } from './controllers/booking-customer.contro
 import { BookingDriverController } from './controllers/booking-driver.controller';
 import { PricingModule } from './pricing/pricing.module';
 import { TokenModule } from 'src/token/token.module';
-import { FirebaseModule } from 'src/auth/firebase/firebase.module';
+import { FirebaseModule } from 'src/firebase/firebase.module';
 import { BookingCustomerService } from './services/booking-customer.service';
 import { BookingDriverService } from './services/booking-driver.service';
 import { BookingEstimateService } from './services/booking-estimate.service';

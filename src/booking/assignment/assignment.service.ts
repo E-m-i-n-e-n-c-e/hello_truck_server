@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, Booking, BookingStatus, AssignmentStatus, DriverStatus, VerificationStatus, Address, BookingAssignment } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { FirebaseService } from 'src/auth/firebase/firebase.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 import { FcmEventType } from 'src/common/types/fcm.types';
 import { RedisService } from 'src/redis/redis.service';
 import { InjectQueue } from '@nestjs/bullmq';

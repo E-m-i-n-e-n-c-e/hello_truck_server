@@ -4,7 +4,7 @@ import { BookingEstimateService } from './booking-estimate.service';
 import { CreateBookingRequestDto, BookingResponseDto, UpdateBookingRequestDto } from '../dtos/booking.dto';
 import { BookingEstimateRequestDto } from '../dtos/booking-estimate.dto';
 import { Address, Booking, BookingStatus, Package, VehicleType, WeightUnit } from '@prisma/client';
-import { FirebaseService } from 'src/auth/firebase/firebase.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { AssignmentService } from '../assignment/assignment.service';
 import { RedisService } from 'src/redis/redis.service';

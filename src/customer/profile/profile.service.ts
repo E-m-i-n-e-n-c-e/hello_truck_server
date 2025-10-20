@@ -4,7 +4,7 @@ import { UpdateProfileDto, CreateProfileDto } from '../dtos/profile.dto';
 import { GstService } from '../gst/gst.service';
 import { AddressService } from '../address/address.service';
 import { Customer } from '@prisma/client';
-import { FirebaseService } from 'src/auth/firebase/firebase.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class ProfileService {

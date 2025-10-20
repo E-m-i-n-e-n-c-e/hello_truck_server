@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { FirebaseService } from 'src/auth/firebase/firebase.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 import { UpdateProfileDto, CreateDriverProfileDto, UpdateLocationDto } from '../dtos/profile.dto';
 import { Driver, DriverStatus } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
