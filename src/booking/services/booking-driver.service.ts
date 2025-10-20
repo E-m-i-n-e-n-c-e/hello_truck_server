@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class BookingDriverService {
@@ -9,6 +10,7 @@ export class BookingDriverService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bookingAssignmentService: AssignmentService,
+    private readonly firebase: FirebaseService,
   ) { }
 
   async acceptBooking(driverAssignmentId: string): Promise<void> {
@@ -52,6 +54,12 @@ export class BookingDriverService {
       });
 
       await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
+    });
+    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      notification: {
+        title: 'Booking Confirmed',
+        body: `Your booking has been confirmed. Your driver ${assignment.driver.firstName + ' ' + assignment.driver.lastName} is on the way to pick up your parcel.`.trim(),
+      },
     });
   }
 
@@ -133,6 +141,12 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_ARRIVED }
     });
+    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      notification: {
+        title: 'Parcel Pickup Arrived',
+        body: 'Your parcel has arrived at the pickup location. Please verify the pickup and proceed with the delivery.',
+      },
+    });
   }
 
   async dropArrived(driverId: string): Promise<void> {
@@ -146,6 +160,12 @@ export class BookingDriverService {
         status: { in: [BookingStatus.PICKUP_VERIFIED, BookingStatus.IN_TRANSIT ] }
       },
       data: { status: BookingStatus.DROP_ARRIVED }
+    });
+    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      notification: {
+        title: 'Parcel Drop Arrived',
+        body: 'Your parcel has arrived at the drop location. Please verify the drop and proceed with the delivery.',
+      },
     });
   }
 
@@ -164,6 +184,12 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_VERIFIED }
     });
+    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      notification: {
+        title: 'Parcel Pickup Verified',
+        body: 'Your parcel has been picked up and is on its way to the drop location.',
+      },
+    });
   }
 
   async verifyDrop(driverId: string, dropOtp: string): Promise<void> {
@@ -181,6 +207,12 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_VERIFIED }
     });
+    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      notification: {
+        title: 'Parcel Drop Verified',
+        body: 'Your parcel has been dropped off at the destination.',
+      },
+    });
   }
 
   async startRide(driverId: string): Promise<void> {
@@ -192,6 +224,12 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.PICKUP_VERIFIED },
         data: { status: BookingStatus.IN_TRANSIT }
       });
+    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      notification: {
+        title: 'Ride Started',
+        body: 'Driver has started the ride. Please sit back and relax as your parcel is being delivered.',
+      },
+    });
   }
 
   async finishRide(driverId: string): Promise<void> {
