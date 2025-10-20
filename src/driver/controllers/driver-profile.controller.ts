@@ -8,6 +8,7 @@ import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto, UpdateDriverStatusDto } from '../dtos/profile.dto';
 import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
+import { UpdatePayoutDetailsDto } from 'src/razorpay/dtos/payout-details.dto';
 
 @Controller('driver/profile')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -55,5 +56,16 @@ export class DriverProfileController {
     @Body() upsertFcmTokenDto: UsertFcmTokenDto,
   ) {
     return this.profileService.upsertFcmToken(sessionId, upsertFcmTokenDto.fcmToken);
+  }
+
+  @Put('payout-details')
+  @Serialize(SuccessResponseDto)
+  async updateDriverPayoutDetails(
+    @User('userId') userId: string,
+    @Body() payoutDetailsDto: UpdatePayoutDetailsDto,
+  ) {
+    return this.profileService.updateProfile(userId, {
+      payoutDetails: payoutDetailsDto,
+    });
   }
 }

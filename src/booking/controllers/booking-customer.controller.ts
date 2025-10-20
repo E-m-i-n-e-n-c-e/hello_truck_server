@@ -6,12 +6,13 @@ import { Roles } from 'src/token/decorators/roles.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingCustomerService } from '../services/booking-customer.service';
 import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-estimate.dto';
-import { CreateBookingRequestDto, BookingResponseDto } from '../dtos/booking.dto';
+import { CreateBookingRequestDto, BookingResponseDto, UpdateBookingRequestDto } from '../dtos/booking.dto';
 import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { BookingEstimateService } from '../services/booking-estimate.service';
 import { Response, Request } from 'express';
+import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 
 @Controller('bookings/customer')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -29,7 +30,7 @@ export class BookingCustomerController {
     @User('userId') userId: string,
     @Body() estimateRequest: BookingEstimateRequestDto,
   ): Promise<BookingEstimateResponseDto> {
-    return this.bookingEstimateService.calculateEstimate(userId, estimateRequest);
+    return this.bookingEstimateService.calculateEstimate(estimateRequest);
   }
 
   @Post()
@@ -68,6 +69,16 @@ export class BookingCustomerController {
     @Param('id') bookingId: string,
   ) {
     return this.bookingCustomerService.cancelBooking(userId, bookingId);
+  }
+
+  @Put(':id')
+  @Serialize(SuccessResponseDto)
+  async updateBooking(
+    @User('userId') userId: string,
+    @Param('id') bookingId: string,
+    @Body() updateRequest: UpdateBookingRequestDto,
+  ) {
+    return this.bookingCustomerService.updateBooking(userId, bookingId, updateRequest);
   }
 
 

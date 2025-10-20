@@ -1,4 +1,4 @@
-import { ValidateNested } from 'class-validator';
+import { IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsEnum } from 'class-validator';
 import { $Enums, Driver, VehicleType } from '@prisma/client';
@@ -21,6 +21,23 @@ export class CreateBookingRequestDto {
 
   @IsEnum(VehicleType)
   selectedVehicleType: VehicleType;
+}
+
+export class UpdateBookingRequestDto {
+  @ValidateNested()
+  @Type(() => CreateBookingAddressDto)
+  @IsOptional()
+  pickupAddress?: CreateBookingAddressDto;
+
+  @ValidateNested()
+  @Type(() => CreateBookingAddressDto)
+  @IsOptional()
+  dropAddress?: CreateBookingAddressDto;
+
+  @ValidateNested()
+  @Type(() => PackageDetailsDto)
+  @IsOptional()
+  package?: PackageDetailsDto;
 }
 
 class DriverResponseDto implements Partial<Driver> {

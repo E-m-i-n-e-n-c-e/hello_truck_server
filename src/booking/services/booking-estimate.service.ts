@@ -12,10 +12,9 @@ export class BookingEstimateService {
   /**
    * Calculate booking estimate
    */
-  async calculateEstimate(
-    userId: string,
+   calculateEstimate(
     estimateRequest: BookingEstimateRequestDto,
-  ): Promise<BookingEstimateResponseDto> {
+  ): BookingEstimateResponseDto {
     // Validate the request
     this.validateEstimateRequest(estimateRequest);
 
