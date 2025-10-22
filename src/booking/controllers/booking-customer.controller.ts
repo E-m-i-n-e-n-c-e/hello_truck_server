@@ -6,13 +6,15 @@ import { Roles } from 'src/token/decorators/roles.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingCustomerService } from '../services/booking-customer.service';
 import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-estimate.dto';
-import { CreateBookingRequestDto, BookingResponseDto, UpdateBookingRequestDto } from '../dtos/booking.dto';
+import { CreateBookingRequestDto, BookingResponseDto } from '../dtos/booking.dto';
 import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { BookingEstimateService } from '../services/booking-estimate.service';
 import { Response, Request } from 'express';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
+import { UpdateBookingAddressDto } from '../dtos/booking-address.dto';
+import { UpdatePackageDetailsDto } from '../dtos/package.dto';
 
 @Controller('bookings/customer')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -71,14 +73,39 @@ export class BookingCustomerController {
     return this.bookingCustomerService.cancelBooking(userId, bookingId);
   }
 
-  @Put(':id')
+  // Removed generic update endpoint in favor of specific endpoints
+
+  // Update only pickup address
+  @Put('pickup/:id')
   @Serialize(SuccessResponseDto)
-  async updateBooking(
+  async updatePickup(
     @User('userId') userId: string,
     @Param('id') bookingId: string,
-    @Body() updateRequest: UpdateBookingRequestDto,
+    @Body() pickupAddress: UpdateBookingAddressDto,
   ) {
-    return this.bookingCustomerService.updateBooking(userId, bookingId, updateRequest);
+    return this.bookingCustomerService.updatePickup(userId, bookingId, pickupAddress);
+  }
+
+  // Update only drop address
+  @Put('drop/:id')
+  @Serialize(SuccessResponseDto)
+  async updateDrop(
+    @User('userId') userId: string,
+    @Param('id') bookingId: string,
+    @Body() dropAddress: UpdateBookingAddressDto,
+  ) {
+    return this.bookingCustomerService.updateDrop(userId, bookingId, dropAddress);
+  }
+
+  // Update only package details
+  @Put('package/:id')
+  @Serialize(SuccessResponseDto)
+  async updatePackage(
+    @User('userId') userId: string,
+    @Param('id') bookingId: string,
+    @Body() packageDetails: UpdatePackageDetailsDto,
+  ) {
+    return this.bookingCustomerService.updatePackage(userId, bookingId, packageDetails);
   }
 
 

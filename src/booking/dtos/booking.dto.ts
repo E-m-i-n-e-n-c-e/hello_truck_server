@@ -23,23 +23,6 @@ export class CreateBookingRequestDto {
   selectedVehicleType: VehicleType;
 }
 
-export class UpdateBookingRequestDto {
-  @ValidateNested()
-  @Type(() => CreateBookingAddressDto)
-  @IsOptional()
-  pickupAddress?: CreateBookingAddressDto;
-
-  @ValidateNested()
-  @Type(() => CreateBookingAddressDto)
-  @IsOptional()
-  dropAddress?: CreateBookingAddressDto;
-
-  @ValidateNested()
-  @Type(() => PackageDetailsDto)
-  @IsOptional()
-  package?: PackageDetailsDto;
-}
-
 class DriverResponseDto implements Partial<Driver> {
   @Expose()
   phoneNumber: string;

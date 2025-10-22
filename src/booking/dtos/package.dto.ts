@@ -15,13 +15,11 @@ export class AgriculturalProductDto {
 }
 
 export class NonAgriculturalProductDto {
-  @IsOptional()
   @IsNumber()
-  averageWeight?: number;
+  averageWeight: number;
 
-  @IsOptional()
   @IsNumber()
-  bundleWeight?: number;
+  bundleWeight: number;
 
   @IsOptional()
   @IsNumber()
@@ -44,6 +42,34 @@ export class PackageDetailsDto {
 
   @IsEnum(ProductType)
   productType: ProductType;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AgriculturalProductDto)
+  agricultural?: AgriculturalProductDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NonAgriculturalProductDto)
+  nonAgricultural?: NonAgriculturalProductDto;
+
+  @IsOptional()
+  @IsString()
+  gstBillUrl?: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  transportDocUrls?: string[];
+}
+
+export class UpdatePackageDetailsDto {
+  @IsOptional()
+  @IsEnum(PackageType)
+  packageType?: PackageType;
+
+  @IsOptional()
+  @IsEnum(ProductType)
+  productType?: ProductType;
 
   @IsOptional()
   @ValidateNested()

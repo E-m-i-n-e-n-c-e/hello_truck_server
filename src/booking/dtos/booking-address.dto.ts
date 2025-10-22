@@ -1,7 +1,7 @@
 import { Address } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { Expose } from "class-transformer";
-import { IsLatitude, IsLongitude, IsString, IsOptional, IsNotEmpty } from "class-validator";
+import { IsLatitude, IsLongitude, IsString, IsOptional, IsPhoneNumber } from "class-validator";
 
 export class CreateBookingAddressDto {
   @IsString()
@@ -27,6 +27,40 @@ export class CreateBookingAddressDto {
   @IsString()
   @IsOptional()
   formattedAddress: string;
+
+  @IsOptional()
+  @IsString()
+  addressDetails?: string;
+}
+
+export class UpdateBookingAddressDto {
+  @IsString()
+  @IsOptional()
+  addressName?: string;
+
+  @IsString()
+  @IsOptional()
+  contactName?: string;
+
+  @IsString()
+  @IsOptional()
+  contactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  noteToDriver?: string;
+
+  @IsOptional()
+  @IsLatitude()
+  latitude?: number;
+
+  @IsOptional()
+  @IsLongitude()
+  longitude?: number;
+
+  @IsString()
+  @IsOptional()
+  formattedAddress?: string;
 
   @IsOptional()
   @IsString()

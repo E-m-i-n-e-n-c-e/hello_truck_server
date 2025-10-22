@@ -148,7 +148,8 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
 
       // Store in Redis with driver ID as key
       const redisKey = `driver_navigation:${driverId}`;
-      await this.redisService.set(redisKey, JSON.stringify(transformedData), 'EX', 300);
+      // This is the time drivers location data will be available after he goes offline
+      await this.redisService.set(redisKey, JSON.stringify(transformedData), 'EX', 900);
 
       // Publish update for SSE listeners scoped to driver
       const sseKey = `driver_navigation_updates:${driverId}`;
