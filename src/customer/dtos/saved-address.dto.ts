@@ -64,7 +64,6 @@ export class CreateSavedAddressDto implements Partial<SavedAddress> {
 }
 
 class UpdateAddressDto implements Partial<Address> {
-
   @IsOptional()
   @IsString()
   addressName?: string;

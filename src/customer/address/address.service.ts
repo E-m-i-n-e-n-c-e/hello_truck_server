@@ -106,7 +106,7 @@ export class AddressService {
 
     const { address: addressData, ...savedAddressData } = updateSavedAddressDto;
     try {
-    return this.prisma.savedAddress.update({
+    const updatedAddress = await this.prisma.savedAddress.update({
       where: { id },
       data: {
         ...savedAddressData,
@@ -118,6 +118,7 @@ export class AddressService {
         address: true,
       },
     });
+    return updatedAddress;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {

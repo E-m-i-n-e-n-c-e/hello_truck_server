@@ -29,20 +29,32 @@ export class CronService {
   // Cleanup expired sessions every day at midnight
   @Cron('0 0 * * *')
   async cleanupExpiredSessions() {
-    const result = await this.prisma.customerSession.deleteMany({
+    const customerResult = await this.prisma.customerSession.deleteMany({
       where: {
         expiresAt: {
           lt: new Date(),
         },
       },
     });
-    console.log(`Cleaned up ${result.count} expired sessions`);
+    console.log(`Cleaned up ${customerResult.count} expired customer sessions`);
+
+    const driverResult = await this.prisma.driverSession.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+    console.log(`Cleaned up ${driverResult.count} expired driver sessions`);
   }
 
   // Reset all drivers to unavailable every day at midnight
   @Cron('0 0 * * *')
   async resetDriverAvailability() {
     const result = await this.prisma.driver.updateMany({
+      where: {
+        driverStatus: DriverStatus.AVAILABLE,
+      },
       data: {
         driverStatus: DriverStatus.UNAVAILABLE
       }

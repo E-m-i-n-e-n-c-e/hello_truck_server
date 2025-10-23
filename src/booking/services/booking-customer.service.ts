@@ -196,6 +196,7 @@ export class BookingCustomerService {
         package: true,
         pickupAddress: true,
         dropAddress: true,
+        assignedDriver: true,
       },
     });
 
@@ -450,7 +451,7 @@ export class BookingCustomerService {
     pickup: UpdateBookingAddressDto,
   ): void {
     if (this.isAtOrAfter(existing.status, BookingStatus.PICKUP_ARRIVED)) {
-      throw new ForbiddenException('Pickup location cannot be changed after driver has arrived at pickup');
+      throw new BadRequestException('Pickup location cannot be changed after driver has arrived at pickup');
     }
 
     if (pickup.latitude !== undefined && pickup.longitude !== undefined) {
@@ -471,7 +472,7 @@ export class BookingCustomerService {
   ): void {
     if (!drop) return; // nothing to validate
     if (this.isAtOrAfter(existing.status, BookingStatus.DROP_ARRIVED)) {
-      throw new ForbiddenException('Drop location cannot be changed after driver has arrived at drop');
+      throw new BadRequestException('Drop location cannot be changed after driver has arrived at drop');
     }
 
     if (drop.latitude !== undefined && drop.longitude !== undefined) {

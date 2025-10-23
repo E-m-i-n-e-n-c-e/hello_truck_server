@@ -1,16 +1,23 @@
-### Create Booking (Customer)
+@base_url = https://hello-truck-server.fly.dev
 
-POST http://localhost:3000/bookings/customer
-Authorization: Bearer 6300045929
+### Create Booking (Customer)
+POST {{base_url}}/bookings/customer
+Authorization: Bearer 6300045129
 Content-Type: application/json
 
 {
-  "dropAddress": {
+  "pickupAddress": {
+    "contactName": "Raj Doe",
+    "contactPhone": "6300045929",
+    "noteToDriver": "Please call me when you arrive",
     "formattedAddress": "QJ4X+G6, Vallichira, Nechipuzhoor, Kerala 686635, India",
     "latitude": 9.7560312,
     "longitude": 76.6479833
   },
-  "pickupAddress": {
+  "dropAddress": {
+    "contactName": "Akhil Doe",
+    "contactPhone": "6300045929",
+    "noteToDriver": "Please call me when you arrive",
     "formattedAddress": "Rama Bhaathi Nilayam, Plot 122/A, 301, Moti Nagar Phase III, Kalyan Nagar, Moti Nagar, Hyderabad, Telangana 500114, India",
     "latitude": 17.4510495,
     "longitude": 78.42151087
@@ -28,10 +35,62 @@ Content-Type: application/json
   "selectedVehicleType": "THREE_WHEELER"
 }
 
+### Get Booking (Customer)
+GET {{base_url}}/bookings/customer/active
+Authorization: Bearer 6300045929
+
+
+### Update Pickup (Customer)
+### Notes:
+### - No pickup change at/after PICKUP_ARRIVED
+### - Distance limit applies
+
+PUT {{base_url}}/bookings/customer/pickup/89399dc1-50e4-4ceb-b60b-897605136275
+Authorization: Bearer 6300045929
+Content-Type: application/json
+
+{
+  "formattedAddress": "New nearby pickup point",
+  "latitude": 9.7564000,
+  "longitude": 76.6479000
+}
+
+### Update Drop (Customer)
+### Notes:
+### - No drop change at/after DROP_ARRIVED
+### - Distance limit applies
+
+PUT {{base_url}}/bookings/customer/drop/89399dc1-50e4-4ceb-b60b-897605136275
+Authorization: Bearer 6300045929
+Content-Type: application/json
+
+{
+  "formattedAddress": "Updated drop landmark",
+  "latitude": 19.4511000,
+  "longitude": 78.4215000
+}
+
+### Update Package (Customer)
+### Notes:
+### - No package change at/after PICKUP_VERIFIED
+
+PUT {{base_url}}/bookings/customer/package/89399dc1-50e4-4ceb-b60b-897605136275
+Authorization: Bearer 6300045929
+Content-Type: application/json
+
+{
+  "productType": "NON_AGRICULTURAL",
+  "packageType": "PERSONAL",
+  "agricultural": {
+    "productName": "Bananas",
+    "approximateWeight": 14,
+    "weightUnit": "KG"
+  }
+}
 
 
 ### Driver - Verify Pickup OTP
-POST http://localhost:3000/bookings/driver/pickup/verify
+POST {{base_url}}/bookings/driver/pickup/verify
 Authorization: Bearer DRIVER_TOKEN
 Content-Type: application/json
 
@@ -40,7 +99,7 @@ Content-Type: application/json
 }
 
 ### Driver - Verify Drop OTP
-POST http://localhost:3000/bookings/driver/drop/verify
+POST {{base_url}}/bookings/driver/drop/verify
 Authorization: Bearer DRIVER_TOKEN
 Content-Type: application/json
 
@@ -49,9 +108,26 @@ Content-Type: application/json
 }
 
 ### Driver - Start Ride
-POST http://localhost:3000/bookings/driver/start
+POST {{base_url}}/bookings/driver/start
 Authorization: Bearer DRIVER_TOKEN
 
 ### Driver - Finish Ride
-POST http://localhost:3000/bookings/driver/finish
+POST {{base_url}}/bookings/driver/finish
 Authorization: Bearer DRIVER_TOKEN
+
+### SSE: Driver navigation stream (booking-scoped)
+### Notes:
+### - Some REST clients may not display streaming updates. If it doesn't stream, use curl:
+###   curl -N -H "Accept: text/event-stream" -H "Authorization: Bearer 6300045929 " https://hello-truck-server.fly.dev/bookings/customer/driver-navigation/a9cb64c6-35f1-42b9-8685-a200b1ad3d20
+### - To simulate an update without a driver app, publish via redis-cli:
+###   redis-cli -u $REDIS_URL PUBLISH driver_navigation_updates:booking:<BOOKING_ID> '{"timeToPickup":120,"timeToDrop":900,"distanceToPickup":1500,"distanceToDrop":12000,"location":{"latitude":12.9716,"longitude":77.5946},"route":"<polyline>","sentAt":"2025-10-19T12:00:00Z"}'
+### - To seed initial cached value (so the stream emits immediately on connect):
+###   redis-cli -u $REDIS_URL SETEX driver_navigation:booking:<BOOKING_ID> 300 '{"timeToPickup":60,"timeToDrop":800,"distanceToPickup":800,"distanceToDrop":10000,"location":{"latitude":12.97,"longitude":77.59},"route":"<polyline>","sentAt":"2025-10-19T12:00:00Z"}'
+
+GET https://hello-truck-server.fly.dev/bookings/customer/driver-navigation/a9cb64c6-35f1-42b9-8685-a200b1ad3d20
+Accept: text/event-stream
+Authorization: Bearer 6300045929
+
+### Variables (replace or set via environment)
+### {{bookingId}} = <BOOKING_ID>
+### {{customerJwt}} = <CUSTOMER_JWT>

@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import { FcmEventType } from 'src/common/types/fcm.types';
 
 @Injectable()
 export class BookingDriverService {
@@ -60,6 +61,9 @@ export class BookingDriverService {
         title: 'Booking Confirmed',
         body: `Your booking has been confirmed. Your driver ${assignment.driver.firstName + ' ' + assignment.driver.lastName} is on the way to pick up your parcel.`.trim(),
       },
+      data: {
+        event: FcmEventType.BookingStatusChange,
+      },
     });
   }
 
@@ -106,6 +110,11 @@ export class BookingDriverService {
 
       await this.bookingAssignmentService.onDriverReject(assignment.booking.id, assignment.driver.id);
     });
+    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      data: {
+        event: FcmEventType.BookingStatusChange,
+      },
+    });
   }
 
   async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<BookingAssignment & { booking: Booking } | null> {
@@ -144,7 +153,10 @@ export class BookingDriverService {
     await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Pickup Arrived',
-        body: 'Your parcel has arrived at the pickup location. Please verify the pickup and proceed with the delivery.',
+        body: 'Your driver has arrived at the pickup location. Please verify the pickup and proceed with the delivery.',
+      },
+      data: {
+        event: FcmEventType.BookingStatusChange,
       },
     });
   }
@@ -165,6 +177,9 @@ export class BookingDriverService {
       notification: {
         title: 'Parcel Drop Arrived',
         body: 'Your parcel has arrived at the drop location. Please verify the drop and proceed with the delivery.',
+      },
+      data: {
+        event: FcmEventType.BookingStatusChange,
       },
     });
   }
@@ -189,6 +204,9 @@ export class BookingDriverService {
         title: 'Parcel Pickup Verified',
         body: 'Your parcel has been picked up and is on its way to the drop location.',
       },
+      data: {
+        event: FcmEventType.BookingStatusChange,
+      },
     });
   }
 
@@ -212,6 +230,9 @@ export class BookingDriverService {
         title: 'Parcel Drop Verified',
         body: 'Your parcel has been dropped off at the destination.',
       },
+      data: {
+        event: FcmEventType.BookingStatusChange,
+      },
     });
   }
 
@@ -228,6 +249,9 @@ export class BookingDriverService {
       notification: {
         title: 'Ride Started',
         body: 'Driver has started the ride. Please sit back and relax as your parcel is being delivered.',
+      },
+      data: {
+        event: FcmEventType.BookingStatusChange,
       },
     });
   }

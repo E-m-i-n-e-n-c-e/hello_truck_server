@@ -110,15 +110,16 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
   @SubscribeMessage('driver-navigation-update')
   @Throttle({ default: { ttl: seconds(2), limit: 1 } })
   async handleNavigationUpdate(client: Socket, payload: {
+    bookingId: string;
     remainingTime: number;
     remainingDistance: number;
-    timeToNextDestinationSeconds: number;
-    distanceToNextDestinationMeters: number;
-    timeToFinalDestinationSeconds: number;
-    distanceToFinalDestinationMeters: number;
-    latitude: number;
-    longitude: number;
-    routePolyline: string;
+    timeToNextDestinationSeconds: number | null;
+    distanceToNextDestinationMeters: number | null;
+    timeToFinalDestinationSeconds: number | null;
+    distanceToFinalDestinationMeters: number | null;
+    latitude: number | null;
+    longitude: number | null;
+    routePolyline: string | null;
     sentAt: string;
   }) {
     const user = client.data.user;
@@ -134,22 +135,22 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
 
       // Create the transformed data object
       const transformedData = {
+        bookingId: payload.bookingId,
         timeToPickup,
         timeToDrop,
         distanceToPickup,
         distanceToDrop,
-        location: {
-          latitude: Number(payload.latitude),
-          longitude: Number(payload.longitude)
-        },
-        route: payload.routePolyline,
+        location: payload.latitude && payload.longitude ? {
+            latitude: Number(payload.latitude),
+            longitude: Number(payload.longitude)
+          } : null,
+        routePolyline: payload.routePolyline,
         sentAt: payload.sentAt || new Date().toISOString()
       };
 
       // Store in Redis with driver ID as key
       const redisKey = `driver_navigation:${driverId}`;
-      // This is the time drivers location data will be available after he goes offline
-      await this.redisService.set(redisKey, JSON.stringify(transformedData), 'EX', 900);
+      await this.redisService.set(redisKey, JSON.stringify(transformedData));
 
       // Publish update for SSE listeners scoped to driver
       const sseKey = `driver_navigation_updates:${driverId}`;

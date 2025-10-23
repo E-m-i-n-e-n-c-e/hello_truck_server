@@ -4,13 +4,14 @@ export enum FcmEventType {
   DriverAssignmentTimeout = 'DRIVER_ASSIGNMENT_TIMEOUT',
   AssignmentEscalated = 'ASSIGNMENT_ESCALATED',
   NoDriverAvailable = 'NO_DRIVER_AVAILABLE',
+  BookingStatusChange = 'BOOKING_STATUS_CHANGE',
 }
 
 // App-level typed payload for FCM
 export interface AppMessagingPayload {
   notification?: {
-    title?: string;
-    body?: string;
+    title: string;
+    body: string;
   };
   data?: {
     event: FcmEventType;
