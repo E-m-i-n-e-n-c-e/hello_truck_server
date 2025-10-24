@@ -1,10 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
-import { Address, Prisma } from '@prisma/client';
+import { BookingAddress, Prisma } from '@prisma/client';
 import { CreateBookingAddressDto, UpdateBookingAddressDto } from 'src/booking/dtos/booking-address.dto';
 
 
 // Merge existing Address model + partial update into a complete CreateBookingAddressDto
-export function mergeAddressUpdateToDto(existing: Address, updateDto: UpdateBookingAddressDto): CreateBookingAddressDto {
+export function mergeAddressUpdateToDto(existing: BookingAddress, updateDto: UpdateBookingAddressDto): CreateBookingAddressDto {
   if (!existing.contactName || !existing.contactPhone) {
     throw new BadRequestException('Contact name and phone are required');
   }
@@ -21,7 +21,7 @@ export function mergeAddressUpdateToDto(existing: Address, updateDto: UpdateBook
 }
 
 // Convert Address prisma model to CreateBookingAddressDto format
-export function toBookingAddressDto(address: Address): CreateBookingAddressDto {
+export function toBookingAddressDto(address: BookingAddress): CreateBookingAddressDto {
   if (!address.contactName || !address.contactPhone) {
     throw new BadRequestException('Contact name and phone are required');
   }
@@ -38,7 +38,7 @@ export function toBookingAddressDto(address: Address): CreateBookingAddressDto {
 }
 
 // Create flat object for prisma create from full DTO
-export function toAddressCreateData(dto: CreateBookingAddressDto): Prisma.AddressCreateInput {
+export function toAddressCreateData(dto: CreateBookingAddressDto): Prisma.BookingAddressCreateInput {
   return {
     addressName: dto.addressName,
     contactName: dto.contactName,
@@ -52,8 +52,8 @@ export function toAddressCreateData(dto: CreateBookingAddressDto): Prisma.Addres
 }
 
 // Create flat object for prisma update from partial DTO
-export function toAddressUpdateData(updateDto: UpdateBookingAddressDto): Prisma.AddressUpdateInput {
-  const updateData: Prisma.AddressUpdateInput = {};
+export function toAddressUpdateData(updateDto: UpdateBookingAddressDto): Prisma.BookingAddressUpdateInput {
+  const updateData: Prisma.BookingAddressUpdateInput = {};
   
   if (updateDto.addressName !== undefined) updateData.addressName = updateDto.addressName;
   if (updateDto.contactName !== undefined) updateData.contactName = updateDto.contactName;

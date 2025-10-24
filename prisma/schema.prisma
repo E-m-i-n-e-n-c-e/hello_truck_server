@@ -25,8 +25,6 @@ model Customer {
   gstDetails  CustomerGstDetails[]
   addresses   SavedAddress[]
   bookings    Booking[]
-  referrals   CustomerReferral[] @relation("ReferredBy")
-  referredBy  CustomerReferral[] @relation("ReferredCustomer")
 
   @@index([isActive])
 }
@@ -38,20 +36,11 @@ model Address {
   latitude         Decimal        @db.Decimal(10, 8)
   longitude        Decimal        @db.Decimal(11, 8)
 
-  addressName      String?
-
-  // Contact fields for bookings
-  contactName      String?
-  contactPhone     String?
-  noteToDriver     String?
-
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
   // Relations
-  savedAddresses   SavedAddress[]
-  pickupBookings   Booking[]      @relation("PickupAddress")
-  dropBookings     Booking[]      @relation("DropAddress")
+  savedAddresses   SavedAddress?
 
   @@index([latitude, longitude])
 }
@@ -64,21 +53,20 @@ model SavedAddress {
   noteToDriver   String?
   customerId     String
   customer       Customer  @relation(fields: [customerId], references: [id])
-  addressId      String
+  addressId      String    @unique
   address        Address   @relation(fields: [addressId], references: [id])
   isDefault      Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   @@index([customerId])
-  @@index([addressId])
   @@unique([name, customerId], name: "unique_name_per_customer")
 }
 
 model CustomerGstDetails {
   id              String      @id @default(uuid())
   customerId      String
-  customer        Customer    @relation(fields: [customerId], references: [id])
+  customer        Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
   gstNumber       String      @unique
   businessName    String
   businessAddress String
@@ -93,7 +81,7 @@ model CustomerGstDetails {
 model CustomerSession {
   id          String   @id @default(uuid())
   customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id])
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   token       String   @unique
   oldToken    String?  @unique
   expiresAt   DateTime
@@ -107,21 +95,6 @@ model CustomerSession {
   @@index([expiresAt])
   @@index([customerId])
   @@index([fcmToken])
-}
-
-model CustomerReferral {
-  id                  String         @id @default(uuid())
-  referredById        String
-  referredBy          Customer       @relation("ReferredBy", fields: [referredById], references: [id])
-  referredCustomerId  String
-  referredCustomer    Customer       @relation("ReferredCustomer", fields: [referredCustomerId], references: [id])
-  referralCodeUsed    String
-  referralStatus      ReferralStatus @default(PENDING)
-  rewardAmount        Decimal?       @db.Decimal(10,2)
-  createdAt           DateTime       @default(now())
-
-  @@unique([referredById, referredCustomerId])
-  @@index([referralStatus])
 }
 
 model Driver {
@@ -153,8 +126,6 @@ model Driver {
   bookings           Booking[]
   assignments        BookingAssignment[]
   statusLogs         DriverStatusLog[]
-  referrals          DriverReferral[]    @relation("ReferredBy")
-  referredBy         DriverReferral[]    @relation("ReferredDriver")
 
   @@index([isActive, verificationStatus])
   @@index([lastSeenAt, driverStatus])
@@ -163,7 +134,7 @@ model Driver {
 model DriverDocuments {
   id              String    @id @default(uuid())
   driverId        String    @unique
-  driver          Driver    @relation(fields: [driverId], references: [id])
+  driver          Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
   licenseUrl      String
   licenseExpiry   DateTime?
   rcBookUrl       String
@@ -185,7 +156,7 @@ model DriverDocuments {
 model DriverSession {
   id          String   @id @default(uuid())
   driverId    String
-  driver      Driver   @relation(fields: [driverId], references: [id])
+  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
   token       String   @unique
   oldToken    String?  @unique
   expiresAt   DateTime
@@ -201,25 +172,10 @@ model DriverSession {
   @@index([fcmToken])
 }
 
-model DriverReferral {
-  id                  String         @id @default(uuid())
-  referredById        String
-  referredBy          Driver         @relation("ReferredBy", fields: [referredById], references: [id])
-  referredDriverId    String
-  referredDriver      Driver         @relation("ReferredDriver", fields: [referredDriverId], references: [id])
-  referralCodeUsed    String
-  referralStatus      ReferralStatus @default(PENDING)
-  rewardAmount        Decimal?       @db.Decimal(10,2)
-  createdAt           DateTime       @default(now())
-
-  @@unique([referredById, referredDriverId])
-  @@index([referralStatus])
-}
-
 model Vehicle {
   id                String          @id @default(uuid())
   driverId          String          @unique
-  driver            Driver          @relation(fields: [driverId], references: [id])
+  driver            Driver          @relation(fields: [driverId], references: [id], onDelete: Cascade)
   vehicleNumber     String          @unique
   vehicleType       VehicleType
   vehicleBodyLength Decimal         @db.Decimal(3,1)
@@ -236,7 +192,7 @@ model Vehicle {
 model VehicleOwner {
   id            String   @id @default(uuid())
   vehicleId     String   @unique
-  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id])
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   name          String
   aadharUrl     String
   contactNumber String
@@ -253,7 +209,7 @@ model VehicleOwner {
 model DriverAddress {
   id            String   @id @default(uuid())
   driverId      String   @unique
-  driver        Driver   @relation(fields: [driverId], references: [id])
+  driver        Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
   addressLine1  String
   landmark      String?
   pincode       String
@@ -314,21 +270,48 @@ model Package {
   updatedAt            DateTime            @updatedAt
 }
 
+model BookingAddress {
+  id String @id @default(uuid())
+
+  addressName String?
+  noteToDriver String?
+
+  // Contact fields for bookings
+  contactName String
+  contactPhone String
+
+  // Address
+  formattedAddress String
+  addressDetails String?
+  latitude Decimal @db.Decimal(10, 8)
+  longitude Decimal @db.Decimal(11, 8)
+
+  // Relations
+  pickupBooking Booking? @relation("PickupAddress")
+  dropBooking   Booking? @relation("DropAddress")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([latitude, longitude])
+}
+
 model Booking {
   id                    String              @id @default(uuid())
   bookingNumber         BigInt              @unique @default(autoincrement())
   customerId           String
-  customer             Customer            @relation(fields: [customerId], references: [id])
+  customer             Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   // Package Details
   packageId            String
   package              Package             @relation(fields: [packageId], references: [id])
 
   // Address References (with contact info embedded)
-  pickupAddressId      String
-  pickupAddress        Address             @relation("PickupAddress", fields: [pickupAddressId], references: [id])
-  dropAddressId        String
-  dropAddress          Address             @relation("DropAddress", fields: [dropAddressId], references: [id])
+  pickupAddressId      String              @unique
+  pickupAddress        BookingAddress      @relation("PickupAddress", fields: [pickupAddressId], references: [id])
+  dropAddressId        String              @unique
+  dropAddress          BookingAddress      @relation("DropAddress", fields: [dropAddressId], references: [id])
 
   // Pricing & Route
   estimatedCost        Decimal             @db.Decimal(10,2)
@@ -350,6 +333,7 @@ model Booking {
   rzpPaymentId         String?
 
   // time stats
+  acceptedAt           DateTime?
   pickupArrivedAt      DateTime?
   pickupVerifiedAt     DateTime?
   dropArrivedAt        DateTime?
@@ -359,7 +343,7 @@ model Booking {
   // Booking Status & Assignment
   status               BookingStatus       @default(PENDING)
   assignments          BookingAssignment[]
-  assignedDriver       Driver?             @relation(fields: [assignedDriverId], references: [id])
+  assignedDriver       Driver?             @relation(fields: [assignedDriverId], references: [id], onDelete: SetNull)
   assignedDriverId     String?
 
   // Status logs
@@ -373,15 +357,14 @@ model Booking {
   @@index([customerId, status])
   @@index([assignedDriverId, status])
   @@index([status, createdAt])
-  @@index([packageId])
 }
 
 model BookingAssignment {
   id          String            @id @default(uuid())
   bookingId   String
-  booking     Booking           @relation(fields: [bookingId], references: [id])
+  booking     Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   driverId    String
-  driver      Driver            @relation(fields: [driverId], references: [id])
+  driver      Driver            @relation(fields: [driverId], references: [id], onDelete: Cascade)
   status      AssignmentStatus  @default(OFFERED)
   offeredAt   DateTime          @default(now())
   respondedAt DateTime?
@@ -395,7 +378,7 @@ model BookingAssignment {
 model BookingStatusLog {
   id          String              @id @default(uuid())
   bookingId   String
-  booking     Booking             @relation(fields: [bookingId], references: [id])
+  booking     Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   status      BookingStatus
   statusChangedAt   DateTime            @default(now())
 

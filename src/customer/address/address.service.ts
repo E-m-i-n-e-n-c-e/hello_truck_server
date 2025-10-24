@@ -133,34 +133,22 @@ export class AddressService {
   }
 
   async deleteSavedAddress(userId: string, id: string): Promise<void> {
-    const address = await this.prisma.savedAddress.findFirst({
-      where: { id, customerId: userId },
-      include: {
-        address: true,
-      },
-    });
-
-    if (!address) {
-      throw new NotFoundException('Address not found');
-    }
-
-    await this.prisma.savedAddress.delete({
-      where: { id },
-    });
-
-    // If the deleted address was default and other addresses exist, make the most recent one default
-    if (address.isDefault) {
-      const remainingAddress = await this.prisma.savedAddress.findFirst({
-        where: { customerId: userId },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      if (remainingAddress) {
-        await this.prisma.savedAddress.update({
-          where: { id: remainingAddress.id },
-          data: { isDefault: true },
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const deletedAddress = await tx.savedAddress.delete({
+          where: { id },
         });
+        await tx.address.delete({
+          where: { id: deletedAddress.addressId },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Address not found');
+        }
       }
+      throw error;
     }
   }
 
