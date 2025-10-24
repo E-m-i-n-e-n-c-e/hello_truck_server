@@ -263,7 +263,7 @@ model Package {
   transportDocUrls     String[]
 
   // Relations
-  bookings             Booking[]
+  booking              Booking?
 
   // Timestamps
   createdAt            DateTime            @default(now())
@@ -304,7 +304,7 @@ model Booking {
   customer             Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   // Package Details
-  packageId            String
+  packageId            String              @unique
   package              Package             @relation(fields: [packageId], references: [id])
 
   // Address References (with contact info embedded)

@@ -5,23 +5,6 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 // DTO for creating a new address
 class CreateAddressDto implements Partial<Address> {
-  @IsOptional()
-  @IsString()
-  addressName?: string;
-
-  @IsOptional()
-  @IsString()
-  contactName?: string;
-
-  @IsOptional()
-  @IsPhoneNumber('IN')
-  contactPhone?: string;
-
-  @IsOptional()
-  @IsString()
-  noteToDriver?: string;
-
-
   @IsString()
   @IsNotEmpty()
   formattedAddress: string;
@@ -64,22 +47,6 @@ export class CreateSavedAddressDto implements Partial<SavedAddress> {
 }
 
 class UpdateAddressDto implements Partial<Address> {
-  @IsOptional()
-  @IsString()
-  addressName?: string;
-
-  @IsOptional()
-  @IsString()
-  contactName?: string;
-
-  @IsOptional()
-  @IsPhoneNumber('IN')
-  contactPhone?: string;
-
-  @IsOptional()
-  @IsString()
-  noteToDriver?: string;
-
   @IsOptional()
   @IsString()
   formattedAddress?: string;

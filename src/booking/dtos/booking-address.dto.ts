@@ -25,7 +25,6 @@ export class CreateBookingAddressDto {
   longitude: number;
 
   @IsString()
-  @IsOptional()
   formattedAddress: string;
 
   @IsOptional()
@@ -71,9 +70,9 @@ export class BookingAddressResponseDto {
   @Expose()
   addressName: string | null;
   @Expose()
-  contactName: string | null;
+  contactName: string;
   @Expose()
-  contactPhone: string | null;
+  contactPhone: string;
   @Expose()
   noteToDriver: string | null;
   @Expose()

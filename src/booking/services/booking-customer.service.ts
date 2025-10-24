@@ -70,55 +70,47 @@ export class BookingCustomerService {
       throw new BadRequestException('Selected vehicle type is not available for this booking');
     }
 
-    // Use transaction for address, package, and booking creation
-    const booking = await this.prisma.$transaction(async (tx) => {
-      // Create addresses using utility functions
-      const pickupAddress = await tx.address.create({
-        data: toAddressCreateData(createRequest.pickupAddress),
-      });
+    // Generate OTPs
+    // const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
+    // const dropOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
+    const pickupOtp = '1234';
+    const dropOtp = '1234';
+    console.log("Otp generated", pickupOtp, dropOtp);
 
-      const dropAddress = await tx.address.create({
-        data: toAddressCreateData(createRequest.dropAddress),
-      });
-
-      // Create package using utility function
-      const packageData = await tx.package.create({
-        data: toPackageCreateData(createRequest.package),
-      });
-      // const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
-      // const dropOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
-      const pickupOtp = '1234';
-      const dropOtp = '1234';
-      console.log("Otp generated", pickupOtp, dropOtp);
-
-      // Create booking
-      const booking = await tx.booking.create({
-        data: {
-          customerId: userId,
-          packageId: packageData.id,
-          pickupAddressId: pickupAddress.id,
-          dropAddressId: dropAddress.id,
-          estimatedCost: selectedVehicleOption.estimatedCost,
-          distanceKm: estimate.distanceKm,
-          baseFare: selectedVehicleOption.breakdown.baseFare,
-          distanceCharge: selectedVehicleOption.breakdown.distanceCharge,
-          weightMultiplier: selectedVehicleOption.breakdown.weightMultiplier,
-          vehicleMultiplier: selectedVehicleOption.breakdown.vehicleMultiplier,
-          suggestedVehicleType: createRequest.selectedVehicleType,
-          status: BookingStatus.PENDING,
-          pickupOtp: pickupOtp,
-          dropOtp: dropOtp,
+    // Create booking with nested address and package creation
+    const booking = await this.prisma.booking.create({
+      data: {
+        customer: {
+          connect: { id: userId },
         },
-        include: {
-          package: true,
-          pickupAddress: true,
-          dropAddress: true,
+        package: {
+          create: toPackageCreateData(createRequest.package),
         },
-      });
-      await this.bookingAssignmentService.onBookingCreated(booking.id);
-
-      return booking;
+        pickupAddress: {
+          create: toAddressCreateData(createRequest.pickupAddress),
+        },
+        dropAddress: {
+          create: toAddressCreateData(createRequest.dropAddress),
+        },
+        estimatedCost: selectedVehicleOption.estimatedCost,
+        distanceKm: estimate.distanceKm,
+        baseFare: selectedVehicleOption.breakdown.baseFare,
+        distanceCharge: selectedVehicleOption.breakdown.distanceCharge,
+        weightMultiplier: selectedVehicleOption.breakdown.weightMultiplier,
+        vehicleMultiplier: selectedVehicleOption.breakdown.vehicleMultiplier,
+        suggestedVehicleType: createRequest.selectedVehicleType,
+        status: BookingStatus.PENDING,
+        pickupOtp: pickupOtp,
+        dropOtp: dropOtp,
+      },
+      include: {
+        package: true,
+        pickupAddress: true,
+        dropAddress: true,
+      },
     });
+
+    await this.bookingAssignmentService.onBookingCreated(booking.id);
 
     return booking;
   }
