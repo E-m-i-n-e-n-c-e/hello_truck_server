@@ -1,9 +1,12 @@
 
 
-# Check server url https://hello-truck-server.fly.dev/
 
 
-POST http://localhost:3000/auth/customer/send-otp
+# @BASE_URL=https://hello-truck-server.fly.dev
+@BASE_URL=http://localhost:3000
+
+# Send OTP
+POST {{BASE_URL}}/auth/customer/send-otp
 Content-Type: application/json
 
 {
@@ -95,15 +98,59 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 ### Deactivate GST details
 POST http://localhost:3000/customer/gst/deactivate
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+Authorization: Bearer 6300045929
 {
   "id": "da41269f-9325-492b-9aad-045432a1003a"
 }
 
 POST http://localhost:3000/customer/notify-all-sessions
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc
+Authorization: Bearer 6300045929  
 {
   "title": "Test Notification",
   "body": "This is a test notification"
 }
+
+
+### Create saved address
+POST {{BASE_URL}}/customer/addresses
+Content-Type: application/json
+Authorization: Bearer 6300045929
+
+{
+  "name": "Home 2",
+  "address": {
+    "formattedAddress": "123, Main Street, Mumbai, Maharashtra, 400001",
+    "addressDetails": "House No. 123, Street Name, City, State, 400001",
+    "latitude": 19.0760,
+    "longitude": 72.8777
+  },
+  "contactName": "John Doe",
+  "contactPhone": "6300041123",
+  "noteToDriver": "Please deliver to the main entrance"
+}
+
+### Get all saved addresses
+GET {{BASE_URL}}/customer/addresses
+Authorization: Bearer 6300045929
+
+### Get default saved address
+GET {{BASE_URL}}/customer/addresses/default
+Authorization: Bearer 6300045929
+
+### Get saved address by ID
+GET {{BASE_URL}}/customer/addresses/address-id-here
+Authorization: Bearer 6300045929
+
+### Update saved address
+PUT {{BASE_URL}}/customer/addresses/21f38a45-eb7b-456f-9cd6-69b61826f059
+Content-Type: application/json
+Authorization: Bearer 6300045929
+
+{
+  "name": "Home 2"
+}
+
+### Delete saved address
+DELETE {{BASE_URL}}/customer/addresses/address-id-here
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiMTRiYjgwYjYtZGMyMC00Mjg1LWJiNWQtOWQ1ZTcwYTljOWExIiwicGhvbmVOdW1iZXIiOiI2MzAwMDQ1OTI5IiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NDU3NjM2LCJleHAiOjE3NTU0NTg1MzZ9.9O8GdkEOLtl_nMBEGroDwterOwSa-hiMuido7DhrSTc

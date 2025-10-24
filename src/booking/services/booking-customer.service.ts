@@ -14,7 +14,7 @@ import { Response, Request } from 'express';
 import * as geolib from 'geolib';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { mergeUpdateToPackageDto, toPackageDetailsDto, toPackageCreateData, toPackageUpdateData } from '../utils/package.utils';
-import { toAddressCreateData, toAddressUpdateData, toAddressForEstimate, mergeAddressUpdateToDto } from '../utils/address.utils';
+import { toAddressCreateData, toAddressUpdateData, mergeAddressUpdateToDto, toBookingAddressDto } from '../utils/address.utils';
 
 @Injectable()
 export class BookingCustomerService {
@@ -245,7 +245,7 @@ export class BookingCustomerService {
     
     const estimate = this.bookingEstimateService.calculateEstimate({
       pickupAddress: mergedPickupForEstimate,
-      dropAddress: toAddressForEstimate(existing.dropAddress),
+      dropAddress: toBookingAddressDto(existing.dropAddress),
       packageDetails: toPackageDetailsDto(existing.package),
     });
     const selectedVehicleType = this.getSelectedVehicleType(existing);
@@ -285,7 +285,7 @@ export class BookingCustomerService {
     const mergedDropForEstimate = mergeAddressUpdateToDto(existing.dropAddress, dropAddress);
     
     const estimate = this.bookingEstimateService.calculateEstimate({
-      pickupAddress: toAddressForEstimate(existing.pickupAddress),
+      pickupAddress: toBookingAddressDto(existing.pickupAddress),
       dropAddress: mergedDropForEstimate,
       packageDetails: toPackageDetailsDto(existing.package),
     });
@@ -326,8 +326,8 @@ export class BookingCustomerService {
     const mergedPackageForEstimate = mergeUpdateToPackageDto(existing.package, packageDetails);
     
     const estimate = this.bookingEstimateService.calculateEstimate({
-      pickupAddress: toAddressForEstimate(existing.pickupAddress),
-      dropAddress: toAddressForEstimate(existing.dropAddress),
+      pickupAddress: toBookingAddressDto(existing.pickupAddress),
+      dropAddress: toBookingAddressDto(existing.dropAddress),
       packageDetails: mergedPackageForEstimate,
     });
     

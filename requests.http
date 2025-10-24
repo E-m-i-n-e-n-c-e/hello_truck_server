@@ -2,8 +2,15 @@
 
 # Check server url https://hello-truck-server.fly.dev/
 
+POST https://hello-truck-server.fly.dev/auth/driver/refresh-token
+Content-Type: application/json
 
-POST http://localhost:3000/auth/customer/send-otp
+{
+  "refreshToken": "refreshToken"
+}
+
+### Send OTP
+POST https://hello-truck-server.fly.dev/auth/customer/send-otp
 Content-Type: application/json
 
 {

@@ -1,13 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import Razorpay = require('razorpay');
 import { CreatePayoutDetailsDto, PayoutMethod } from './dtos/payout-details.dto';
+import { Orders } from 'razorpay/dist/types/orders';
+import { PaymentLinks } from 'razorpay/dist/types/paymentLink';
 
 @Injectable()
 export class RazorpayService {
   private readonly logger = new Logger(RazorpayService.name);
   private readonly baseUrl = 'https://api.razorpay.com/v1';
   private readonly axiosInstance: AxiosInstance;
+  private readonly razorpayInstance: Razorpay;
 
   constructor(
     private readonly configService: ConfigService,
@@ -27,6 +31,11 @@ export class RazorpayService {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
       },
+    });
+
+    this.razorpayInstance = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
     });
   }
 
@@ -146,6 +155,85 @@ export class RazorpayService {
     } catch (error) {
       this.logger.error(`Failed to validate VPA: ${error.message}`);
       return false;
+    }
+  }
+
+  async createOrder(
+    orderData: Orders.RazorpayOrderCreateRequestBody
+  ): Promise<string> {
+    try {
+      this.logger.log(`Creating Razorpay order for amount: ${orderData.amount}`);
+
+      const order = await this.razorpayInstance.orders.create(orderData);
+
+      const orderId = order.id;
+      this.logger.log(`Created Razorpay order with ID: ${orderId}`);
+
+      return orderId;
+    } catch (error) {
+      if (error.response) {
+        this.logger.error(`Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+      }
+      this.logger.error(`Failed to create Razorpay order: ${error.message}`);
+      throw new Error(`Failed to create Razorpay order: ${error.message}`);
+    }
+  }
+
+  /**
+   * Creates a Razorpay payment link from an order.
+   * @param orderId The ID of the order/booking to create a payment link for.
+   * @param amount The amount (in rupees - will be multiplied by 100 for paise).
+   * @param currency The currency code (e.g. "INR").
+   * @param description Description for the payment.
+   * @param customerInfo Object containing customer fields as per Razorpay docs
+   *        (expects: { name, contact, email })
+   * @returns Promise<string> - the short URL for the payment link
+   */
+  async createPaymentLinkFromOrder(
+    orderId: string,
+  ): Promise<string> {
+    try {
+      const order = await this.razorpayInstance.orders.fetch(orderId);
+      this.logger.log(`Creating Razorpay payment link for order: ${JSON.stringify(order, null, 2)}`);
+
+      const customerEmail = order.notes?.['customer_email'] as string || '';
+      const customerContact = order.notes?.['customer_contact'] as string || '';
+      const customerName = order.notes?.['customer_name'] as string || '';
+      const description = order.notes?.['description'] as string || '';
+
+      // Razorpay requires amount in paisa, integer.
+      const paymentLinkData: PaymentLinks.RazorpayPaymentLinkCreateRequestBody = {
+        amount: order.amount,
+        currency: order.currency,
+        description: description,
+        // reference_id: order.id,
+        customer: {
+          name: customerName,
+          contact: customerContact.startsWith('+91') ? customerContact : `+91${customerContact}`,
+          email: customerEmail,
+        },
+        notify: {
+          email: !!customerEmail,
+          sms: !!customerContact,
+        },
+        accept_partial: false,
+        // upi_link: true,
+      };
+
+      const response: AxiosResponse = await this.axiosInstance.post('/payment_links', paymentLinkData);
+
+      const paymentLinkId = response.data.id;
+      const paymentLinkUrl = response.data.short_url;
+
+      this.logger.log(`Created Razorpay payment link for order ${order.id} with ID: ${paymentLinkId}, URL: ${paymentLinkUrl}`);
+
+      return paymentLinkUrl;
+    } catch (error) {
+      if (error.response) {
+        this.logger.error(`Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+      }
+      this.logger.error(`Failed to create Razorpay payment link for order: ${error.message}`);
+      throw new Error(`Failed to create Razorpay payment link for order: ${error.message}`);
     }
   }
 }

@@ -41,3 +41,28 @@ Content-Type: application/json
 }
 
 
+### Create Order
+POST http://localhost:3000/razorpay/create-order
+Content-Type: application/json
+
+{
+  "order": {
+    "amount": 50000,
+    "currency": "INR",
+    "notes": {
+      "customer_name": "Akhil Raj",
+      "customer_contact": "+916300045929",
+      "customer_email": "kssakhilraj@gmail.com",
+      "description": "Dummy payment order for testing"
+    }
+  }
+}
+
+### Create payment link for dummy order
+POST http://localhost:3000/razorpay/create-payment-link
+Content-Type: application/json
+
+{
+  "orderId": "order_RVG7OVWChJbSJK"
+}
+

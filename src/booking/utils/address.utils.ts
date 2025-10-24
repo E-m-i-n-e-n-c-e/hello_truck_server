@@ -1,13 +1,17 @@
+import { BadRequestException } from '@nestjs/common';
 import { Address, Prisma } from '@prisma/client';
 import { CreateBookingAddressDto, UpdateBookingAddressDto } from 'src/booking/dtos/booking-address.dto';
 
 
 // Merge existing Address model + partial update into a complete CreateBookingAddressDto
 export function mergeAddressUpdateToDto(existing: Address, updateDto: UpdateBookingAddressDto): CreateBookingAddressDto {
+  if (!existing.contactName || !existing.contactPhone) {
+    throw new BadRequestException('Contact name and phone are required');
+  }
   return {
     addressName: updateDto.addressName ?? existing.addressName ?? undefined,
-    contactName: updateDto.contactName ?? existing.contactName ?? undefined,
-    contactPhone: updateDto.contactPhone ?? existing.contactPhone ?? undefined,
+    contactName: updateDto.contactName ?? existing.contactName,
+    contactPhone: updateDto.contactPhone ?? existing.contactPhone,
     noteToDriver: updateDto.noteToDriver ?? existing.noteToDriver ?? undefined,
     latitude: updateDto.latitude ?? Number(existing.latitude),
     longitude: updateDto.longitude ?? Number(existing.longitude),
@@ -18,10 +22,13 @@ export function mergeAddressUpdateToDto(existing: Address, updateDto: UpdateBook
 
 // Convert Address prisma model to CreateBookingAddressDto format
 export function toBookingAddressDto(address: Address): CreateBookingAddressDto {
+  if (!address.contactName || !address.contactPhone) {
+    throw new BadRequestException('Contact name and phone are required');
+  }
   return {
     addressName: address.addressName ?? undefined,
-    contactName: address.contactName ?? undefined,
-    contactPhone: address.contactPhone ?? undefined,
+    contactName: address.contactName,
+    contactPhone: address.contactPhone,
     noteToDriver: address.noteToDriver ?? undefined,
     latitude: Number(address.latitude),
     longitude: Number(address.longitude),
@@ -58,14 +65,4 @@ export function toAddressUpdateData(updateDto: UpdateBookingAddressDto): Prisma.
   if (updateDto.addressDetails !== undefined) updateData.addressDetails = updateDto.addressDetails;
   
   return updateData;
-}
-
-// Convert address to estimate format (minimal data needed for distance calculation)
-export function toAddressForEstimate(address: Address) {
-  return {
-    latitude: Number(address.latitude),
-    longitude: Number(address.longitude),
-    formattedAddress: address.formattedAddress,
-    addressDetails: address.addressDetails ?? undefined,
-  };
 }
