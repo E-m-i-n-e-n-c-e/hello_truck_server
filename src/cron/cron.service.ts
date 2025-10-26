@@ -9,14 +9,15 @@ export class CronService {
 
   // @Cron('*/5 * * * * *') // Runs every 5 seconds for testing purposes
 
-  // Mark expired bookings as expired every 10 minutes
-  @Cron('*/2 * * * *')
-  async cleanupExpiredBookings() {
+  // Mark expired bookings as expired every 1 hour
+  // This is only a fail-safe in case some bookings are not marked expired by the assignment service
+  @Cron('0 * * * *')
+  async markExpiredBookings() {
     const result = await this.prisma.booking.updateMany({
       where: {
         status: BookingStatus.PENDING,
         createdAt: {
-          lt: new Date(Date.now() - 10 * 60 * 1000),  // 10 minutes
+          lt: new Date(Date.now() - 10 * 60 * 1000),  // 10 minutes(assignment service uses 5 minutes)
         },
       },
       data: {
@@ -60,5 +61,37 @@ export class CronService {
       }
     });
     console.log(`Reset ${result.count} drivers to UNAVAILABLE at midnight`);
+  }
+
+  //Clean up old expired or completed bookings every day at midnight
+  @Cron('0 0 * * *')
+  async cleanupExpiredOrCompletedBookings() {
+    // Delete expired or completed bookings older than 30 days
+    const result = await this.prisma.booking.deleteMany({
+      where: {
+        status: { in: [BookingStatus.EXPIRED, BookingStatus.COMPLETED, BookingStatus.CANCELLED] },
+        createdAt: {
+          lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),  // 30 days
+        },
+      },
+    });
+    console.log(`Cleaned up ${result.count} expired or completed bookings`);
+
+    // Delete booking addresses that are not associated with any booking (orphaned addresses)
+    const bookingAddressResult = await this.prisma.bookingAddress.deleteMany({
+      where: {
+        pickupBooking: null,
+        dropBooking: null,
+      },
+    });
+    console.log(`Cleaned up ${bookingAddressResult.count} orphaned booking addresses`);
+
+    // Delete packages that are not associated with any booking (orphaned packages)
+    const packageResult = await this.prisma.package.deleteMany({
+      where: {
+        booking: null,
+      },
+    });
+    console.log(`Cleaned up ${packageResult.count} orphaned packages`);
   }
 }
