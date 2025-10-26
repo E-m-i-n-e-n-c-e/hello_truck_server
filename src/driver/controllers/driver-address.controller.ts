@@ -5,7 +5,7 @@ import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { User } from 'src/token/decorators/user.decorator';
 import { AddressService } from '../address/address.service';
-import { AddressResponseDto, CreateAddressDto, UpdateAddressDto } from '../dtos/address.dto';
+import { AddressResponseDto, CreateDriverAddressDto, UpdateDriverAddressDto } from '../dtos/address.dto';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 
 @Controller('driver/address')
@@ -24,7 +24,7 @@ export class DriverAddressController {
   @Serialize(AddressResponseDto)
   async createAddress(
     @User('userId') userId: string,
-    @Body() createAddressDto: CreateAddressDto,
+    @Body() createAddressDto: CreateDriverAddressDto,
   ): Promise<AddressResponseDto> {
     return this.addressService.createAddress(userId, createAddressDto);
   }
@@ -33,7 +33,7 @@ export class DriverAddressController {
   @Serialize(AddressResponseDto)
   async updateAddress(
     @User('userId') userId: string,
-    @Body() updateAddressDto: UpdateAddressDto,
+    @Body() updateAddressDto: UpdateDriverAddressDto,
   ): Promise<AddressResponseDto> {
     return this.addressService.updateAddress(userId, updateAddressDto);
   }

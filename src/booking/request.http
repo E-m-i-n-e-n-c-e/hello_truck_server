@@ -1,8 +1,8 @@
-@base_url = https://hello-truck-server.fly.dev
+@base_url = http://localhost:3000
 
 ### Create Booking (Customer)
 POST {{base_url}}/bookings/customer
-Authorization: Bearer 6300045129
+Authorization: Bearer 6300045929
 Content-Type: application/json
 
 {
@@ -74,12 +74,12 @@ Content-Type: application/json
 ### Notes:
 ### - No package change at/after PICKUP_VERIFIED
 
-PUT {{base_url}}/bookings/customer/package/89399dc1-50e4-4ceb-b60b-897605136275
+PUT {{base_url}}/bookings/customer/package/5dbb464a-23df-49b0-9def-85ba7069a412
 Authorization: Bearer 6300045929
 Content-Type: application/json
 
 {
-  "productType": "NON_AGRICULTURAL",
+  "productType": "AGRICULTURAL",
   "packageType": "PERSONAL",
   "agricultural": {
     "productName": "Bananas",
@@ -131,3 +131,5 @@ Authorization: Bearer 6300045929
 ### Variables (replace or set via environment)
 ### {{bookingId}} = <BOOKING_ID>
 ### {{customerJwt}} = <CUSTOMER_JWT>
+
+### get estimate

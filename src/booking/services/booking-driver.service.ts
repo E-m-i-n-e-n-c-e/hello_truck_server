@@ -56,10 +56,10 @@ export class BookingDriverService {
 
       await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
     });
-    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Booking Confirmed',
-        body: `Your booking has been confirmed. Your driver ${assignment.driver.firstName + ' ' + assignment.driver.lastName} is on the way to pick up your parcel.`.trim(),
+        body: `Your booking has been confirmed. Your driver ${assignment.driver.firstName ?? ''} ${assignment.driver.lastName ?? ''} is on the way to pick up your parcel.`.trim(),
       },
       data: {
         event: FcmEventType.BookingStatusChange,
@@ -110,7 +110,7 @@ export class BookingDriverService {
 
       await this.bookingAssignmentService.onDriverReject(assignment.booking.id, assignment.driver.id);
     });
-    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       data: {
         event: FcmEventType.BookingStatusChange,
       },
@@ -150,7 +150,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_ARRIVED }
     });
-    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Pickup Arrived',
         body: 'Your driver has arrived at the pickup location. Please verify the pickup and proceed with the delivery.',
@@ -173,7 +173,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_ARRIVED }
     });
-    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Drop Arrived',
         body: 'Your parcel has arrived at the drop location. Please verify the drop and proceed with the delivery.',
@@ -199,7 +199,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_VERIFIED }
     });
-    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Pickup Verified',
         body: 'Your parcel has been picked up and is on its way to the drop location.',
@@ -225,7 +225,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_VERIFIED }
     });
-    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Drop Verified',
         body: 'Your parcel has been dropped off at the destination.',
@@ -245,7 +245,7 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.PICKUP_VERIFIED },
         data: { status: BookingStatus.IN_TRANSIT }
       });
-    await this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Ride Started',
         body: 'Driver has started the ride. Please sit back and relax as your parcel is being delivered.',
@@ -257,7 +257,7 @@ export class BookingDriverService {
   }
 
   async finishRide(driverId: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const assignment = await this.prisma.$transaction(async (tx) => {
       await tx.driver.update({
         where: { id: driverId },
         data: { driverStatus: DriverStatus.AVAILABLE }
@@ -270,6 +270,16 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.DROP_VERIFIED },
         data: { status: BookingStatus.COMPLETED }
       });
+      return assignment;
+    });
+    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
+      notification: {
+        title: 'Ride Completed',
+        body: 'Your driver has completed the ride. Thank you for using Hello Truck.',
+      },
+      data: {
+        event: FcmEventType.BookingStatusChange,
+      },
     });
   }
 

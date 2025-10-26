@@ -3,7 +3,7 @@ import { Expose } from 'class-transformer';
 import { DriverAddress } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
-export class CreateAddressDto implements Partial<DriverAddress> {
+export class CreateDriverAddressDto implements Partial<DriverAddress> {
   @IsString()
   addressLine1: string;
 
@@ -34,7 +34,7 @@ export class CreateAddressDto implements Partial<DriverAddress> {
   longitude?: Decimal;
 }
 
-export class UpdateAddressDto implements Partial<DriverAddress> {
+export class UpdateDriverAddressDto implements Partial<DriverAddress> {
   @IsOptional()
   @IsString()
   addressLine1?: string;

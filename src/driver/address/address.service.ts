@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateAddressDto, UpdateAddressDto } from '../dtos/address.dto';
+import { CreateDriverAddressDto, UpdateDriverAddressDto } from '../dtos/address.dto';
 import { DriverAddress, Prisma } from '@prisma/client';
 
 @Injectable()
 export class AddressService {
   constructor(private prisma: PrismaService) {}
 
-  async createAddress(driverId: string, createAddressDto: CreateAddressDto, tx: Prisma.TransactionClient = this.prisma): Promise<DriverAddress> {
+  async createAddress(driverId: string, createAddressDto: CreateDriverAddressDto, tx: Prisma.TransactionClient = this.prisma): Promise<DriverAddress> {
     // Check if address already exists for this driver
     const existingAddress = await tx.driverAddress.findUnique({
       where: { driverId },
@@ -43,7 +43,7 @@ export class AddressService {
 
   async updateAddress(
     driverId: string,
-    updateAddressDto: UpdateAddressDto,
+    updateAddressDto: UpdateDriverAddressDto,
   ): Promise<DriverAddress> {
     const address = await this.prisma.driverAddress.findUnique({
       where: { driverId },

@@ -1,0 +1,3458 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/customer/send-otp": {
+      "post": {
+        "operationId": "sendCustomerOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerAuth"
+        ]
+      }
+    },
+    "/auth/customer/verify-otp": {
+      "post": {
+        "operationId": "verifyCustomerOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerAuth"
+        ]
+      }
+    },
+    "/auth/customer/logout": {
+      "post": {
+        "operationId": "logoutCustomer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/refreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerAuth"
+        ]
+      }
+    },
+    "/auth/customer/refresh-token": {
+      "post": {
+        "operationId": "refreshCustomerToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/refreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerAuth"
+        ]
+      }
+    },
+    "/auth/driver/send-otp": {
+      "post": {
+        "operationId": "sendDriverOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAuth"
+        ]
+      }
+    },
+    "/auth/driver/verify-otp": {
+      "post": {
+        "operationId": "verifyDriverOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAuth"
+        ]
+      }
+    },
+    "/auth/driver/logout": {
+      "post": {
+        "operationId": "logoutDriver",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/refreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAuth"
+        ]
+      }
+    },
+    "/auth/driver/refresh-token": {
+      "post": {
+        "operationId": "refreshDriverToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/refreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAuth"
+        ]
+      }
+    },
+    "/bookings/customer/estimate": {
+      "post": {
+        "operationId": "getBookingEstimate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingEstimateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingEstimateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer": {
+      "post": {
+        "operationId": "createBooking",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/active": {
+      "get": {
+        "operationId": "getActiveBookings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/history": {
+      "get": {
+        "operationId": "getBookingHistory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/{id}": {
+      "get": {
+        "operationId": "getBooking",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "cancelBooking",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/pickup/{id}": {
+      "put": {
+        "operationId": "updatePickup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookingAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/drop/{id}": {
+      "put": {
+        "operationId": "updateDrop",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookingAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/package/{id}": {
+      "put": {
+        "operationId": "updatePackage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePackageDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/upload-url": {
+      "get": {
+        "operationId": "getUploadUrl",
+        "parameters": [
+          {
+            "name": "filePath",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadUrlResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/customer/driver-navigation/{bookingId}": {
+      "get": {
+        "operationId": "getDriverNavigationUpdates",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/current-assignment": {
+      "get": {
+        "operationId": "getDriverAssignment",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/history": {
+      "get": {
+        "operationId": "getAssignmentHistory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/accept/{assignmentId}": {
+      "post": {
+        "operationId": "acceptBooking",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/reject/{assignmentId}": {
+      "post": {
+        "operationId": "rejectBooking",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/pickup/arrived": {
+      "post": {
+        "operationId": "pickupArrived",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/drop/arrived": {
+      "post": {
+        "operationId": "dropArrived",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/pickup/verify": {
+      "post": {
+        "operationId": "verifyPickup",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/drop/verify": {
+      "post": {
+        "operationId": "verifyDrop",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/start": {
+      "post": {
+        "operationId": "startRide",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/finish": {
+      "post": {
+        "operationId": "finishRide",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/gst": {
+      "post": {
+        "operationId": "addGstDetails",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGstDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerGst"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getGstDetails",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GstDetailsResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerGst"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/gst/{id}": {
+      "get": {
+        "operationId": "getGstDetailsById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstDetailsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerGst"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateGstDetails",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGstDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerGst"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/gst/deactivate": {
+      "post": {
+        "operationId": "deactivateGstDetails",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeactivateGstDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerGst"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/gst/reactivate": {
+      "post": {
+        "operationId": "reactivateGstDetails",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReactivateGstDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerGst"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/profile": {
+      "get": {
+        "operationId": "getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/profile/fcm-token": {
+      "put": {
+        "operationId": "upsertFcmToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsertFcmTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/addresses": {
+      "post": {
+        "operationId": "createSavedAddress",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSavedAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getSavedAddresses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/addresses/default": {
+      "get": {
+        "operationId": "getDefaultSavedAddress",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/addresses/{id}": {
+      "get": {
+        "operationId": "getSavedAddressById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateSavedAddress",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSavedAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteSavedAddress",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/profile": {
+      "get": {
+        "operationId": "getProfile",
+        "parameters": [
+          {
+            "name": "includeDocuments",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeVehicle",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDriverProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDriverProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/profile/status": {
+      "put": {
+        "operationId": "updateDriverStatus",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDriverStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/profile/fcm-token": {
+      "put": {
+        "operationId": "upsertFcmToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsertFcmTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/profile/payout-details": {
+      "put": {
+        "operationId": "updateDriverPayoutDetails",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePayoutDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/documents": {
+      "get": {
+        "operationId": "getDocuments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverDocumentsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverDocuments"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateDocuments",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDriverDocumentsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverDocuments"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/documents/expiry-alerts": {
+      "get": {
+        "operationId": "getExpiryAlerts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpiryAlertsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverDocuments"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/documents/upload-url": {
+      "get": {
+        "operationId": "getUploadUrl",
+        "parameters": [
+          {
+            "name": "filePath",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadUrlResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverDocuments"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/vehicle": {
+      "get": {
+        "operationId": "getVehicle",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverVehicle"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createVehicle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVehicleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverVehicle"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateVehicle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVehicleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverVehicle"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteVehicle",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverVehicle"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/vehicle/owner": {
+      "post": {
+        "operationId": "createVehicleOwner",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVehicleOwnerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleOwnerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverVehicle"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateVehicleOwner",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVehicleOwnerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleOwnerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverVehicle"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/address": {
+      "get": {
+        "operationId": "getAddress",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createAddress",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDriverAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateAddress",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDriverAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteAddress",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverAddress"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/razorpay/create-contact": {
+      "post": {
+        "operationId": "createContact",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Razorpay"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/razorpay/create-fund-account": {
+      "post": {
+        "operationId": "createFundAccount",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Razorpay"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/razorpay/create-order": {
+      "post": {
+        "operationId": "createOrder",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Razorpay"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/razorpay/create-payment-link": {
+      "post": {
+        "operationId": "createPaymentLink",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Razorpay"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Hello Truck API",
+    "description": "API documentation for Hello Truck application",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "access-token": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "name": "Authorization",
+        "description": "Enter your access token",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "SendOtpDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phoneNumber"
+        ]
+      },
+      "SuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "VerifyOtpDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string"
+          },
+          "otp": {
+            "type": "string"
+          },
+          "staleRefreshToken": {
+            "type": "string"
+          },
+          "fcmToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "otp"
+        ]
+      },
+      "TokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ]
+      },
+      "refreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "CreateBookingAddressDto": {
+        "type": "object",
+        "properties": {
+          "addressName": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactPhone": {
+            "type": "string"
+          },
+          "noteToDriver": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "formattedAddress": {
+            "type": "string"
+          },
+          "addressDetails": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactName",
+          "contactPhone",
+          "latitude",
+          "longitude",
+          "formattedAddress"
+        ]
+      },
+      "AgriculturalProductDto": {
+        "type": "object",
+        "properties": {
+          "productName": {
+            "type": "string"
+          },
+          "approximateWeight": {
+            "type": "number"
+          },
+          "weightUnit": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "productName",
+          "approximateWeight",
+          "weightUnit"
+        ]
+      },
+      "NonAgriculturalProductDto": {
+        "type": "object",
+        "properties": {
+          "averageWeight": {
+            "type": "number"
+          },
+          "bundleWeight": {
+            "type": "number"
+          },
+          "numberOfProducts": {
+            "type": "number"
+          },
+          "packageDimensions": {
+            "type": "object"
+          },
+          "packageDescription": {
+            "type": "string"
+          },
+          "packageImageUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "averageWeight",
+          "bundleWeight"
+        ]
+      },
+      "PackageDetailsDto": {
+        "type": "object",
+        "properties": {
+          "packageType": {
+            "type": "object"
+          },
+          "productType": {
+            "type": "object"
+          },
+          "agricultural": {
+            "$ref": "#/components/schemas/AgriculturalProductDto"
+          },
+          "nonAgricultural": {
+            "$ref": "#/components/schemas/NonAgriculturalProductDto"
+          },
+          "gstBillUrl": {
+            "type": "string"
+          },
+          "transportDocUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "packageType",
+          "productType"
+        ]
+      },
+      "BookingEstimateRequestDto": {
+        "type": "object",
+        "properties": {
+          "pickupAddress": {
+            "$ref": "#/components/schemas/CreateBookingAddressDto"
+          },
+          "dropAddress": {
+            "$ref": "#/components/schemas/CreateBookingAddressDto"
+          },
+          "packageDetails": {
+            "$ref": "#/components/schemas/PackageDetailsDto"
+          }
+        },
+        "required": [
+          "pickupAddress",
+          "dropAddress",
+          "packageDetails"
+        ]
+      },
+      "BreakdownDto": {
+        "type": "object",
+        "properties": {
+          "baseFare": {
+            "type": "number"
+          },
+          "distanceCharge": {
+            "type": "number"
+          },
+          "weightMultiplier": {
+            "type": "number"
+          },
+          "vehicleMultiplier": {
+            "type": "number"
+          },
+          "totalMultiplier": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "baseFare",
+          "distanceCharge",
+          "weightMultiplier",
+          "vehicleMultiplier",
+          "totalMultiplier"
+        ]
+      },
+      "VehicleOptionDto": {
+        "type": "object",
+        "properties": {
+          "vehicleType": {
+            "type": "string"
+          },
+          "estimatedCost": {
+            "type": "number"
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "weightLimit": {
+            "type": "number"
+          },
+          "breakdown": {
+            "$ref": "#/components/schemas/BreakdownDto"
+          }
+        },
+        "required": [
+          "vehicleType",
+          "estimatedCost",
+          "isAvailable",
+          "weightLimit",
+          "breakdown"
+        ]
+      },
+      "BookingEstimateResponseDto": {
+        "type": "object",
+        "properties": {
+          "distanceKm": {
+            "type": "number"
+          },
+          "suggestedVehicleType": {
+            "type": "string"
+          },
+          "vehicleOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VehicleOptionDto"
+            }
+          }
+        },
+        "required": [
+          "distanceKm",
+          "suggestedVehicleType",
+          "vehicleOptions"
+        ]
+      },
+      "CreateBookingRequestDto": {
+        "type": "object",
+        "properties": {
+          "pickupAddress": {
+            "$ref": "#/components/schemas/CreateBookingAddressDto"
+          },
+          "dropAddress": {
+            "$ref": "#/components/schemas/CreateBookingAddressDto"
+          },
+          "package": {
+            "$ref": "#/components/schemas/PackageDetailsDto"
+          },
+          "selectedVehicleType": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "pickupAddress",
+          "dropAddress",
+          "package",
+          "selectedVehicleType"
+        ]
+      },
+      "UpdateBookingAddressDto": {
+        "type": "object",
+        "properties": {
+          "addressName": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactPhone": {
+            "type": "string"
+          },
+          "noteToDriver": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "formattedAddress": {
+            "type": "string"
+          },
+          "addressDetails": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdatePackageDetailsDto": {
+        "type": "object",
+        "properties": {
+          "packageType": {
+            "type": "object"
+          },
+          "productType": {
+            "type": "object"
+          },
+          "agricultural": {
+            "$ref": "#/components/schemas/AgriculturalProductDto"
+          },
+          "nonAgricultural": {
+            "$ref": "#/components/schemas/NonAgriculturalProductDto"
+          },
+          "gstBillUrl": {
+            "type": "string"
+          },
+          "transportDocUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UploadUrlResponseDto": {
+        "type": "object",
+        "properties": {
+          "signedUrl": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "signedUrl",
+          "publicUrl",
+          "token"
+        ]
+      },
+      "CreateGstDetailsDto": {
+        "type": "object",
+        "properties": {
+          "gstNumber": {
+            "type": "string",
+            "pattern": "/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/"
+          },
+          "businessName": {
+            "type": "string"
+          },
+          "businessAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "gstNumber",
+          "businessName",
+          "businessAddress"
+        ]
+      },
+      "GstDetailsResponseDto": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "gstNumber": {
+            "type": "string"
+          },
+          "businessName": {
+            "type": "string"
+          },
+          "businessAddress": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "customerId",
+          "isActive",
+          "id",
+          "gstNumber",
+          "businessName",
+          "businessAddress",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateGstDetailsDto": {
+        "type": "object",
+        "properties": {
+          "gstNumber": {
+            "type": "string",
+            "pattern": "/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/"
+          },
+          "businessName": {
+            "type": "string"
+          },
+          "businessAddress": {
+            "type": "string"
+          }
+        }
+      },
+      "DeactivateGstDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "ReactivateGstDetailsDto": {
+        "type": "object",
+        "properties": {
+          "gstNumber": {
+            "type": "string",
+            "pattern": "/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/"
+          }
+        },
+        "required": [
+          "gstNumber"
+        ]
+      },
+      "GetProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBusiness": {
+            "type": "boolean"
+          },
+          "referralCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "isActive",
+          "firstName",
+          "lastName",
+          "email",
+          "isBusiness",
+          "referralCode",
+          "phoneNumber",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "googleIdToken": {
+            "type": "string"
+          }
+        }
+      },
+      "i": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateAddressDto": {
+        "type": "object",
+        "properties": {
+          "formattedAddress": {
+            "type": "string"
+          },
+          "addressDetails": {
+            "type": "string"
+          },
+          "latitude": {
+            "$ref": "#/components/schemas/i"
+          },
+          "longitude": {
+            "$ref": "#/components/schemas/i"
+          }
+        },
+        "required": [
+          "formattedAddress",
+          "latitude",
+          "longitude"
+        ]
+      },
+      "CreateSavedAddressDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactPhone": {
+            "type": "string"
+          },
+          "noteToDriver": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "address": {
+            "$ref": "#/components/schemas/CreateAddressDto"
+          }
+        },
+        "required": [
+          "name",
+          "contactName",
+          "contactPhone",
+          "address"
+        ]
+      },
+      "CreateProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "googleIdToken": {
+            "type": "string"
+          },
+          "referralCode": {
+            "type": "string"
+          },
+          "gstDetails": {
+            "$ref": "#/components/schemas/CreateGstDetailsDto"
+          },
+          "savedAddress": {
+            "$ref": "#/components/schemas/CreateSavedAddressDto"
+          }
+        },
+        "required": [
+          "firstName"
+        ]
+      },
+      "UsertFcmTokenDto": {
+        "type": "object",
+        "properties": {
+          "fcmToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fcmToken"
+        ]
+      },
+      "UpdateAddressDto": {
+        "type": "object",
+        "properties": {
+          "formattedAddress": {
+            "type": "string"
+          },
+          "addressDetails": {
+            "type": "string"
+          },
+          "latitude": {
+            "$ref": "#/components/schemas/i"
+          },
+          "longitude": {
+            "$ref": "#/components/schemas/i"
+          }
+        }
+      },
+      "UpdateSavedAddressDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactPhone": {
+            "type": "string"
+          },
+          "noteToDriver": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "address": {
+            "$ref": "#/components/schemas/UpdateAddressDto"
+          }
+        }
+      },
+      "CreateDriverDocumentsDto": {
+        "type": "object",
+        "properties": {
+          "licenseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "rcBookUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fcUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "insuranceUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "aadharUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "panNumber": {
+            "type": "string",
+            "pattern": "/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/"
+          },
+          "ebBillUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "licenseUrl",
+          "rcBookUrl",
+          "fcUrl",
+          "insuranceUrl",
+          "aadharUrl",
+          "panNumber",
+          "ebBillUrl"
+        ]
+      },
+      "CreateDriverAddressDto": {
+        "type": "object",
+        "properties": {
+          "addressLine1": {
+            "type": "string"
+          },
+          "landmark": {
+            "type": "string"
+          },
+          "pincode": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "pattern": "/^[0-9]{6}$/"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "latitude": {
+            "$ref": "#/components/schemas/i"
+          },
+          "longitude": {
+            "$ref": "#/components/schemas/i"
+          }
+        },
+        "required": [
+          "addressLine1",
+          "pincode",
+          "city",
+          "district",
+          "state"
+        ]
+      },
+      "CreateVehicleOwnerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "aadharUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "contactNumber": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "landmark": {
+            "type": "string"
+          },
+          "pincode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "aadharUrl",
+          "contactNumber",
+          "addressLine1",
+          "pincode",
+          "city",
+          "district",
+          "state"
+        ]
+      },
+      "CreateVehicleDto": {
+        "type": "object",
+        "properties": {
+          "vehicleNumber": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "object"
+          },
+          "vehicleBodyLength": {
+            "minimum": 1,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/i"
+              }
+            ]
+          },
+          "vehicleBodyType": {
+            "type": "object"
+          },
+          "fuelType": {
+            "type": "object"
+          },
+          "vehicleImageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/CreateVehicleOwnerDto"
+          }
+        },
+        "required": [
+          "vehicleNumber",
+          "vehicleType",
+          "vehicleBodyLength",
+          "vehicleBodyType",
+          "fuelType",
+          "vehicleImageUrl"
+        ]
+      },
+      "CreateBankDetailsDto": {
+        "type": "object",
+        "properties": {
+          "accountHolderName": {
+            "type": "string"
+          },
+          "accountNumber": {
+            "type": "string"
+          },
+          "ifscCode": {
+            "type": "string",
+            "pattern": "/^[A-Z]{4}0[A-Z0-9]{6}$/"
+          }
+        },
+        "required": [
+          "accountHolderName",
+          "accountNumber",
+          "ifscCode"
+        ]
+      },
+      "CreateVpaDetailsDto": {
+        "type": "object",
+        "properties": {
+          "vpa": {
+            "type": "string",
+            "pattern": "/^[a-zA-Z0-9\\.\\-_]{2,256}@[a-zA-Z0-9\\.\\-_]{2,64}$/"
+          }
+        },
+        "required": [
+          "vpa"
+        ]
+      },
+      "CreatePayoutDetailsDto": {
+        "type": "object",
+        "properties": {
+          "payoutMethod": {
+            "type": "string",
+            "enum": [
+              "BANK_ACCOUNT",
+              "VPA"
+            ]
+          },
+          "bankDetails": {
+            "$ref": "#/components/schemas/CreateBankDetailsDto"
+          },
+          "vpaDetails": {
+            "$ref": "#/components/schemas/CreateVpaDetailsDto"
+          }
+        },
+        "required": [
+          "payoutMethod"
+        ]
+      },
+      "CreateDriverProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "googleIdToken": {
+            "type": "string"
+          },
+          "alternatePhone": {
+            "type": "string"
+          },
+          "referalCode": {
+            "type": "string"
+          },
+          "photo": {
+            "type": "string",
+            "format": "uri"
+          },
+          "documents": {
+            "$ref": "#/components/schemas/CreateDriverDocumentsDto"
+          },
+          "address": {
+            "$ref": "#/components/schemas/CreateDriverAddressDto"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/CreateVehicleDto"
+          },
+          "payoutDetails": {
+            "$ref": "#/components/schemas/CreatePayoutDetailsDto"
+          }
+        },
+        "required": [
+          "firstName",
+          "documents",
+          "address",
+          "vehicle",
+          "payoutDetails"
+        ]
+      },
+      "UpdatePayoutDetailsDto": {
+        "type": "object",
+        "properties": {
+          "payoutMethod": {
+            "enum": [
+              "BANK_ACCOUNT",
+              "VPA"
+            ],
+            "type": "string"
+          },
+          "bankDetails": {
+            "$ref": "#/components/schemas/CreateBankDetailsDto"
+          },
+          "vpaDetails": {
+            "$ref": "#/components/schemas/CreateVpaDetailsDto"
+          }
+        },
+        "required": [
+          "payoutMethod"
+        ]
+      },
+      "UpdateDriverProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "googleIdToken": {
+            "type": "string"
+          },
+          "alternatePhone": {
+            "type": "string"
+          },
+          "photo": {
+            "type": "string",
+            "format": "uri"
+          },
+          "payoutDetails": {
+            "$ref": "#/components/schemas/UpdatePayoutDetailsDto"
+          }
+        }
+      },
+      "UpdateDriverStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "DriverDocumentsResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "driverId": {
+            "type": "string"
+          },
+          "licenseUrl": {
+            "type": "string"
+          },
+          "licenseExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "rcBookUrl": {
+            "type": "string"
+          },
+          "fcUrl": {
+            "type": "string"
+          },
+          "fcExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "insuranceUrl": {
+            "type": "string"
+          },
+          "insuranceExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "aadharUrl": {
+            "type": "string"
+          },
+          "panNumber": {
+            "type": "string"
+          },
+          "ebBillUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "driverId",
+          "licenseUrl",
+          "licenseExpiry",
+          "rcBookUrl",
+          "fcUrl",
+          "fcExpiry",
+          "insuranceUrl",
+          "insuranceExpiry",
+          "aadharUrl",
+          "panNumber",
+          "ebBillUrl",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateDriverDocumentsDto": {
+        "type": "object",
+        "properties": {
+          "licenseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "rcBookUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fcUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "insuranceUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "aadharUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "panNumber": {
+            "type": "string",
+            "pattern": "/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/"
+          },
+          "ebBillUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "ExpiryAlertsResponseDto": {
+        "type": "object",
+        "properties": {
+          "licenseAlert": {
+            "type": "string"
+          },
+          "insuranceAlert": {
+            "type": "string"
+          }
+        }
+      },
+      "VehicleResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "driverId": {
+            "type": "string"
+          },
+          "vehicleNumber": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "object"
+          },
+          "vehicleBodyLength": {
+            "$ref": "#/components/schemas/i"
+          },
+          "vehicleBodyType": {
+            "type": "object"
+          },
+          "fuelType": {
+            "type": "object"
+          },
+          "vehicleImageUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "owner": {
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "driverId",
+          "vehicleNumber",
+          "vehicleType",
+          "vehicleBodyLength",
+          "vehicleBodyType",
+          "fuelType",
+          "vehicleImageUrl",
+          "createdAt",
+          "updatedAt",
+          "owner"
+        ]
+      },
+      "UpdateVehicleDto": {
+        "type": "object",
+        "properties": {
+          "vehicleNumber": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "object"
+          },
+          "vehicleBodyLength": {
+            "minimum": 1,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/i"
+              }
+            ]
+          },
+          "vehicleBodyType": {
+            "type": "object"
+          },
+          "fuelType": {
+            "type": "object"
+          },
+          "vehicleImageUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "VehicleOwnerResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "vehicleId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "aadharUrl": {
+            "type": "string"
+          },
+          "contactNumber": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "landmark": {
+            "type": "string",
+            "nullable": true
+          },
+          "pincode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vehicleId",
+          "name",
+          "aadharUrl",
+          "contactNumber",
+          "addressLine1",
+          "landmark",
+          "pincode",
+          "city",
+          "district",
+          "state",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateVehicleOwnerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "aadharUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "contactNumber": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "landmark": {
+            "type": "string"
+          },
+          "pincode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      },
+      "AddressResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "driverId": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "landmark": {
+            "type": "string",
+            "nullable": true
+          },
+          "pincode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "latitude": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/i"
+              }
+            ]
+          },
+          "longitude": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/i"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "driverId",
+          "addressLine1",
+          "landmark",
+          "pincode",
+          "city",
+          "district",
+          "state",
+          "latitude",
+          "longitude",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateDriverAddressDto": {
+        "type": "object",
+        "properties": {
+          "addressLine1": {
+            "type": "string"
+          },
+          "landmark": {
+            "type": "string"
+          },
+          "pincode": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "pattern": "/^[0-9]{6}$/"
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "latitude": {
+            "$ref": "#/components/schemas/i"
+          },
+          "longitude": {
+            "$ref": "#/components/schemas/i"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
-import { UpdateProfileDto, CreateDriverProfileDto, UpdateLocationDto } from '../dtos/profile.dto';
+import { UpdateDriverProfileDto, CreateDriverProfileDto, UpdateLocationDto } from '../dtos/profile.dto';
 import { Driver, DriverStatus } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
@@ -108,7 +108,7 @@ export class ProfileService {
     return { success: true, message: 'Profile created successfully' };
   }
 
-  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+  async updateProfile(userId: string, updateProfileDto: UpdateDriverProfileDto) {
     const { googleIdToken, payoutDetails, ...profileData } = updateProfileDto;
 
     const driver = await this.prisma.driver.findUnique({

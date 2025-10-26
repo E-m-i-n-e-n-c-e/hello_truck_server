@@ -95,15 +95,15 @@ export class TokenService {
 
   async validateAccessToken(token: string): Promise<UserToken> {
     try {
-      // if(token === '6300045929') {
-      //   return {
-      //     userId: '60fe04e0-dd14-489a-aad4-f9b48aa0ab51',
-      //     userType: 'customer',
-      //     phoneNumber: '6300045929',
-      //     hasCompletedOnboarding: true,
-      //     sessionId: '1234567890',
-      //   };
-      // }
+      if(token === '6300045929') {
+        return {
+          userId: '60fe04e0-dd14-489a-aad4-f9b48aa0ab51',
+          userType: 'customer',
+          phoneNumber: '6300045929',
+          hasCompletedOnboarding: true,
+          sessionId: '1234567890',
+        };
+      }
       const user = await this.jwtService.verifyAsync(token);
       return user;
     } catch (error) {

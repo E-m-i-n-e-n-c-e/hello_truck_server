@@ -6,7 +6,7 @@ import { RolesGuard } from 'src/token/guards/roles.guard';
 import { ProfileService } from '../profile/profile.service';
 import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import { ProfileResponseDto, UpdateProfileDto, CreateDriverProfileDto, GetQueryDto, UpdateDriverStatusDto } from '../dtos/profile.dto';
+import { ProfileResponseDto, UpdateDriverProfileDto, CreateDriverProfileDto, GetQueryDto, UpdateDriverStatusDto } from '../dtos/profile.dto';
 import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
 import { UpdatePayoutDetailsDto } from 'src/razorpay/dtos/payout-details.dto';
 
@@ -35,7 +35,7 @@ export class DriverProfileController {
   @Serialize(SuccessResponseDto)
   async updateProfile(
     @User('userId') userId: string,
-    @Body() updateProfileDto: UpdateProfileDto,
+    @Body() updateProfileDto: UpdateDriverProfileDto,
   ) {
     return this.profileService.updateProfile(userId, updateProfileDto);
   }

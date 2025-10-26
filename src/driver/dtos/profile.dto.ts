@@ -4,7 +4,7 @@ import { IsIn, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsPhoneNumber, I
 import { CreateDriverDocumentsDto, DriverDocumentsResponseDto } from "./documents.dto";
 import { CreateVehicleDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
-import { CreateAddressDto } from "./address.dto";
+import { CreateDriverAddressDto } from "./address.dto";
 import { CreatePayoutDetailsDto, UpdatePayoutDetailsDto } from "src/razorpay/dtos/payout-details.dto";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -50,9 +50,9 @@ export class CreateDriverProfileDto {
   documents: CreateDriverDocumentsDto;
 
   @ValidateNested()
-  @Type(() => CreateAddressDto)
+  @Type(() => CreateDriverAddressDto)
   @IsOptional()
-  address: CreateAddressDto;
+  address: CreateDriverAddressDto;
 
   @ValidateNested()
   @Type(() => CreateVehicleDto)
@@ -65,7 +65,7 @@ export class CreateDriverProfileDto {
   payoutDetails: CreatePayoutDetailsDto;
 }
 
-export class UpdateProfileDto implements Partial<Driver> {
+export class UpdateDriverProfileDto implements Partial<Driver> {
   @IsString()
   @IsOptional()
   firstName?: string;

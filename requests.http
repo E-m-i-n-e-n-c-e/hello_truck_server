@@ -114,9 +114,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 }
 
 ### Get booking estimate with all vehicle options
-POST http://localhost:3000/bookings/customer/estimate
+POST https://hello-truck-server.fly.dev/bookings/customer/estimate
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiZDYzZDI3NjItZWJmZi00NTE5LWExOGItMWNiNzI4ODE5NWE4IiwicGhvbmVOdW1iZXIiOiI2MzAwMDQxMTIzIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NTI3NTAxLCJleHAiOjE3NTU1Mjg0MDF9.01JqkcjI-iharGoGXE9b9puwzMJIw_ejXNf98-2Gl1o
+Authorization: Bearer 6300045929
 
 {
   "pickupAddress": {
@@ -141,7 +141,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
 }
 
 ### Get booking estimate for heavy package (should show limited vehicle options)
-POST http://localhost:3000/bookings/customer/estimate
+POST https://hello-truck-server.fly.dev/bookings/customer/estimate
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c3RvbWVyIiwidXNlcklkIjoiZDYzZDI3NjItZWJmZi00NTE5LWExOGItMWNiNzI4ODE5NWE4IiwicGhvbmVOdW1iZXIiOiI2MzAwMDQxMTIzIiwiaGFzQ29tcGxldGVkT25ib2FyZGluZyI6dHJ1ZSwiaWF0IjoxNzU1NTI3NTAxLCJleHAiOjE3NTU1Mjg0MDF9.01JqkcjI-iharGoGXE9b9puwzMJIw_ejXNf98-2Gl1o
 
@@ -287,4 +287,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImN1c
     "transportDocUrls": []
   },
   "selectedVehicleType": "THREE_WHEELER"
+}
+
+### Firebase - Notify User
+POST http://localhost:3000/firebase/notify-user
+Authorization: Bearer 6300045929
+Content-Type: application/json
+
+{
+  "userId": "d63d2762-ebfe-4519-a18b-1cb7288195a8"
 }
