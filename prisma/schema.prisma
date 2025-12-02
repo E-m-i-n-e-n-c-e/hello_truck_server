@@ -137,11 +137,14 @@ model DriverDocuments {
   driver          Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
   licenseUrl      String
   licenseExpiry   DateTime?
+  licenseStatus   VerificationStatus @default(PENDING)
   rcBookUrl       String
   fcUrl           String
   fcExpiry        DateTime?
+  fcStatus        VerificationStatus @default(PENDING)
   insuranceUrl    String
   insuranceExpiry DateTime?
+  insuranceStatus VerificationStatus @default(PENDING)
   aadharUrl       String
   panNumber       String    @unique
   ebBillUrl       String

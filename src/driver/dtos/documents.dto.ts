@@ -1,4 +1,4 @@
-import { DriverDocuments } from "@prisma/client";
+import { DriverDocuments, VerificationStatus } from "@prisma/client";
 import { Expose } from "class-transformer";
 import { IsOptional, IsString, IsUrl, Matches } from "class-validator";
 
@@ -82,15 +82,25 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   @Expose()
   licenseExpiry: Date | null;
   @Expose()
+  licenseStatus: VerificationStatus;
+
+  @Expose()
   rcBookUrl: string;
+
   @Expose()
   fcUrl: string;
   @Expose()
   fcExpiry: Date | null;
   @Expose()
+  fcStatus: VerificationStatus;
+
+  @Expose()
   insuranceUrl: string;
   @Expose()
   insuranceExpiry: Date | null;
+  @Expose()
+  insuranceStatus: VerificationStatus;
+
   @Expose()
   aadharUrl: string;
   @Expose()

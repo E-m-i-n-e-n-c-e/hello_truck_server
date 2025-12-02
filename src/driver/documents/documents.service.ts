@@ -73,9 +73,25 @@ export class DocumentsService {
       throw new NotFoundException('Documents not found for this driver');
     }
 
+    // Prepare update data with status resets
+    const data: any = { ...updateDocumentsDto };
+
+    // If license is updated, reset status
+    if (updateDocumentsDto.licenseUrl) {
+      data.licenseStatus = 'PENDING';
+    }
+    // If FC is updated, reset status
+    if (updateDocumentsDto.fcUrl) {
+      data.fcStatus = 'PENDING';
+    }
+    // If Insurance is updated, reset status
+    if (updateDocumentsDto.insuranceUrl) {
+      data.insuranceStatus = 'PENDING';
+    }
+
     const updatedDocuments = await this.prisma.driverDocuments.update({
       where: { driverId },
-      data: updateDocumentsDto,
+      data: data,
     });
 
     return updatedDocuments;

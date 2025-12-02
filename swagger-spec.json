@@ -837,6 +837,171 @@
         ]
       }
     },
+    "/admin/auth/login": {
+      "post": {
+        "operationId": "login",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/admin/drivers/pending-verification": {
+      "get": {
+        "operationId": "getPendingVerificationDrivers",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/admin/drivers/pending-documents": {
+      "get": {
+        "operationId": "getDriversWithPendingDocuments",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/admin/drivers/{id}": {
+      "get": {
+        "operationId": "getDriverDetails",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/admin/drivers/{id}/verification": {
+      "patch": {
+        "operationId": "updateDriverVerification",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/customer/gst": {
       "post": {
         "operationId": "addGstDetails",
@@ -3077,6 +3242,9 @@
             "type": "string",
             "nullable": true
           },
+          "licenseStatus": {
+            "type": "object"
+          },
           "rcBookUrl": {
             "type": "string"
           },
@@ -3088,6 +3256,9 @@
             "type": "string",
             "nullable": true
           },
+          "fcStatus": {
+            "type": "object"
+          },
           "insuranceUrl": {
             "type": "string"
           },
@@ -3095,6 +3266,9 @@
             "format": "date-time",
             "type": "string",
             "nullable": true
+          },
+          "insuranceStatus": {
+            "type": "object"
           },
           "aadharUrl": {
             "type": "string"
@@ -3119,11 +3293,14 @@
           "driverId",
           "licenseUrl",
           "licenseExpiry",
+          "licenseStatus",
           "rcBookUrl",
           "fcUrl",
           "fcExpiry",
+          "fcStatus",
           "insuranceUrl",
           "insuranceExpiry",
+          "insuranceStatus",
           "aadharUrl",
           "panNumber",
           "ebBillUrl",

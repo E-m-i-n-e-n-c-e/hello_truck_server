@@ -59,6 +59,14 @@ function setupSwagger(app: INestApplication) {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable CORS for admin dashboard
+  app.enableCors({
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

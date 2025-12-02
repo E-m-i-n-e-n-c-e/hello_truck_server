@@ -32,7 +32,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
         }
       } catch (error) {
         // If token is invalid, just use IP-based limiting
-        console.warn('Invalid JWT token for rate limiting', error);
+        // console.warn('Invalid JWT token for rate limiting', error);
       }
     }
 

@@ -9,22 +9,56 @@ export class CronService {
 
   // @Cron('*/5 * * * * *') // Runs every 5 seconds for testing purposes
 
-  // Mark expired bookings as expired every 1 hour
-  // This is only a fail-safe in case some bookings are not marked expired by the assignment service
-  @Cron('0 * * * *')
-  async markExpiredBookings() {
-    const result = await this.prisma.booking.updateMany({
+  // Add this new cron job
+  @Cron('0 0 * * *') // Every day at midnight
+  async checkExpiredDocuments() {
+    const now = new Date();
+
+    // 1. Expire Licenses
+    const expiredLicenses = await this.prisma.driverDocuments.updateMany({
       where: {
-        status: BookingStatus.PENDING,
-        createdAt: {
-          lt: new Date(Date.now() - 10 * 60 * 1000),  // 10 minutes(assignment service uses 5 minutes)
-        },
+        licenseExpiry: { lt: now },
+        licenseStatus: 'VERIFIED'
       },
-      data: {
-        status: BookingStatus.EXPIRED,
-      },
+      data: { licenseStatus: 'PENDING' }
     });
-    console.log(`Cleaned up ${result.count} expired bookings`);
+
+    // 2. Expire FCs
+    const expiredFCs = await this.prisma.driverDocuments.updateMany({
+      where: {
+        fcExpiry: { lt: now },
+        fcStatus: 'VERIFIED'
+      },
+      data: { fcStatus: 'PENDING' }
+    });
+
+    // 3. Expire Insurance
+    const expiredInsurances = await this.prisma.driverDocuments.updateMany({
+      where: {
+        insuranceExpiry: { lt: now },
+        insuranceStatus: 'VERIFIED'
+      },
+      data: { insuranceStatus: 'PENDING' }
+    });
+
+    console.log(`Expired docs: License=${expiredLicenses.count}, FC=${expiredFCs.count}, Insurance=${expiredInsurances.count}.`);
+
+    // 4. Update Driver status to PENDING ONLY if they have EXPIRED documents
+    const demotedDrivers = await this.prisma.driver.updateMany({
+      where: {
+        verificationStatus: 'VERIFIED',
+        documents: {
+          OR: [
+            { licenseExpiry: { lt: now } },
+            { fcExpiry: { lt: now } },
+            { insuranceExpiry: { lt: now } }
+          ]
+        }
+      },
+      data: { verificationStatus: 'PENDING' }
+    });
+
+    console.log(`Demoted ${demotedDrivers.count} drivers due to expired documents.`);
   }
 
   // Cleanup expired sessions every day at midnight
@@ -61,6 +95,24 @@ export class CronService {
       }
     });
     console.log(`Reset ${result.count} drivers to UNAVAILABLE at midnight`);
+  }
+
+  // Mark expired bookings as expired every 1 hour
+  // This is only a fail-safe in case some bookings are not marked expired by the assignment service
+  @Cron('0 * * * *')
+  async markExpiredBookings() {
+    const result = await this.prisma.booking.updateMany({
+      where: {
+        status: BookingStatus.PENDING,
+        createdAt: {
+          lt: new Date(Date.now() - 10 * 60 * 1000),  // 10 minutes(assignment service uses 5 minutes)
+        },
+      },
+      data: {
+        status: BookingStatus.EXPIRED,
+      },
+    });
+    console.log(`Cleaned up ${result.count} expired bookings`);
   }
 
   //Clean up old expired or completed bookings every day at midnight
