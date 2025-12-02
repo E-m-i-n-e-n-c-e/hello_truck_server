@@ -63,6 +63,6 @@ POST http://localhost:3000/razorpay/create-payment-link
 Content-Type: application/json
 
 {
-  "orderId": "order_RVG7OVWChJbSJK"
+  "orderId": "order_RY2am36EV65jsn"
 }
 

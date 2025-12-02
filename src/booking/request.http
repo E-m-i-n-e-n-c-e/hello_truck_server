@@ -1,4 +1,5 @@
-@base_url = http://localhost:3000
+# @base_url = http://localhost:3000
+@base_url = https://hello-truck-server.fly.dev
 
 ### Create Booking (Customer)
 POST {{base_url}}/bookings/customer
@@ -133,3 +134,7 @@ Authorization: Bearer 6300045929
 ### {{customerJwt}} = <CUSTOMER_JWT>
 
 ### get estimate
+
+### Get upload url
+GET https://hello-truck-server.fly.dev/bookings/customer/upload-url?filePath=whatev&type=pdf
+Authorization: Bearer 6300045929

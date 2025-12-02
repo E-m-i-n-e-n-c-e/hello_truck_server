@@ -56,6 +56,15 @@ export class BookingCustomerController {
     return this.bookingCustomerService.getBookingHistory(userId);
   }
 
+  @Get('upload-url')
+  @Serialize(UploadUrlResponseDto)
+  async getUploadUrl(
+    @User('userId') userId: string,
+    @Query() uploadUrlDto: uploadUrlDto,
+  ) {
+    return this.bookingCustomerService.getUploadUrl(userId, uploadUrlDto);
+  }
+
   @Get(':id')
   @Serialize(BookingResponseDto)
   async getBooking(
@@ -108,15 +117,6 @@ export class BookingCustomerController {
     return this.bookingCustomerService.updatePackage(userId, bookingId, packageDetails);
   }
 
-
-  @Get('upload-url')
-  @Serialize(UploadUrlResponseDto)
-  async getUploadUrl(
-    @User('userId') userId: string,
-    @Query() uploadUrlDto: uploadUrlDto,
-  ) {
-    return this.bookingCustomerService.getUploadUrl(userId, uploadUrlDto);
-  }
 
   @Get('driver-navigation/:bookingId')
   async getDriverNavigationUpdates(
