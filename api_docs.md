@@ -226,3 +226,41 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/razorpay/create-fund-account` 🔒 | Creates a fund account for a contact. | `CreateFundAccountDto` | Razorpay Fund Account Object |
 | `POST` | `/razorpay/create-order` 🔒 | Creates a Razorpay order. | `CreateOrderDto` | Razorpay Order Object |
 | `POST` | `/razorpay/create-payment-link` 🔒 | Creates a Razorpay payment link. | `CreatePaymentLinkDto` | Razorpay Payment Link Object |
+
+### Admin DTOs
+*   **`DriverResponseDto`**: Complete driver profile with all relations.
+    *   `id`: `string`
+    *   `phoneNumber`: `string`
+    *   `firstName`: `string | null`
+    *   `lastName`: `string | null`
+    *   `email`: `string | null`
+    *   `alternatePhone`: `string | null`
+    *   `referalCode`: `string | null`
+    *   `photo`: `string | null`
+    *   `contactId`: `string | null`
+    *   `fundAccountId`: `string | null`
+    *   `score`: `number`
+    *   `latitude`: `Decimal | null`
+    *   `longitude`: `Decimal | null`
+    *   `isActive`: `boolean`
+    *   `verificationStatus`: `VerificationStatus` (PENDING, VERIFIED, REJECTED)
+    *   `driverStatus`: `DriverStatus` (AVAILABLE, UNAVAILABLE, ON_RIDE, RIDE_OFFERED)
+    *   `walletBalance`: `Decimal`
+    *   `createdAt`: `Date`
+    *   `lastSeenAt`: `Date | null`
+    *   `updatedAt`: `Date`
+    *   `documents`: `DriverDocumentsResponseDto | null`
+    *   `vehicle`: `VehicleResponseDto | null`
+    *   `address`: `DriverAddressResponseDto | null`
+*   **`AdminDriverListResponseDto`**:
+    *   `data`: `DriverResponseDto[]`
+    *   `meta`: `{ total: number, page: number, limit: number, totalPages: number }`
+
+### Admin (`Admin`)
+| Method | Path | Description | Request Body | Success Response |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/admin/auth/login` | Admin login with credentials. | `{ username: string, password: string }` | `{ accessToken: string }` |
+| `GET` | `/admin/drivers/pending-verification` 🔒 | Lists drivers pending verification. | Query: `page`, `limit`, `search` | `AdminDriverListResponseDto` |
+| `GET` | `/admin/drivers/pending-documents` 🔒 | Lists verified drivers with pending documents. | Query: `page`, `limit`, `search` | `AdminDriverListResponseDto` |
+| `GET` | `/admin/drivers/{id}` 🔒 | Gets specific driver details. | - | `DriverResponseDto` |
+| `PATCH` | `/admin/drivers/{id}/verification` 🔒 | Updates driver verification status and expiry dates. | `{ status: VerificationStatus, licenseExpiry?: string, fcExpiry?: string, insuranceExpiry?: string }` | `DriverResponseDto` |

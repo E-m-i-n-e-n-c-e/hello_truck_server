@@ -10,7 +10,8 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
-import { VerificationStatus } from '@prisma/client';
+import { DriverResponseDto, AdminDriverListResponseDto, UpdateDriverVerificationDto } from './dtos/admin.dto';
+import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 
 @Controller('admin')
 export class AdminController {
@@ -25,6 +26,7 @@ export class AdminController {
    * Get all drivers with PENDING verification status
    */
   @UseGuards(AdminAuthGuard)
+  @Serialize(AdminDriverListResponseDto)
   @Get('drivers/pending-verification')
   getPendingVerificationDrivers(
     @Query('page') page: number = 1,
@@ -38,6 +40,7 @@ export class AdminController {
    * Get drivers who are VERIFIED but have PENDING documents
    */
   @UseGuards(AdminAuthGuard)
+  @Serialize(AdminDriverListResponseDto)
   @Get('drivers/pending-documents')
   getDriversWithPendingDocuments(
     @Query('page') page: number = 1,
@@ -52,6 +55,7 @@ export class AdminController {
    * Get specific driver details
    */
   @UseGuards(AdminAuthGuard)
+  @Serialize(DriverResponseDto)
   @Get('drivers/:id')
   getDriverDetails(@Param('id') id: string) {
     return this.adminService.getDriverDetails(id);
@@ -61,25 +65,12 @@ export class AdminController {
    * Update driver verification status and optionally set expiry dates
    */
   @UseGuards(AdminAuthGuard)
+  @Serialize(DriverResponseDto)
   @Patch('drivers/:id/verification')
   updateDriverVerification(
     @Param('id') id: string,
-    @Body()
-    body: {
-      status: VerificationStatus;
-      licenseExpiry?: string;
-      fcExpiry?: string;
-      insuranceExpiry?: string;
-    },
+    @Body() dto: UpdateDriverVerificationDto,
   ) {
-    const expiryDates = {
-      licenseExpiry: body.licenseExpiry ? new Date(body.licenseExpiry) : undefined,
-      fcExpiry: body.fcExpiry ? new Date(body.fcExpiry) : undefined,
-      insuranceExpiry: body.insuranceExpiry
-        ? new Date(body.insuranceExpiry)
-        : undefined,
-    };
-
-    return this.adminService.updateDriverVerification(id, body.status, expiryDates);
+    return this.adminService.updateDriverVerification(id, dto);
   }
 }

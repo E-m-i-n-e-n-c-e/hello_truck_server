@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { VerificationStatus } from '@prisma/client';
+import { UpdateDriverVerificationDto } from './dtos/admin.dto';
 
 @Injectable()
 export class AdminService {
@@ -166,12 +167,7 @@ export class AdminService {
    */
   async updateDriverVerification(
     id: string,
-    status: VerificationStatus,
-    expiryDates?: {
-      licenseExpiry?: Date;
-      fcExpiry?: Date;
-      insuranceExpiry?: Date;
-    },
+    dto: UpdateDriverVerificationDto,
   ) {
     // Check if driver exists
     const driver = await this.prisma.driver.findUnique({
@@ -183,26 +179,35 @@ export class AdminService {
       throw new NotFoundException('Driver not found');
     }
 
+    // Convert string dates to Date objects
+    const expiryDates = {
+      licenseExpiry: dto.licenseExpiry ? new Date(dto.licenseExpiry) : undefined,
+      fcExpiry: dto.fcExpiry ? new Date(dto.fcExpiry) : undefined,
+      insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : undefined,
+    };
+
     // Update driver verification status and document expiry dates in a transaction
     return this.prisma.$transaction(async (tx) => {
       // Update driver verification status
       const updatedDriver = await tx.driver.update({
         where: { id },
-        data: { verificationStatus: status },
+        data: { verificationStatus: dto.status },
       });
 
       // If verifying and expiry dates are provided, update them
-      if (status === VerificationStatus.VERIFIED && expiryDates && driver.documents) {
-          await tx.driverDocuments.update({
-            where: { driverId: id },
-             data: {
-              ...expiryDates,
-              fcStatus: VerificationStatus.VERIFIED,
-              licenseStatus: VerificationStatus.VERIFIED,
-              insuranceStatus: VerificationStatus.VERIFIED,
-             },
-          });
-        }
+      if (dto.status === VerificationStatus.VERIFIED && driver.documents) {
+        await tx.driverDocuments.update({
+          where: { driverId: id },
+          data: {
+            licenseExpiry: expiryDates.licenseExpiry,
+            fcExpiry: expiryDates.fcExpiry,
+            insuranceExpiry: expiryDates.insuranceExpiry,
+            fcStatus: VerificationStatus.VERIFIED,
+            licenseStatus: VerificationStatus.VERIFIED,
+            insuranceStatus: VerificationStatus.VERIFIED,
+          },
+        });
+      }
 
       return updatedDriver;
     });
