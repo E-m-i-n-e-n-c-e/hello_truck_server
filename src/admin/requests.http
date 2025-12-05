@@ -1,0 +1,112 @@
+### Admin Authentication Routes
+
+### Admin Login
+POST https://hello-truck-server.fly.dev/admin/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### Admin Login (Local)
+POST http://localhost:3000/admin/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+---
+
+### Admin Driver Management Routes
+
+### Get Drivers Pending Verification
+GET https://hello-truck-server.fly.dev/admin/drivers/pending-verification?page=1&limit=10
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY0OTQ2MzkwLCJleHAiOjE3NjUwMzI3OTB9.A4K_8qO5Vbmd6UEKKCuXxEk-DctA61QcE0jMMNQ6YhQ
+
+### Get Drivers Pending Verification (Local)
+GET http://localhost:3000/admin/drivers/pending-verification?page=1&limit=10
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY0OTQ2MzkwLCJleHAiOjE3NjUwMzI3OTB9.A4K_8qO5Vbmd6UEKKCuXxEk-DctA61QcE0jMMNQ6YhQ
+
+### Get Drivers Pending Verification with Search
+GET https://hello-truck-server.fly.dev/admin/drivers/pending-verification?page=1&limit=10&search=john
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY0OTQ2MzkwLCJleHAiOjE3NjUwMzI3OTB9.A4K_8qO5Vbmd6UEKKCuXxEk-DctA61QcE0jMMNQ6YhQ
+
+---
+
+### Get Drivers with Pending Documents
+GET https://hello-truck-server.fly.dev/admin/drivers/pending-documents?page=1&limit=10
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY0OTQ2MzkwLCJleHAiOjE3NjUwMzI3OTB9.A4K_8qO5Vbmd6UEKKCuXxEk-DctA61QcE0jMMNQ6YhQ
+
+### Get Drivers with Pending Documents (Local)
+GET http://localhost:3000/admin/drivers/pending-documents?page=1&limit=10
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+### Get Drivers with Pending Documents with Search
+GET https://hello-truck-server.fly.dev/admin/drivers/pending-documents?page=1&limit=10&search=jane
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+---
+
+### Get Specific Driver Details
+GET https://hello-truck-server.fly.dev/admin/drivers/DRIVER_ID
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+### Get Specific Driver Details (Local)
+GET http://localhost:3000/admin/drivers/DRIVER_ID
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+---
+
+### Update Driver Verification Status
+PATCH https://hello-truck-server.fly.dev/admin/drivers/DRIVER_ID/verification
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+{
+  "status": "VERIFIED",
+  "licenseExpiry": "2026-12-31",
+  "fcExpiry": "2026-12-31",
+  "insuranceExpiry": "2026-12-31"
+}
+
+### Update Driver Verification Status (Local)
+PATCH http://localhost:3000/admin/drivers/DRIVER_ID/verification
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+{
+  "status": "VERIFIED",
+  "licenseExpiry": "2026-12-31",
+  "fcExpiry": "2026-12-31",
+  "insuranceExpiry": "2026-12-31"
+}
+
+### Reject Driver Verification
+PATCH https://hello-truck-server.fly.dev/admin/drivers/DRIVER_ID/verification
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+{
+  "status": "REJECTED"
+}
+
+### Update Only License Expiry
+PATCH https://hello-truck-server.fly.dev/admin/drivers/DRIVER_ID/verification
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+{
+  "status": "VERIFIED",
+  "licenseExpiry": "2027-06-30"
+}
