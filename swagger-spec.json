@@ -987,6 +987,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDriverVerificationDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -1993,14 +2003,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AddressResponseDto"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2027,14 +2030,7 @@
         },
         "responses": {
           "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AddressResponseDto"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2061,14 +2057,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AddressResponseDto"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2085,14 +2074,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2134,58 +2116,6 @@
     "/razorpay/create-fund-account": {
       "post": {
         "operationId": "createFundAccount",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Razorpay"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
-    "/razorpay/create-order": {
-      "post": {
-        "operationId": "createOrder",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Razorpay"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
-    "/razorpay/create-payment-link": {
-      "post": {
-        "operationId": "createPaymentLink",
         "parameters": [],
         "responses": {
           "201": {
@@ -2607,6 +2537,26 @@
           }
         }
       },
+      "UpdateDriverVerificationDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object"
+          },
+          "licenseExpiry": {
+            "type": "string"
+          },
+          "fcExpiry": {
+            "type": "string"
+          },
+          "insuranceExpiry": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "CreateGstDetailsDto": {
         "type": "object",
         "properties": {
@@ -2706,9 +2656,16 @@
           "gstNumber"
         ]
       },
+      "i": {
+        "type": "object",
+        "properties": {}
+      },
       "GetProfileResponseDto": {
         "type": "object",
         "properties": {
+          "walletBalance": {
+            "$ref": "#/components/schemas/i"
+          },
           "id": {
             "type": "string"
           },
@@ -2747,6 +2704,7 @@
           }
         },
         "required": [
+          "walletBalance",
           "id",
           "isActive",
           "firstName",
@@ -2772,10 +2730,6 @@
             "type": "string"
           }
         }
-      },
-      "i": {
-        "type": "object",
-        "properties": {}
       },
       "CreateAddressDto": {
         "type": "object",
@@ -3352,89 +3306,6 @@
           }
         }
       },
-      "VehicleResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "driverId": {
-            "type": "string"
-          },
-          "vehicleNumber": {
-            "type": "string"
-          },
-          "vehicleType": {
-            "type": "object"
-          },
-          "vehicleBodyLength": {
-            "$ref": "#/components/schemas/i"
-          },
-          "vehicleBodyType": {
-            "type": "object"
-          },
-          "fuelType": {
-            "type": "object"
-          },
-          "vehicleImageUrl": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "owner": {
-            "nullable": true,
-            "type": "object"
-          }
-        },
-        "required": [
-          "id",
-          "driverId",
-          "vehicleNumber",
-          "vehicleType",
-          "vehicleBodyLength",
-          "vehicleBodyType",
-          "fuelType",
-          "vehicleImageUrl",
-          "createdAt",
-          "updatedAt",
-          "owner"
-        ]
-      },
-      "UpdateVehicleDto": {
-        "type": "object",
-        "properties": {
-          "vehicleNumber": {
-            "type": "string"
-          },
-          "vehicleType": {
-            "type": "object"
-          },
-          "vehicleBodyLength": {
-            "minimum": 1,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/i"
-              }
-            ]
-          },
-          "vehicleBodyType": {
-            "type": "object"
-          },
-          "fuelType": {
-            "type": "object"
-          },
-          "vehicleImageUrl": {
-            "type": "string",
-            "format": "uri"
-          }
-        }
-      },
       "VehicleOwnerResponseDto": {
         "type": "object",
         "properties": {
@@ -3497,6 +3368,93 @@
           "updatedAt"
         ]
       },
+      "VehicleResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "driverId": {
+            "type": "string"
+          },
+          "vehicleNumber": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "object"
+          },
+          "vehicleBodyLength": {
+            "$ref": "#/components/schemas/i"
+          },
+          "vehicleBodyType": {
+            "type": "object"
+          },
+          "fuelType": {
+            "type": "object"
+          },
+          "vehicleImageUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "owner": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehicleOwnerResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "driverId",
+          "vehicleNumber",
+          "vehicleType",
+          "vehicleBodyLength",
+          "vehicleBodyType",
+          "fuelType",
+          "vehicleImageUrl",
+          "createdAt",
+          "updatedAt",
+          "owner"
+        ]
+      },
+      "UpdateVehicleDto": {
+        "type": "object",
+        "properties": {
+          "vehicleNumber": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "object"
+          },
+          "vehicleBodyLength": {
+            "minimum": 1,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/i"
+              }
+            ]
+          },
+          "vehicleBodyType": {
+            "type": "object"
+          },
+          "fuelType": {
+            "type": "object"
+          },
+          "vehicleImageUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
       "UpdateVehicleOwnerDto": {
         "type": "object",
         "properties": {
@@ -3529,74 +3487,6 @@
             "type": "string"
           }
         }
-      },
-      "AddressResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "driverId": {
-            "type": "string"
-          },
-          "addressLine1": {
-            "type": "string"
-          },
-          "landmark": {
-            "type": "string",
-            "nullable": true
-          },
-          "pincode": {
-            "type": "string"
-          },
-          "city": {
-            "type": "string"
-          },
-          "district": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          },
-          "latitude": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/i"
-              }
-            ]
-          },
-          "longitude": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/i"
-              }
-            ]
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "driverId",
-          "addressLine1",
-          "landmark",
-          "pincode",
-          "city",
-          "district",
-          "state",
-          "latitude",
-          "longitude",
-          "createdAt",
-          "updatedAt"
-        ]
       },
       "UpdateDriverAddressDto": {
         "type": "object",

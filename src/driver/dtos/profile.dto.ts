@@ -94,14 +94,11 @@ export class UpdateDriverProfileDto implements Partial<Driver> {
   payoutDetails?: UpdatePayoutDetailsDto;
 }
 
-export class ProfileResponseDto implements Driver {
-  walletBalance: Decimal;
+export class ProfileResponseDto {
   id: string;
   isActive: boolean;
   contactId: string | null;
   fundAccountId: string | null;
-  latitude: Decimal | null;
-  longitude: Decimal | null;
 
   @Expose()
   phoneNumber: string;
@@ -135,6 +132,8 @@ export class ProfileResponseDto implements Driver {
   vehicle: VehicleResponseDto | null;
   @Expose()
   score: number;
+  @Expose()
+  walletBalance: number;
 }
 
 export class UpdateDriverStatusDto implements Partial<DriverStatusLog> {
@@ -142,7 +141,7 @@ export class UpdateDriverStatusDto implements Partial<DriverStatusLog> {
   status: DriverStatus;
 }
 
-export class UpdateLocationDto implements Partial<Driver> {
+export class UpdateLocationDto {
   @IsLatitude()
   latitude: Decimal;
 

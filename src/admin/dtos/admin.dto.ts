@@ -1,6 +1,5 @@
-import { Driver, DriverStatus, VerificationStatus, VehicleOwner, Vehicle, VehicleType, VehicleBodyType, FuelType, DriverDocuments, DriverAddress } from "@prisma/client";
-import { Expose, Type } from "class-transformer";
-import { Decimal } from "@prisma/client/runtime/library";
+import { DriverStatus, VerificationStatus, VehicleOwner, Vehicle, VehicleType, VehicleBodyType, FuelType, DriverDocuments, DriverAddress } from "@prisma/client";
+import { Expose, Type, Transform } from "class-transformer";
 import { IsOptional } from "class-validator";
 
 export class VehicleOwnerResponseDto implements VehicleOwner {
@@ -31,7 +30,7 @@ export class VehicleOwnerResponseDto implements VehicleOwner {
   updatedAt: Date;
 }
 
-export class VehicleResponseDto implements Vehicle {
+export class VehicleResponseDto {
   id: string;
   driverId: string;
 
@@ -40,7 +39,7 @@ export class VehicleResponseDto implements Vehicle {
   @Expose()
   vehicleType: VehicleType;
   @Expose()
-  vehicleBodyLength: Decimal;
+  vehicleBodyLength: number;
   @Expose()
   vehicleBodyType: VehicleBodyType;
   @Expose()
@@ -96,7 +95,7 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   updatedAt: Date;
 }
 
-export class DriverAddressResponseDto implements DriverAddress {
+export class DriverAddressResponseDto {
   id: string;
   driverId: string;
 
@@ -113,24 +112,22 @@ export class DriverAddressResponseDto implements DriverAddress {
   @Expose()
   state: string;
   @Expose()
-  latitude: Decimal | null;
+  latitude: number | null;
   @Expose()
-  longitude: Decimal | null;
+  longitude: number | null;
   @Expose()
   createdAt: Date;
   @Expose()
   updatedAt: Date;
 }
 
-export class DriverResponseDto implements Driver {
-  walletBalance: Decimal;
+export class DriverResponseDto {
+  @Expose()
   id: string;
-  isActive: boolean;
+  @Expose()
   contactId: string | null;
+  @Expose()
   fundAccountId: string | null;
-  latitude: Decimal | null;
-  longitude: Decimal | null;
-
   @Expose()
   phoneNumber: string;
   @Expose()
@@ -142,9 +139,17 @@ export class DriverResponseDto implements Driver {
   @Expose()
   alternatePhone: string | null;
   @Expose()
+  photo: string | null;
+  @Expose()
   referalCode: string | null;
   @Expose()
-  photo: string | null;
+  latitude: number | null;
+  @Expose()
+  longitude: number | null;
+  @Expose()
+  walletBalance: number;
+  @Expose()
+  isActive: boolean;
   @Expose()
   verificationStatus: VerificationStatus;
   @Expose()
@@ -156,6 +161,8 @@ export class DriverResponseDto implements Driver {
   @Expose()
   lastSeenAt: Date | null;
   @Expose()
+  score: number;
+  @Expose()
   @Type(() => DriverDocumentsResponseDto)
   documents: DriverDocumentsResponseDto | null;
   @Expose()
@@ -164,18 +171,27 @@ export class DriverResponseDto implements Driver {
   @Expose()
   @Type(() => DriverAddressResponseDto)
   address: DriverAddressResponseDto | null;
+}
+
+export class MetaDto {
   @Expose()
-  score: number;
+  total: number;
+  @Expose()
+  page: number;
+  @Expose()
+  limit: number;
+  @Expose()
+  totalPages: number;
 }
 
 export class AdminDriverListResponseDto {
+  @Expose()
+  @Type(() => DriverResponseDto)
   data: DriverResponseDto[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  
+  @Expose()
+  @Type(() => MetaDto)
+  meta: MetaDto;
 }
 
 export class UpdateDriverVerificationDto {

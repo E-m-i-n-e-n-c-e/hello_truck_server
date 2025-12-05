@@ -62,7 +62,7 @@ export class UpdateVehicleDto implements Partial<CreateVehicleDto> {
   vehicleImageUrl?: string;
 }
 
-export class VehicleResponseDto implements Vehicle {
+export class VehicleResponseDto {
   id: string;
   driverId: string;
 
@@ -71,7 +71,7 @@ export class VehicleResponseDto implements Vehicle {
   @Expose()
   vehicleType: VehicleType;
   @Expose()
-  vehicleBodyLength: Decimal;
+  vehicleBodyLength: number;
   @Expose()
   vehicleBodyType: VehicleBodyType;
   @Expose()

@@ -17,7 +17,7 @@ export class DriverVehicleController {
 
   @Get()
   @Serialize(VehicleResponseDto)
-  async getVehicle(@User('userId') userId: string): Promise<VehicleResponseDto> {
+  async getVehicle(@User('userId') userId: string){
     return this.vehicleService.getVehicle(userId);
   }
 
@@ -26,7 +26,7 @@ export class DriverVehicleController {
   async createVehicle(
     @User('userId') userId: string,
     @Body() createVehicleDto: CreateVehicleDto,
-  ): Promise<VehicleResponseDto> {
+  ) {
     return this.vehicleService.createVehicle(userId, createVehicleDto);
   }
 
@@ -35,7 +35,7 @@ export class DriverVehicleController {
   async updateVehicle(
     @User('userId') userId: string,
     @Body() updateVehicleDto: UpdateVehicleDto,
-  ): Promise<VehicleResponseDto> {
+  ) {
     return this.vehicleService.updateVehicle(userId, updateVehicleDto);
   }
 

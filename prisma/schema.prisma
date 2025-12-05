@@ -111,8 +111,6 @@ model Driver {
   contactId          String?
   fundAccountId      String?
   score              Int                @default(0)
-  latitude           Decimal?           @db.Decimal(10, 8)
-  longitude          Decimal?           @db.Decimal(11, 8)
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
   driverStatus       DriverStatus       @default(UNAVAILABLE)

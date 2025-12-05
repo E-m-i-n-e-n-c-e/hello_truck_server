@@ -70,7 +70,7 @@ export class UpdateDriverAddressDto implements Partial<DriverAddress> {
   longitude?: Decimal;
 }
 
-export class AddressResponseDto implements DriverAddress {
+export class AddressResponseDto {
   id: string;
   driverId: string;
 
@@ -87,9 +87,9 @@ export class AddressResponseDto implements DriverAddress {
   @Expose()
   state: string;
   @Expose()
-  latitude: Decimal | null;
+  latitude: number | null;
   @Expose()
-  longitude: Decimal | null;
+  longitude: number | null;
   @Expose()
   createdAt: Date;
   @Expose()
