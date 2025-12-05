@@ -2,7 +2,7 @@ import { Driver, DriverStatus, DriverStatusLog, Vehicle, VerificationStatus } fr
 import { Expose, Type } from "class-transformer";
 import { IsIn, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
 import { CreateDriverDocumentsDto, DriverDocumentsResponseDto } from "./documents.dto";
-import { CreateVehicleDto } from "./vehicle.dto";
+import { CreateVehicleDto, VehicleResponseDto } from "./vehicle.dto";
 import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
 import { CreateDriverAddressDto } from "./address.dto";
 import { CreatePayoutDetailsDto, UpdatePayoutDetailsDto } from "src/razorpay/dtos/payout-details.dto";
@@ -95,6 +95,7 @@ export class UpdateDriverProfileDto implements Partial<Driver> {
 }
 
 export class ProfileResponseDto implements Driver {
+  walletBalance: Decimal;
   id: string;
   isActive: boolean;
   contactId: string | null;
@@ -130,7 +131,8 @@ export class ProfileResponseDto implements Driver {
   @Type(() => DriverDocumentsResponseDto)
   documents: DriverDocumentsResponseDto | null;
   @Expose()
-  vehicle: Vehicle | null;
+  @Type(() => VehicleResponseDto)
+  vehicle: VehicleResponseDto | null;
   @Expose()
   score: number;
 }

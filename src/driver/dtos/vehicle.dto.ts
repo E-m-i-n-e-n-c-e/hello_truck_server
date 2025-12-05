@@ -3,7 +3,7 @@ import { Expose, Type } from "class-transformer";
 import { IsOptional, IsString, IsUrl, IsEnum, IsNumber, IsDecimal, ValidateNested, IsPositive, Max, Min } from "class-validator";
 import { Transform } from "class-transformer";
 import { Decimal } from "@prisma/client/runtime/library";
-import { CreateVehicleOwnerDto } from "./vehicle-owner.dto";
+import { CreateVehicleOwnerDto, VehicleOwnerResponseDto } from "./vehicle-owner.dto";
 
 export class CreateVehicleDto implements Partial<Vehicle> {
   @IsString()
@@ -83,5 +83,6 @@ export class VehicleResponseDto implements Vehicle {
   @Expose()
   updatedAt: Date;
   @Expose()
-  owner: VehicleOwner | null;
+  @Type(() => VehicleOwnerResponseDto)
+  owner: VehicleOwnerResponseDto | null;
 }

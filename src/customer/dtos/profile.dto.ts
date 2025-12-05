@@ -3,6 +3,7 @@ import { Expose, Type } from 'class-transformer';
 import { CreateGstDetailsDto } from './gst-details.dto';
 import { CreateSavedAddressDto } from './saved-address.dto';
 import { Customer } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 
 export class CreateProfileDto implements Partial<Customer> {
   @IsString()
@@ -46,6 +47,7 @@ export class UpdateProfileDto implements Partial<Customer> {
 }
 
 export class GetProfileResponseDto implements Customer {
+  walletBalance: Decimal;
   id: string;
   isActive: boolean;
 

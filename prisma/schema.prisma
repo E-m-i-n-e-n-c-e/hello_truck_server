@@ -19,12 +19,14 @@ model Customer {
   isBusiness  Boolean  @default(false)
   referralCode String?
   isActive    Boolean  @default(true)
+  walletBalance Decimal @default(0) @db.Decimal(10,2)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   sessions    CustomerSession[]
   gstDetails  CustomerGstDetails[]
   addresses   SavedAddress[]
   bookings    Booking[]
+  transactions Transaction[]
 
   @@index([isActive])
 }
@@ -114,6 +116,7 @@ model Driver {
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
   driverStatus       DriverStatus       @default(UNAVAILABLE)
+  walletBalance      Decimal            @default(0) @db.Decimal(10,2)
   createdAt          DateTime           @default(now())
   lastSeenAt         DateTime?
   updatedAt          DateTime           @updatedAt
@@ -126,6 +129,8 @@ model Driver {
   bookings           Booking[]
   assignments        BookingAssignment[]
   statusLogs         DriverStatusLog[]
+  transactions       Transaction[]
+  payouts            Payout[]
 
   @@index([isActive, verificationStatus])
   @@index([lastSeenAt, driverStatus])
@@ -352,6 +357,9 @@ model Booking {
   // Status logs
   statusLogs           BookingStatusLog[]
 
+  // Transactions
+  transactions         Transaction[]
+
   // Timestamps
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
@@ -387,6 +395,78 @@ model BookingStatusLog {
 
   @@index([bookingId, status])
   @@index([statusChangedAt])
+}
+
+// Central transaction ledger for ALL financial transactions on the platform
+// Transactions are immutable audit records and should NEVER be deleted
+model Transaction {
+  id String @id @default(uuid())
+
+  // Parties involved (at least one must be set)
+  // No cascade delete - transactions are preserved for audit even if users are deleted
+  customerId String?
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  driverId String?
+  driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+
+  // Transaction details
+  amount Decimal @db.Decimal(10,2)
+  type TransactionType // CREDIT or DEBIT
+  category TransactionCategory // What kind of transaction
+  description String
+
+  // References to related entities
+  bookingId String?
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  payoutId String?
+  payout Payout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  metadata Json? // For storing additional context
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId, createdAt])
+  @@index([driverId, createdAt])
+  @@index([bookingId])
+  @@index([payoutId])
+  @@index([category, createdAt])
+}
+
+model Payout {
+  id String @id @default(uuid())
+  driverId String
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  amount Decimal @db.Decimal(10,2)
+  razorpayPayoutId String? @unique
+  status PayoutStatus @default(PENDING)
+  failureReason String?
+  retryCount Int @default(0)
+
+  transactions Transaction[] // Link to transaction records
+
+  createdAt DateTime @default(now())
+  processedAt DateTime?
+
+  @@index([driverId, status])
+  @@index([status, createdAt])
+}
+
+model WebhookLog {
+  id String @id @default(uuid())
+  event String
+  razorpayOrderId String
+  payload Json
+  signature String
+  processed Boolean @default(false)
+  processedAt DateTime?
+  error String?
+
+  createdAt DateTime @default(now())
+
+  @@index([razorpayOrderId])
+  @@index([processed, createdAt])
 }
 
 
@@ -478,4 +558,24 @@ enum ReferralStatus {
   PENDING
   COMPLETED
   FAILED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum TransactionCategory {
+  BOOKING_PAYMENT      // Customer pays for booking
+  BOOKING_REFUND       // Customer receives refund
+  DRIVER_PAYOUT        // Driver receives payout (after 7% platform fee deduction)
+  PENALTY              // Penalty charged to driver
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
