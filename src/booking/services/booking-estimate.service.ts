@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ProductType, VehicleType, WeightUnit } from '@prisma/client';
 import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-estimate.dto';
 import { PricingService } from '../pricing/pricing.service';
-import { PackageDetailsDto } from '../dtos/package.dto';
+import { AgriculturalProductDto, NonAgriculturalProductDto, PackageDetailsDto, PersonalProductDto } from '../dtos/package.dto';
 import * as geolib from 'geolib';
 
 @Injectable()
@@ -83,52 +83,44 @@ export class BookingEstimateService {
     }
   }
 
-  private validatePackageDetails(packageDetails: any): void {
-    if (packageDetails.productType === 'AGRICULTURAL') {
+  private validatePackageDetails(packageDetails: PackageDetailsDto): void {
+    // Fields are validated by class-validator if present; here we ensure their presence based on product type.
+    if (packageDetails.productType === ProductType.PERSONAL) {
+      if (!packageDetails.personal) {
+        throw new BadRequestException('Personal product details are required');
+      }
+      return;
+    }
+
+    if (packageDetails.productType === ProductType.AGRICULTURAL) {
+      // Validate AGRICULTURAL product type (commercial)
       if (!packageDetails.agricultural) {
         throw new BadRequestException('Agricultural product details are required');
       }
-      if (!packageDetails.agricultural.productName) {
-        throw new BadRequestException('Product name is required for agricultural products');
-      }
-      if (!packageDetails.agricultural.approximateWeight || packageDetails.agricultural.approximateWeight <= 0) {
-        throw new BadRequestException('Valid approximate weight is required for agricultural products');
-      }
-    } else if (packageDetails.productType === 'NON_AGRICULTURAL') {
+      return;
+    }
+
+    if (packageDetails.productType === ProductType.NON_AGRICULTURAL) {
+      // Validate NON_AGRICULTURAL product type (commercial)
       if (!packageDetails.nonAgricultural) {
         throw new BadRequestException('Non-agricultural product details are required');
-      }
-
-      const hasWeight = packageDetails.nonAgricultural.averageWeight || packageDetails.nonAgricultural.bundleWeight;
-      const hasDimensions = packageDetails.nonAgricultural.packageDimensions;
-      const hasDescription = packageDetails.nonAgricultural.packageDescription;
-
-      if (!hasWeight && !hasDimensions && !hasDescription) {
-        throw new BadRequestException('At least one of weight, dimensions, or description is required for non-agricultural products');
       }
     }
   }
 
-  private calculateTotalWeight(packageDetails: PackageDetailsDto): number {
-    let totalWeightInKg = 0;
-
-    if (packageDetails.productType === ProductType.AGRICULTURAL) {
-      const agricultural = packageDetails.agricultural;
-      if (agricultural) {
-        totalWeightInKg = agricultural.weightUnit === WeightUnit.KG
-          ? agricultural.approximateWeight
-          : agricultural.approximateWeight * 100;
-      }
-    } else {
-      const nonAgricultural = packageDetails.nonAgricultural;
-      if (nonAgricultural) {
-        const weight = nonAgricultural.averageWeight || nonAgricultural.bundleWeight || 0;
-        const numberOfProducts = nonAgricultural.numberOfProducts || 1;
-        totalWeightInKg = weight * numberOfProducts;
-      }
+  private convertToKg(weight: number, unit: WeightUnit): number {
+    switch (unit) {
+      case WeightUnit.KG:
+        return weight;
+      case WeightUnit.QUINTAL:
+        return weight * 100;
+      default:
+        throw new BadRequestException('Invalid weight unit');
     }
+  }
 
-    return totalWeightInKg;
+  private calculateTotalWeight(packageDetails: PackageDetailsDto): number {
+    return this.convertToKg(packageDetails.approximateWeight, packageDetails.weightUnit);    
   }
 
   private validateVehicleSuitability(totalWeightInKg: number): void {

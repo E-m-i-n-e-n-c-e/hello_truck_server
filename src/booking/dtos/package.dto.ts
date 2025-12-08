@@ -1,47 +1,82 @@
-import { $Enums, PackageType, ProductType, WeightUnit } from "@prisma/client";
+import { $Enums, DimensionUnit, Package, ProductType, WeightUnit } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
-import { IsOptional, IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from "class-validator";
+import { IsOptional, IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested, Min } from "class-validator";
 
+// Personal Product DTO (for PERSONAL product type)
+export class PersonalProductDto {
+  @IsString()
+  @IsNotEmpty()
+  productName: string;
+}
+
+// Agricultural Product DTO (for AGRICULTURAL product type - commercial)
 export class AgriculturalProductDto {
   @IsString()
   @IsNotEmpty()
   productName: string;
 
-  @IsNumber()
-  approximateWeight: number;
-
-  @IsEnum(WeightUnit)
-  weightUnit: WeightUnit;
+  @IsString()
+  @IsNotEmpty()
+  gstBillUrl: string;
 }
 
-export class NonAgriculturalProductDto {
+class PackageDimensionsDto {
   @IsNumber()
-  averageWeight: number;
+  @Min(0)
+  length: number;
 
   @IsNumber()
+  @Min(0)
+  width: number;
+
+  @IsNumber()
+  @Min(0)
+  height: number;
+
+  @IsEnum(DimensionUnit)
+  unit: DimensionUnit;
+}
+
+// Non-Agricultural Product DTO (for NON_AGRICULTURAL product type - commercial)
+export class NonAgriculturalProductDto {
+  @IsNumber()
+  @Min(0)
   bundleWeight: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   numberOfProducts?: number;
 
   @IsOptional()
-  packageDimensions?: any;
+  @ValidateNested()
+  @Type(() => PackageDimensionsDto)
+  packageDimensions?: PackageDimensionsDto;
 
   @IsOptional()
   @IsString()
   packageDescription?: string;
 
-  @IsOptional()
-  packageImageUrl?: string;
+  @IsString()
+  @IsNotEmpty()
+  gstBillUrl: string;
 }
 
 export class PackageDetailsDto {
-  @IsEnum(PackageType)
-  packageType: PackageType;
-
   @IsEnum(ProductType)
   productType: ProductType;
+
+  @IsNumber()
+  @Min(0)
+  approximateWeight: number;
+
+  @IsEnum(WeightUnit)
+  weightUnit: WeightUnit;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PersonalProductDto)
+  personal?: PersonalProductDto;
 
   @IsOptional()
   @ValidateNested()
@@ -55,7 +90,7 @@ export class PackageDetailsDto {
 
   @IsOptional()
   @IsString()
-  gstBillUrl?: string;
+  packageImageUrl?: string;
 
   @IsOptional()
   @IsString({ each: true })
@@ -64,12 +99,22 @@ export class PackageDetailsDto {
 
 export class UpdatePackageDetailsDto {
   @IsOptional()
-  @IsEnum(PackageType)
-  packageType?: PackageType;
-
-  @IsOptional()
   @IsEnum(ProductType)
   productType?: ProductType;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  approximateWeight?: number;
+
+  @IsOptional()
+  @IsEnum(WeightUnit)
+  weightUnit?: WeightUnit;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PersonalProductDto)
+  personal?: PersonalProductDto;
 
   @IsOptional()
   @ValidateNested()
@@ -83,7 +128,7 @@ export class UpdatePackageDetailsDto {
 
   @IsOptional()
   @IsString()
-  gstBillUrl?: string;
+  packageImageUrl?: string;
 
   @IsOptional()
   @IsString({ each: true })
@@ -92,27 +137,21 @@ export class UpdatePackageDetailsDto {
 
 export class PackageDetailsResponseDto {
   @Expose()
-  productName?: string;
+  id: string;
   @Expose()
-  approximateWeight?: number;
+  productType: $Enums.ProductType;
+  @Expose()
+  approximateWeight: number;
   @Expose()
   weightUnit: $Enums.WeightUnit;
+
   @Expose()
-  averageWeight?: number;
+  productName?: string;
+
   @Expose()
   bundleWeight?: number;
   @Expose()
   numberOfProducts?: number;
-  @Expose()
-  packageType: $Enums.PackageType;
-  @Expose()
-  productType: $Enums.ProductType;
-  @Expose()
-  gstBillUrl?: string;
-  @Expose()
-  transportDocUrls?: string[];
-  @Expose()
-  id: string;
   @Expose()
   length?: number;
   @Expose()
@@ -123,8 +162,14 @@ export class PackageDetailsResponseDto {
   dimensionUnit?: $Enums.DimensionUnit;
   @Expose()
   description?: string;
+
   @Expose()
   packageImageUrl?: string;
+  @Expose()
+  transportDocUrls: string[];
+  @Expose()
+  gstBillUrl?: string;
+
   @Expose()
   createdAt: Date;
   @Expose()

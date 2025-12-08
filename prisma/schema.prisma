@@ -244,17 +244,15 @@ model DriverStatusLog {
 model Package {
   id                    String             @id @default(uuid())
 
-  // Package Type
-  packageType          PackageType         @default(PERSONAL)
+  // Product Type (PERSONAL, AGRICULTURAL, NON_AGRICULTURAL)
   productType          ProductType
-
-  // Agricultural Product Fields
-  productName          String?
-  approximateWeight    Decimal?            @db.Decimal(10,2)
+  approximateWeight    Decimal             @db.Decimal(10,2)
   weightUnit           WeightUnit          @default(KG)
 
+  // Personal/Agricultural Product Fields
+  productName          String?
+
   // Non-Agricultural Product Fields
-  averageWeight        Decimal?            @db.Decimal(10,2)
   bundleWeight         Decimal?            @db.Decimal(10,2)
   numberOfProducts     Int?
   length               Decimal?            @db.Decimal(10,2)
@@ -264,7 +262,7 @@ model Package {
   description          String?
   packageImageUrl      String?
 
-  // Commercial Use Documents
+  // Commercial Use Documents (for AGRICULTURAL and NON_AGRICULTURAL)
   gstBillUrl           String?
   transportDocUrls     String[]
 
@@ -493,12 +491,8 @@ enum FuelType {
   CNG
 }
 
-enum PackageType {
-  PERSONAL
-  COMMERCIAL
-}
-
 enum ProductType {
+  PERSONAL
   AGRICULTURAL
   NON_AGRICULTURAL
 }
