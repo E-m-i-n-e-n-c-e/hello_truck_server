@@ -2,14 +2,31 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateVehicleDto, UpdateVehicleDto} from '../dtos/vehicle.dto';
 import { CreateVehicleOwnerDto, UpdateVehicleOwnerDto } from '../dtos/vehicle-owner.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, VehicleType } from '@prisma/client';
 
 @Injectable()
 export class VehicleService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getAllVehicleModels() {
+    return this.prisma.vehicleModel.findMany({
+      orderBy: [
+        { name: 'asc' }
+      ]
+    });
+  }
+
   async createVehicle(driverId: string, createVehicleDto: CreateVehicleDto, tx: Prisma.TransactionClient = this.prisma) {
     const { owner, ...vehicleData } = createVehicleDto;
+
+    // Validate vehicle model exists
+    const vehicleModel = await tx.vehicleModel.findUnique({
+      where: { name: vehicleData.vehicleModelName },
+    });
+
+    if (!vehicleModel) {
+      throw new BadRequestException(`Invalid vehicle model: ${vehicleData.vehicleModelName}`);
+    }
 
     // Check if vehicle already exists for this driver
     const existingVehicle = await tx.vehicle.findUnique({
@@ -37,6 +54,7 @@ export class VehicleService {
         },
         include: {
           owner: true,
+          vehicleModel: true,
         },
       });
 
@@ -54,6 +72,16 @@ export class VehicleService {
   }
 
   async updateVehicle(driverId: string, updateVehicleDto: UpdateVehicleDto) {
+    if (updateVehicleDto.vehicleModelName) {
+      const vehicleModel = await this.prisma.vehicleModel.findUnique({
+        where: { name: updateVehicleDto.vehicleModelName },
+      });
+
+      if (!vehicleModel) {
+        throw new BadRequestException(`Invalid vehicle model: ${updateVehicleDto.vehicleModelName}`);
+      }
+    }
+
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { driverId },
     });
@@ -78,6 +106,7 @@ export class VehicleService {
       data: updateVehicleDto,
       include: {
         owner: true,
+        vehicleModel: true,
       },
     });
   }
@@ -87,6 +116,7 @@ export class VehicleService {
       where: { driverId },
       include: {
         owner: true,
+        vehicleModel: true,
       },
     });
 

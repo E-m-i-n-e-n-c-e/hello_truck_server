@@ -4,6 +4,7 @@ import { IsOptional, IsString, IsUrl, IsEnum, IsNumber, IsDecimal, ValidateNeste
 import { Transform } from "class-transformer";
 import { Decimal } from "@prisma/client/runtime/library";
 import { CreateVehicleOwnerDto, VehicleOwnerResponseDto } from "./vehicle-owner.dto";
+import { VehicleModelResponseDto } from "./vehicle-model.dto";
 
 export class CreateVehicleDto implements Partial<Vehicle> {
   @IsString()
@@ -11,6 +12,9 @@ export class CreateVehicleDto implements Partial<Vehicle> {
 
   @IsEnum(VehicleType)
   vehicleType: VehicleType;
+
+  @IsString()
+  vehicleModelName: string;
 
   @IsNumber()
   @IsPositive()
@@ -42,6 +46,10 @@ export class UpdateVehicleDto implements Partial<CreateVehicleDto> {
   @IsOptional()
   vehicleType?: VehicleType;
 
+  @IsString()
+  @IsOptional()
+  vehicleModelName?: string;
+
   @IsNumber()
   @IsPositive()
   @IsOptional()
@@ -70,6 +78,11 @@ export class VehicleResponseDto {
   vehicleNumber: string;
   @Expose()
   vehicleType: VehicleType;
+  @Expose()
+  vehicleModelName: string;
+  @Expose()
+  @Type(() => VehicleModelResponseDto)
+  vehicleModel: VehicleModelResponseDto;
   @Expose()
   vehicleBodyLength: number;
   @Expose()

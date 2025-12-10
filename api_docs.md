@@ -94,6 +94,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 *   **`CreateVehicleDto` / `UpdateVehicleDto`**:
     *   `vehicleNumber`: `string`
     *   `vehicleType`: `enum`
+    *   `vehicleModelName`: `string` (e.g., "Tata Ace")
     *   `vehicleBodyLength`: `number`
     *   `vehicleImageUrl`: `string` (URL)
     *   ... and other vehicle-specific fields.
@@ -101,6 +102,12 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `licenseUrl?`: `string` (URL)
     *   `rcBookUrl?`: `string` (URL)
     *   ... and other document URLs.
+*   **`VehicleModelResponseDto`**:
+    *   `name`: `string`
+    *   `perKm`: `number`
+    *   `baseKm`: `number`
+    *   `baseFare`: `number`
+    *   `maxWeightTons`: `number`
 
 ### Razorpay DTOs
 *   **`CreateOrderDto`**:
@@ -125,6 +132,35 @@ Common Data Transfer Objects (DTOs) used across the API.
         *   `name`: `string`
         *   `ifsc`: `string`
         *   `account_number`: `string`
+
+### Admin DTOs
+*   **`DriverResponseDto`**: Complete driver profile with all relations.
+    *   `id`: `string`
+    *   `phoneNumber`: `string`
+    *   `firstName`: `string | null`
+    *   `lastName`: `string | null`
+    *   `email`: `string | null`
+    *   `alternatePhone`: `string | null`
+    *   `referalCode`: `string | null`
+    *   `photo`: `string | null`
+    *   `contactId`: `string | null`
+    *   `fundAccountId`: `string | null`
+    *   `score`: `number`
+    *   `latitude`: `Decimal | null`
+    *   `longitude`: `Decimal | null`
+    *   `isActive`: `boolean`
+    *   `verificationStatus`: `VerificationStatus` (PENDING, VERIFIED, REJECTED)
+    *   `driverStatus`: `DriverStatus` (AVAILABLE, UNAVAILABLE, ON_RIDE, RIDE_OFFERED)
+    *   `walletBalance`: `Decimal`
+    *   `createdAt`: `Date`
+    *   `lastSeenAt`: `Date | null`
+    *   `updatedAt`: `Date`
+    *   `documents`: `DriverDocumentsResponseDto | null`
+    *   `vehicle`: `VehicleResponseDto | null`
+    *   `address`: `DriverAddressResponseDto | null`
+*   **`AdminDriverListResponseDto`**:
+    *   `data`: `DriverResponseDto[]`
+    *   `meta`: `{ total: number, page: number, limit: number, totalPages: number }`
 
 ---
 
@@ -213,6 +249,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/driver/vehicle` 🔒 | Adds a vehicle to the driver's profile. | `CreateVehicleDto` | `VehicleResponseDto` |
+| `GET` | `/driver/vehicle/models` 🔒 | Retrieves all available vehicle models. | - | `VehicleModelResponseDto[]` |
 | `GET` | `/driver/vehicle` 🔒 | Retrieves the driver's vehicle details. | - | `VehicleResponseDto` |
 | `PUT` | `/driver/vehicle` 🔒 | Updates the driver's vehicle details. | `UpdateVehicleDto` | `VehicleResponseDto` |
 | `DELETE`| `/driver/vehicle` 🔒 | Deletes the driver's vehicle. | - | `SuccessResponseDto` |
@@ -226,35 +263,6 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/razorpay/create-fund-account` 🔒 | Creates a fund account for a contact. | `CreateFundAccountDto` | Razorpay Fund Account Object |
 | `POST` | `/razorpay/create-order` 🔒 | Creates a Razorpay order. | `CreateOrderDto` | Razorpay Order Object |
 | `POST` | `/razorpay/create-payment-link` 🔒 | Creates a Razorpay payment link. | `CreatePaymentLinkDto` | Razorpay Payment Link Object |
-
-### Admin DTOs
-*   **`DriverResponseDto`**: Complete driver profile with all relations.
-    *   `id`: `string`
-    *   `phoneNumber`: `string`
-    *   `firstName`: `string | null`
-    *   `lastName`: `string | null`
-    *   `email`: `string | null`
-    *   `alternatePhone`: `string | null`
-    *   `referalCode`: `string | null`
-    *   `photo`: `string | null`
-    *   `contactId`: `string | null`
-    *   `fundAccountId`: `string | null`
-    *   `score`: `number`
-    *   `latitude`: `Decimal | null`
-    *   `longitude`: `Decimal | null`
-    *   `isActive`: `boolean`
-    *   `verificationStatus`: `VerificationStatus` (PENDING, VERIFIED, REJECTED)
-    *   `driverStatus`: `DriverStatus` (AVAILABLE, UNAVAILABLE, ON_RIDE, RIDE_OFFERED)
-    *   `walletBalance`: `Decimal`
-    *   `createdAt`: `Date`
-    *   `lastSeenAt`: `Date | null`
-    *   `updatedAt`: `Date`
-    *   `documents`: `DriverDocumentsResponseDto | null`
-    *   `vehicle`: `VehicleResponseDto | null`
-    *   `address`: `DriverAddressResponseDto | null`
-*   **`AdminDriverListResponseDto`**:
-    *   `data`: `DriverResponseDto[]`
-    *   `meta`: `{ total: number, page: number, limit: number, totalPages: number }`
 
 ### Admin (`Admin`)
 | Method | Path | Description | Request Body | Success Response |

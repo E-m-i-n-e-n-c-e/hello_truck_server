@@ -184,6 +184,11 @@ model Vehicle {
   driver            Driver          @relation(fields: [driverId], references: [id], onDelete: Cascade)
   vehicleNumber     String          @unique
   vehicleType       VehicleType
+
+  // Add specific model reference
+  vehicleModelName  String
+  vehicleModel      VehicleModel    @relation(fields: [vehicleModelName], references: [name])
+
   vehicleBodyLength Decimal         @db.Decimal(3,1)
   vehicleBodyType   VehicleBodyType
   fuelType          FuelType
@@ -193,6 +198,17 @@ model Vehicle {
   updatedAt         DateTime        @updatedAt
 
   @@index([vehicleNumber])
+  @@index([vehicleModelName])
+  @@index([vehicleType])
+}
+
+model VehicleModel {
+  name           String        @id
+  perKm          Decimal       @db.Decimal(10, 2)
+  baseKm         Int
+  baseFare       Decimal       @db.Decimal(10, 2)
+  maxWeightTons  Decimal       @db.Decimal(10, 2)
+  vehicles       Vehicle[]
 }
 
 model VehicleOwner {

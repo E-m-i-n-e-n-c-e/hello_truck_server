@@ -16,7 +16,7 @@ export class DriverAddressController {
 
   @Get()
   @Serialize(AddressResponseDto)
-  async getAddress(@User('userId') userId: string): Promise<AddressResponseDto> {
+  async getAddress(@User('userId') userId: string) {
     return this.addressService.getAddress(userId);
   }
 
@@ -25,7 +25,7 @@ export class DriverAddressController {
   async createAddress(
     @User('userId') userId: string,
     @Body() createAddressDto: CreateDriverAddressDto,
-  ): Promise<AddressResponseDto> {
+  ) {
     return this.addressService.createAddress(userId, createAddressDto);
   }
 
@@ -34,13 +34,13 @@ export class DriverAddressController {
   async updateAddress(
     @User('userId') userId: string,
     @Body() updateAddressDto: UpdateDriverAddressDto,
-  ): Promise<AddressResponseDto> {
+  ) {
     return this.addressService.updateAddress(userId, updateAddressDto);
   }
 
   @Delete()
   @Serialize(SuccessResponseDto)
-  async deleteAddress(@User('userId') userId: string): Promise<SuccessResponseDto> {
+  async deleteAddress(@User('userId') userId: string) {
     await this.addressService.deleteAddress(userId);
     return { success: true, message: 'Address deleted successfully' };
   }
