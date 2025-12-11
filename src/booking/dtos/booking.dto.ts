@@ -1,10 +1,11 @@
-import { IsOptional, ValidateNested } from 'class-validator';
+import { IsOptional, ValidateNested, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsEnum } from 'class-validator';
 import { $Enums, Driver, VehicleType } from '@prisma/client';
 import { CreateBookingAddressDto, BookingAddressResponseDto } from './booking-address.dto';
 import { PackageDetailsDto, PackageDetailsResponseDto } from './package.dto';
 import { Expose } from 'class-transformer';
+import { InvoiceResponseDto } from './invoice.dto';
 
 export class CreateBookingRequestDto {
   @ValidateNested()
@@ -18,9 +19,6 @@ export class CreateBookingRequestDto {
   @ValidateNested()
   @Type(() => PackageDetailsDto)
   package: PackageDetailsDto;
-
-  @IsEnum(VehicleType)
-  selectedVehicleType: VehicleType;
 }
 
 class DriverResponseDto implements Partial<Driver> {
@@ -53,21 +51,8 @@ export class BookingResponseDto {
   @Type(() => PackageDetailsResponseDto)
   package: PackageDetailsResponseDto;
   @Expose()
-  estimatedCost: number;
-  @Expose()
-  finalCost: number | null;
-  @Expose()
-  distanceKm: number;
-  @Expose()
-  baseFare: number;
-  @Expose()
-  distanceCharge: number;
-  @Expose()
-  weightMultiplier: number;
-  @Expose()
-  vehicleMultiplier: number;
-  @Expose()
-  suggestedVehicleType: $Enums.VehicleType;
+  @Type(() => InvoiceResponseDto)
+  invoices: InvoiceResponseDto[];
   @Expose()
   status: $Enums.BookingStatus;
   @Expose()
@@ -85,12 +70,6 @@ export class BookingResponseDto {
   dropVerifiedAt: Date | null;
   @Expose()
   completedAt: Date | null;
-  @Expose()
-  rzpOrderId: string | null;
-  @Expose()
-  rzpPaymentId: string | null;
-  @Expose()
-  rzpPaymentUrl: string | null;
   @Expose()
   createdAt: Date;
   @Expose()

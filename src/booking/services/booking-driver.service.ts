@@ -4,6 +4,7 @@ import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booki
 import { AssignmentService } from '../assignment/assignment.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { FcmEventType } from 'src/common/types/fcm.types';
+import { BookingInvoiceService } from './booking-invoice.service';
 
 @Injectable()
 export class BookingDriverService {
@@ -12,6 +13,7 @@ export class BookingDriverService {
     private readonly prisma: PrismaService,
     private readonly bookingAssignmentService: AssignmentService,
     private readonly firebase: FirebaseService,
+    private readonly invoiceService: BookingInvoiceService,
   ) { }
 
   async acceptBooking(driverAssignmentId: string): Promise<void> {
@@ -19,8 +21,23 @@ export class BookingDriverService {
     const assignment = await this.prisma.bookingAssignment.findUnique({
       where: { id: driverAssignmentId, status: AssignmentStatus.OFFERED },
       include: {
-        booking: true,
-        driver: true
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+            customer: true,
+          }
+        },
+        driver: {
+          include: {
+            vehicle: {
+              include: {
+                vehicleModel: true,
+              },
+            },
+          }
+        }
       }
     });
 
@@ -30,6 +47,14 @@ export class BookingDriverService {
 
     if (assignment.booking.status !== BookingStatus.DRIVER_ASSIGNED) {
       throw new BadRequestException(`Cannot accept booking in ${assignment.booking.status} status`);
+    }
+
+    if (!assignment.driver.vehicle) {
+      throw new BadRequestException('Driver does not have a vehicle');
+    }
+
+    if (!assignment.booking.customerId) {
+      throw new BadRequestException('Booking does not have a customer');
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -54,8 +79,19 @@ export class BookingDriverService {
         data: { driverStatus: DriverStatus.ON_RIDE }
       });
 
+      await this.invoiceService.createFinalInvoice(
+        assignment.booking.id,
+        assignment.booking.customerId!,
+        assignment.driver.vehicle!.vehicleModel,
+        assignment.booking.pickupAddress,
+        assignment.booking.dropAddress,
+        assignment.booking.package,
+        tx
+      );
+
       await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
     });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Booking Confirmed',
@@ -110,6 +146,7 @@ export class BookingDriverService {
 
       await this.bookingAssignmentService.onDriverReject(assignment.booking.id, assignment.driver.id);
     });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       data: {
         event: FcmEventType.BookingStatusChange,
@@ -150,6 +187,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_ARRIVED }
     });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Pickup Arrived',
@@ -173,6 +211,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_ARRIVED }
     });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Drop Arrived',
@@ -199,6 +238,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_VERIFIED }
     });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Pickup Verified',
@@ -225,6 +265,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_VERIFIED }
     });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Parcel Drop Verified',
@@ -245,6 +286,7 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.PICKUP_VERIFIED },
         data: { status: BookingStatus.IN_TRANSIT }
       });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Ride Started',
@@ -272,6 +314,7 @@ export class BookingDriverService {
       });
       return assignment;
     });
+    if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
       notification: {
         title: 'Ride Completed',

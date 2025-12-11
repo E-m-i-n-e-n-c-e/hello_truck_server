@@ -10,11 +10,8 @@ import { CreateBookingRequestDto, BookingResponseDto } from '../dtos/booking.dto
 import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
-import { BookingEstimateService } from '../services/booking-estimate.service';
 import { Response, Request } from 'express';
-import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import { UpdateBookingAddressDto } from '../dtos/booking-address.dto';
-import { UpdatePackageDetailsDto } from '../dtos/package.dto';
+import { BookingInvoiceService } from '../services/booking-invoice.service';
 
 @Controller('bookings/customer')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -22,7 +19,7 @@ import { UpdatePackageDetailsDto } from '../dtos/package.dto';
 @Throttle({ default: { ttl: seconds(60), limit: 40 } })
 export class BookingCustomerController {
   constructor(
-    private readonly bookingEstimateService: BookingEstimateService,
+    private readonly bookingInvoiceService: BookingInvoiceService,
     private readonly bookingCustomerService: BookingCustomerService,
   ) {}
 
@@ -32,7 +29,7 @@ export class BookingCustomerController {
     @User('userId') userId: string,
     @Body() estimateRequest: BookingEstimateRequestDto,
   ): Promise<BookingEstimateResponseDto> {
-    return this.bookingEstimateService.calculateEstimate(estimateRequest);
+    return this.bookingInvoiceService.calculateEstimate(estimateRequest);
   }
 
   @Post()

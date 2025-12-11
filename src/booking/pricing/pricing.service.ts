@@ -1,153 +1,115 @@
-import { Injectable } from '@nestjs/common';
-import { VehicleType, WeightUnit } from '@prisma/client';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { VehicleModel } from '@prisma/client';
 
 @Injectable()
 export class PricingService {
-  // Base pricing configuration
-  private readonly BASE_FARE = 100.00;
-  private readonly PER_KM_RATE = 50.00;
-
-  // Weight multipliers based on actual weight ranges - more granular
-  private getWeightMultiplier(totalWeightInKg: number): number {
-    if (totalWeightInKg <= 10) return 1.0;     // Very light packages
-    if (totalWeightInKg <= 25) return 1.05;    // Light packages
-    if (totalWeightInKg <= 50) return 1.1;     // Medium-light packages
-    if (totalWeightInKg <= 100) return 1.15;   // Medium packages
-    if (totalWeightInKg <= 200) return 1.25;   // Medium-heavy packages
-    if (totalWeightInKg <= 500) return 1.4;    // Heavy packages
-    if (totalWeightInKg <= 1000) return 1.6;   // Very heavy packages
-    return 1.8;                                // Extremely heavy packages
-  }
-
-  // Vehicle type multipliers - more realistic pricing
-  private readonly VEHICLE_MULTIPLIERS = {
-    [VehicleType.TWO_WHEELER]: 0.8,    // Most economical
-    [VehicleType.THREE_WHEELER]: 1.0,  // Standard pricing
-    [VehicleType.FOUR_WHEELER]: 1.3,   // Premium service
-  };
-
-  // Weight limits for each vehicle type (in KG) - more realistic
-  private readonly WEIGHT_LIMITS = {
-    [VehicleType.TWO_WHEELER]: 25,     // Reduced for safety
-    [VehicleType.THREE_WHEELER]: 300,  // More realistic limit
-    [VehicleType.FOUR_WHEELER]: 1500,  // Realistic truck capacity
-  };
-
-
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Suggest vehicle type based on package details
+   * Calculate price for a specific vehicle model
+   * Formula:
+   * - effectiveBasePrice = baseFare * min(1, weightInTons)
+   * - price = max(distance - baseKm, 0) * perKm + effectiveBasePrice
    */
-  suggestVehicleType(
-    productType: any,
-    weight?: number,
-    weightUnit?: WeightUnit,
-    numberOfProducts?: number
-  ): VehicleType {
-    let totalWeightInKg = 0;
-
-    // Calculate total weight
-    if (weight && weightUnit) {
-      totalWeightInKg = weightUnit === WeightUnit.KG ? weight : weight * 100;
-    }
-
-    // For non-agricultural products, consider number of products
-    if (productType === 'NON_AGRICULTURAL' && numberOfProducts) {
-      totalWeightInKg = totalWeightInKg * numberOfProducts;
-    }
-
-    // Suggest vehicle based on weight with safety margins
-    if (totalWeightInKg <= 10) {
-      return VehicleType.TWO_WHEELER;
-    } else if (totalWeightInKg <= 50) {
-      return VehicleType.THREE_WHEELER;
-    } else {
-      return VehicleType.FOUR_WHEELER;
-    }
-  }
-
-  /**
-   * Get vehicle multiplier
-   */
-  getVehicleMultiplier(vehicleType: VehicleType): number {
-    return this.VEHICLE_MULTIPLIERS[vehicleType] || 1.0;
-  }
-
-  /**
-   * Get weight limit for vehicle type
-   */
-  getWeightLimit(vehicleType: VehicleType): number {
-    return this.WEIGHT_LIMITS[vehicleType] || 0;
-  }
-
-  /**
-   * Calculate pricing breakdown
-   */
-  calculatePricing(
+  calculatePrice(
+    vehicleModel: VehicleModel,
     distanceKm: number,
-    suggestedVehicleType: VehicleType,
-    totalWeightInKg: number,
-  ) {
-    const baseFare = this.BASE_FARE;
-    const distanceCharge = distanceKm * this.PER_KM_RATE;
-    const weightMultiplier = this.getWeightMultiplier(totalWeightInKg);
-    const vehicleMultiplier = this.getVehicleMultiplier(suggestedVehicleType);
-    const totalMultiplier = weightMultiplier * vehicleMultiplier;
+    weightInTons: number,
+  ): {
+    effectiveBasePrice: number;
+    totalPrice: number;
+    breakdown: {
+      baseFare: number;
+      baseKm: number;
+      perKm: number;
+      distanceKm: number;
+      weightInTons: number;
+      effectiveBasePrice: number;
+    };
+  } {
+    const baseFare = Number(vehicleModel.baseFare);
+    const perKm = Number(vehicleModel.perKm);
+    const baseKm = vehicleModel.baseKm;
 
-    const estimatedCost = (baseFare + distanceCharge) * totalMultiplier;
+    // effectiveBasePrice = baseFare * min(1, weightInTons)
+    const effectiveBasePrice = baseFare * Math.min(1, weightInTons);
+
+    // price = max(distance - baseKm, 0) * perKm + effectiveBasePrice
+    const extraDistance = Math.max(distanceKm - baseKm, 0);
+    const totalPrice = extraDistance * perKm + effectiveBasePrice;
 
     return {
-      estimatedCost: Math.round(estimatedCost * 100) / 100,
-      distanceKm: Math.round(distanceKm * 100) / 100,
-      suggestedVehicleType,
+      effectiveBasePrice: Math.round(effectiveBasePrice * 100) / 100,
+      totalPrice: Math.round(totalPrice * 100) / 100,
       breakdown: {
         baseFare,
-        distanceCharge,
-        weightMultiplier,
-        vehicleMultiplier,
-        totalMultiplier,
+        baseKm,
+        perKm,
+        distanceKm,
+        weightInTons,
+        effectiveBasePrice: Math.round(effectiveBasePrice * 100) / 100,
       },
     };
   }
 
   /**
-   * Calculate pricing for all vehicle types
+   * Get all vehicle models that can handle the given weight
    */
-  calculateAllVehiclePricing(
-    distanceKm: number,
-    totalWeightInKg: number,
-  ) {
-    const baseFare = this.BASE_FARE;
-    const distanceCharge = distanceKm * this.PER_KM_RATE;
-    const weightMultiplier = this.getWeightMultiplier(totalWeightInKg);
-
-    const vehicleOptions = Object.values(VehicleType).map(vehicleType => {
-      const vehicleMultiplier = this.getVehicleMultiplier(vehicleType);
-      const totalMultiplier = weightMultiplier * vehicleMultiplier;
-      const weightLimit = this.getWeightLimit(vehicleType);
-
-      // Check if vehicle can handle the weight
-      const isAvailable = totalWeightInKg <= weightLimit;
-
-      const estimatedCost = isAvailable
-        ? (baseFare + distanceCharge) * totalMultiplier
-        : 0;
-
-      return {
-        vehicleType,
-        estimatedCost: Math.round(estimatedCost * 100) / 100,
-        isAvailable,
-        weightLimit,
-        breakdown: {
-          baseFare,
-          distanceCharge,
-          weightMultiplier,
-          vehicleMultiplier,
-          totalMultiplier,
-        },
-      };
+  async getSuitableVehicles(weightInTons: number): Promise<VehicleModel[]> {
+    return this.prisma.vehicleModel.findMany({
+      where: {
+        maxWeightTons: { gte: weightInTons },
+      },
+      orderBy: { maxWeightTons: 'asc' },
     });
+  }
 
-    return vehicleOptions;
+  /**
+   * Calculate estimate with top 3 best vehicle models
+   */
+  async calculateEstimate(
+    distanceKm: number,
+    weightInTons: number,
+  ): Promise<{
+    distanceKm: number;
+    idealVehicleModel: string;
+    topVehicles: Array<{
+      vehicleModelName: string;
+      estimatedCost: number;
+      maxWeightTons: number;
+      breakdown: any;
+    }>;
+  }> {
+    // Get all suitable vehicle models
+    const suitableVehicles = await this.getSuitableVehicles(weightInTons);
+
+    if (suitableVehicles.length === 0) {
+      throw new BadRequestException(
+        `No vehicle can handle ${weightInTons} tons. Maximum capacity is 25 tons.`,
+      );
+    }
+
+    // Calculate price for each and sort by price
+    const vehiclesWithPrices = suitableVehicles
+      .map((vehicle) => {
+        const pricing = this.calculatePrice(vehicle, distanceKm, weightInTons);
+        return {
+          vehicleModelName: vehicle.name,
+          estimatedCost: pricing.totalPrice,
+          maxWeightTons: Number(vehicle.maxWeightTons),
+          breakdown: pricing.breakdown,
+        };
+      })
+      .sort((a, b) => a.estimatedCost - b.estimatedCost);
+
+    // Return top 3
+    const topVehicles = vehiclesWithPrices.slice(0, 3);
+
+    return {
+      distanceKm: Math.round(distanceKm * 100) / 100,
+      idealVehicleModel: topVehicles[0].vehicleModelName,
+      topVehicles,
+    };
   }
 }

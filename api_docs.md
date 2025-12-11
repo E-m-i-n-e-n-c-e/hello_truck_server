@@ -42,29 +42,82 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `formattedAddress`: `string`
     *   `addressDetails?`: `string`
 *   **`PackageDetailsDto`**: Describes the goods being transported.
-    *   `packageType`: `enum`
-    *   `productType`: `enum`
-    *   `agricultural?`: `AgriculturalProductDto`
-    *   `nonAgricultural?`: `NonAgriculturalProductDto`
-    *   `gstBillUrl?`: `string`
-    *   `transportDocUrls?`: `string[]`
+    *   `productType`: `enum` (PERSONAL, AGRICULTURAL, NON_AGRICULTURAL)
+    *   `approximateWeight`: `number` - **Required** for all product types
+    *   `weightUnit`: `enum` (KG, QUINTAL) - Defaults to KG
+    *   `personal?`: `PersonalProductDto` - Required if productType is PERSONAL
+    *   `agricultural?`: `AgriculturalProductDto` - Required if productType is AGRICULTURAL
+    *   `nonAgricultural?`: `NonAgriculturalProductDto` - Required if productType is NON_AGRICULTURAL
+*   **`PersonalProductDto`**: For personal/household goods.
+    *   `productName`: `string` - Name of the product
+*   **`AgriculturalProductDto`**: For agricultural/farm products (commercial).
+    *   `productName`: `string` - Name of the agricultural product
+    *   `gstBillUrl`: `string` - **Required** GST bill URL
+*   **`NonAgriculturalProductDto`**: For non-agricultural commercial products.
+    *   `bundleWeight`: `number` - Weight of a single bundle/unit
+    *   `numberOfProducts?`: `number` - Optional count of products
+    *   `packageDimensions?`: `PackageDimensionsDto` - Optional dimensions
+    *   `packageDescription?`: `string` - Optional description
+    *   `gstBillUrl`: `string` - **Required** GST bill URL
+*   **`PackageDimensionsDto`**: Package dimensions for non-agricultural products.
+    *   `length`: `number`
+    *   `width`: `number`
+    *   `height`: `number`
+    *   `unit`: `enum` (CM, INCH, FEET)
 *   **`BookingEstimateRequestDto`**:
     *   `pickupAddress`: `CreateBookingAddressDto`
     *   `dropAddress`: `CreateBookingAddressDto`
     *   `packageDetails`: `PackageDetailsDto`
-*   **`BookingEstimateResponseDto`**:
+*   **`BookingEstimateResponseDto`**: Returns top 3 suitable vehicles sorted by price.
     *   `distanceKm`: `number`
-    *   `suggestedVehicleType`: `string`
-    *   `vehicleOptions`: `VehicleOptionDto[]`
-*   **`CreateBookingRequestDto`**:
+    *   `idealVehicleModel`: `string` - Name of the cheapest suitable vehicle model
+    *   `topVehicles`: `VehicleEstimateDto[]` - Top 3 vehicles with pricing
+*   **`VehicleEstimateDto`**:
+    *   `vehicleModelName`: `string` - e.g., "Tata Ace"
+    *   `estimatedCost`: `number`
+    *   `maxWeightTons`: `number`
+    *   `breakdown`: `PricingBreakdownDto`
+*   **`PricingBreakdownDto`**:
+    *   `baseFare`: `number`
+    *   `baseKm`: `number`
+    *   `perKm`: `number`
+    *   `distanceKm`: `number`
+    *   `weightInTons`: `number`
+    *   `effectiveBasePrice`: `number` - baseFare * min(1, weightInTons)
+*   **`CreateBookingRequestDto`**: System automatically selects ideal vehicle model.
     *   `pickupAddress`: `CreateBookingAddressDto`
     *   `dropAddress`: `CreateBookingAddressDto`
     *   `package`: `PackageDetailsDto`
-    *   `selectedVehicleType`: `enum`
-*   **`UpdateBookingAddressDto`**:
-    *   *(Same fields as `CreateBookingAddressDto`, but all are optional)*
-*   **`UpdatePackageDetailsDto`**:
-    *   *(Same fields as `PackageDetailsDto`, but all are optional)*
+*   **`InvoiceResponseDto`**: Pricing and payment details for a booking.
+    *   `id`: `string`
+    *   `bookingId`: `string`
+    *   `type`: `enum` (ESTIMATE, FINAL)
+    *   `vehicleModelName`: `string`
+    *   `basePrice`: `number`
+    *   `perKmPrice`: `number`
+    *   `baseKm`: `number`
+    *   `distanceKm`: `number`
+    *   `weightInTons`: `number`
+    *   `effectiveBasePrice`: `number`
+    *   `totalPrice`: `number`
+    *   `walletApplied`: `number`
+    *   `finalAmount`: `number` - Amount customer needs to pay
+    *   `paymentLinkUrl`: `string | null` - Only in FINAL invoice
+    *   `rzpOrderId`: `string | null`
+    *   `rzpPaymentId`: `string | null`
+    *   `createdAt`: `Date`
+    *   `updatedAt`: `Date`
+*   **`BookingResponseDto`**: Complete booking details with invoices.
+    *   `id`: `string`
+    *   `bookingNumber`: `number`
+    *   `status`: `enum` (PENDING, DRIVER_ASSIGNED, CONFIRMED, etc.)
+    *   `pickupAddress`: `BookingAddressResponseDto`
+    *   `dropAddress`: `BookingAddressResponseDto`
+    *   `package`: `PackageDetailsResponseDto`
+    *   `invoices`: `InvoiceResponseDto[]` - ESTIMATE and/or FINAL invoices
+    *   `assignedDriver`: `DriverResponseDto | null`
+    *   `createdAt`: `Date`
+    *   `updatedAt`: `Date`
 
 ### Profile & Address DTOs
 *   **`CreateProfileDto` / `UpdateProfileDto`**: For customer profile creation/updates.
@@ -185,16 +238,14 @@ Common Data Transfer Objects (DTOs) used across the API.
 ### Booking (Customer) (`BookingCustomer`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/bookings/customer/estimate` 🔒 | Computes a price estimate for a trip. | `BookingEstimateRequestDto` | `BookingEstimateResponseDto` |
-| `POST` | `/bookings/customer` 🔒 | Creates a new booking. | `CreateBookingRequestDto` | `BookingResponseDto` |
-| `GET` | `/bookings/customer/active` 🔒 | Lists customer's active bookings. | - | `BookingResponseDto[]` |
-| `GET` | `/bookings/customer/history` 🔒 | Lists customer's past bookings. | - | `BookingResponseDto[]` |
-| `GET` | `/bookings/customer/{id}` 🔒 | Gets a booking by its ID. | - | `BookingResponseDto` |
-| `DELETE`| `/bookings/customer/{id}` 🔒 | Cancels a booking by its ID. | - | `SuccessResponseDto` |
-| `PUT` | `/bookings/customer/pickup/{id}` 🔒 | Updates the pickup address for a booking. | `UpdateBookingAddressDto` | `SuccessResponseDto` |
-| `PUT` | `/bookings/customer/drop/{id}` 🔒 | Updates the drop-off address for a booking. | `UpdateBookingAddressDto` | `SuccessResponseDto` |
-| `PUT` | `/bookings/customer/package/{id}` 🔒| Updates the package details for a booking. | `UpdatePackageDetailsDto` | `SuccessResponseDto` |
+| `POST` | `/bookings/customer/estimate` 🔒 | Computes price estimate with top 3 suitable vehicles. Returns ideal vehicle model and pricing breakdown. | `BookingEstimateRequestDto` | `BookingEstimateResponseDto` |
+| `POST` | `/bookings/customer` 🔒 | Creates a new booking. System automatically selects the ideal (cheapest suitable) vehicle model. Creates ESTIMATE invoice with wallet applied. | `CreateBookingRequestDto` | `BookingResponseDto` |
+| `GET` | `/bookings/customer/active` 🔒 | Lists customer's active bookings with invoices. | - | `BookingResponseDto[]` |
+| `GET` | `/bookings/customer/history` 🔒 | Lists customer's past bookings with invoices. | - | `BookingResponseDto[]` |
+| `GET` | `/bookings/customer/{id}` 🔒 | Gets a booking by its ID with all invoices (ESTIMATE and FINAL if driver accepted). | - | `BookingResponseDto` |
+| `DELETE`| `/bookings/customer/{id}` 🔒 | Cancels a PENDING booking. Cannot cancel after driver is assigned. | - | `SuccessResponseDto` |
 | `GET` | `/bookings/customer/upload-url` 🔒 | Gets a signed URL for file uploads. | Query: `filePath`, `type` | `UploadUrlResponseDto` |
+| `GET` | `/bookings/customer/driver-navigation/{bookingId}` 🔒 | SSE endpoint for real-time driver location updates. | - | Server-Sent Events stream |
 
 ### Booking (Driver) (`BookingDriver`)
 | Method | Path | Description | Request Body | Success Response |

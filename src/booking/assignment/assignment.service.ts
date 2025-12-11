@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, Booking, BookingStatus, AssignmentStatus, DriverStatus, VerificationStatus, Address, BookingAssignment } from '@prisma/client';
+import { Prisma, Booking, BookingStatus, AssignmentStatus, DriverStatus, VerificationStatus, Address, BookingAssignment, Package } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { FcmEventType } from 'src/common/types/fcm.types';
 import { RedisService } from 'src/redis/redis.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
+import { BookingInvoiceService } from '../services/booking-invoice.service';
 
 type AssignJobData = { bookingId: string; attempt: number };
 type TimeoutJobData = { bookingId: string; driverId: string };
-type BookingDetails = Booking & { pickupAddress: Address; assignments: BookingAssignment[] };
+type BookingDetails = Booking & { pickupAddress: Address; assignments: BookingAssignment[]; package: Package };
 
 @Injectable()
 export class AssignmentService {
@@ -27,6 +28,7 @@ export class AssignmentService {
     private readonly prisma: PrismaService,
     private readonly firebase: FirebaseService,
     private readonly redisService: RedisService,
+    private readonly bookingInvoiceService: BookingInvoiceService,
     @InjectQueue('booking-assignment') private readonly assignmentQueue: Queue,
   ) {}
 
@@ -235,7 +237,7 @@ export class AssignmentService {
     this.logger.log(`[retrieveBookingDetails] Retrieving booking details for booking ${bookingId}.`);
     const booking = await tx.booking.findFirst({
       where: { id: bookingId, status: { in: [BookingStatus.PENDING] } },
-      include: { pickupAddress: true, assignments: true },
+      include: { pickupAddress: true, assignments: true, package: true },
     });
     if (!booking) {
       this.logger.warn(`[retrieveBookingDetails] Booking ${bookingId} not found or not pending.`);
@@ -252,6 +254,10 @@ export class AssignmentService {
     const lng = Number(booking.pickupAddress.longitude);
 
     this.logger.log(`[pickBestCandidate] Searching for drivers within ${radiusKm}km of (${lat}, ${lng}) for booking ${booking.id}. Excluding: ${Array.from(excludeDriverIds).join(', ') || '(none)'}`);
+
+    // Calculate required weight capacity from package
+    const weightInTons = this.bookingInvoiceService.calculateTotalWeightInTons(booking.package);
+    this.logger.log(`[pickBestCandidate] Required weight capacity: ${weightInTons} tons for booking ${booking.id}`);
 
     const rawNearby = (await this.redisService.georadius('active_drivers', lng, lat, radiusKm, 'km', 'WITHDIST')) as [string, string][];
 
@@ -270,12 +276,20 @@ export class AssignmentService {
       return null;
     }
 
+    // Fetch drivers with vehicle and vehicleModel
     const drivers = await this.prisma.driver.findMany({
       where: {
         id: { in: filteredDriverIds },
         isActive: true,
         verificationStatus: VerificationStatus.VERIFIED,
         driverStatus: DriverStatus.AVAILABLE,
+      },
+      include: {
+        vehicle: {
+          include: {
+            vehicleModel: true,
+          },
+        },
       },
     });
     this.logger.log(`[pickBestCandidate] Found ${drivers.length} eligible drivers in DB for booking ${booking.id}.`);
@@ -285,7 +299,27 @@ export class AssignmentService {
       return null;
     }
 
-    const ranked = drivers
+    // Filter drivers by weight capacity
+    const suitableDrivers = drivers.filter((driver) => {
+      if (!driver.vehicle || !driver.vehicle.vehicleModel) {
+        this.logger.warn(`[pickBestCandidate] Driver ${driver.id} has no vehicle or vehicle model`);
+        return false;
+      }
+
+      const maxWeightTons = Number(driver.vehicle.vehicleModel.maxWeightTons);
+      const canHandle = maxWeightTons >= weightInTons;
+
+      return canHandle;
+    });
+
+    this.logger.log(`[pickBestCandidate] Found ${suitableDrivers.length} drivers with suitable weight capacity for booking ${booking.id}.`);
+
+    if (suitableDrivers.length === 0) {
+      this.logger.log(`[pickBestCandidate] No drivers with sufficient weight capacity for booking ${booking.id}.`);
+      return null;
+    }
+
+    const ranked = suitableDrivers
       .map((d) => {
         const distanceKm = nearbyMap.get(d.id) ?? radiusKm * 100;
         const combinedScore = 0.7 * distanceKm - 0.3 * (d.score / 10);

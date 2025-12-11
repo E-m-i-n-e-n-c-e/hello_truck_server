@@ -6,6 +6,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { AssignmentService } from './assignment.service';
 import { AssignmentWorker } from './assignment.worker';
 import { RedisService } from 'src/redis/redis.service';
+import { BookingInvoiceService } from '../services/booking-invoice.service';
+import { PricingService } from '../pricing/pricing.service';
 
 @Module({
   imports: [
@@ -26,7 +28,7 @@ import { RedisService } from 'src/redis/redis.service';
     }),
     BullModule.registerQueue({ name: 'booking-assignment' }),
   ],
-  providers: [AssignmentService, AssignmentWorker],
+  providers: [AssignmentService, AssignmentWorker, BookingInvoiceService, PricingService],
   exports: [AssignmentService],
 })
 export class AssignmentModule {}

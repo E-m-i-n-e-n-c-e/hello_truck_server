@@ -449,141 +449,6 @@
         ]
       }
     },
-    "/bookings/customer/pickup/{id}": {
-      "put": {
-        "operationId": "updatePickup",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBookingAddressDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "BookingCustomer"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
-    "/bookings/customer/drop/{id}": {
-      "put": {
-        "operationId": "updateDrop",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBookingAddressDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "BookingCustomer"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
-    "/bookings/customer/package/{id}": {
-      "put": {
-        "operationId": "updatePackage",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePackageDetailsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "BookingCustomer"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
     "/bookings/customer/driver-navigation/{bookingId}": {
       "get": {
         "operationId": "getDriverNavigationUpdates",
@@ -1809,6 +1674,25 @@
         ]
       }
     },
+    "/driver/vehicle/models": {
+      "get": {
+        "operationId": "getAllVehicleModels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverVehicle"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/driver/vehicle": {
       "get": {
         "operationId": "getVehicle",
@@ -1819,7 +1703,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/VehicleResponseDto"
+                  "type": "object"
                 }
               }
             }
@@ -1853,7 +1737,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/VehicleResponseDto"
+                  "type": "object"
                 }
               }
             }
@@ -1887,7 +1771,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/VehicleResponseDto"
+                  "type": "object"
                 }
               }
             }
@@ -2269,60 +2153,99 @@
           "formattedAddress"
         ]
       },
+      "PersonalProductDto": {
+        "type": "object",
+        "properties": {
+          "productName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "productName"
+        ]
+      },
       "AgriculturalProductDto": {
         "type": "object",
         "properties": {
           "productName": {
             "type": "string"
           },
-          "approximateWeight": {
-            "type": "number"
-          },
-          "weightUnit": {
-            "type": "object"
+          "gstBillUrl": {
+            "type": "string"
           }
         },
         "required": [
           "productName",
-          "approximateWeight",
-          "weightUnit"
+          "gstBillUrl"
+        ]
+      },
+      "PackageDimensionsDto": {
+        "type": "object",
+        "properties": {
+          "length": {
+            "type": "number",
+            "minimum": 0
+          },
+          "width": {
+            "type": "number",
+            "minimum": 0
+          },
+          "height": {
+            "type": "number",
+            "minimum": 0
+          },
+          "unit": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "length",
+          "width",
+          "height",
+          "unit"
         ]
       },
       "NonAgriculturalProductDto": {
         "type": "object",
         "properties": {
-          "averageWeight": {
-            "type": "number"
-          },
           "bundleWeight": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0
           },
           "numberOfProducts": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0
           },
           "packageDimensions": {
-            "type": "object"
+            "$ref": "#/components/schemas/PackageDimensionsDto"
           },
           "packageDescription": {
             "type": "string"
           },
-          "packageImageUrl": {
+          "gstBillUrl": {
             "type": "string"
           }
         },
         "required": [
-          "averageWeight",
-          "bundleWeight"
+          "bundleWeight",
+          "gstBillUrl"
         ]
       },
       "PackageDetailsDto": {
         "type": "object",
         "properties": {
-          "packageType": {
-            "type": "object"
-          },
           "productType": {
             "type": "object"
+          },
+          "approximateWeight": {
+            "type": "number",
+            "minimum": 0
+          },
+          "weightUnit": {
+            "type": "object"
+          },
+          "personal": {
+            "$ref": "#/components/schemas/PersonalProductDto"
           },
           "agricultural": {
             "$ref": "#/components/schemas/AgriculturalProductDto"
@@ -2330,7 +2253,7 @@
           "nonAgricultural": {
             "$ref": "#/components/schemas/NonAgriculturalProductDto"
           },
-          "gstBillUrl": {
+          "packageImageUrl": {
             "type": "string"
           },
           "transportDocUrls": {
@@ -2341,8 +2264,9 @@
           }
         },
         "required": [
-          "packageType",
-          "productType"
+          "productType",
+          "approximateWeight",
+          "weightUnit"
         ]
       },
       "BookingEstimateRequestDto": {
@@ -2370,40 +2294,41 @@
           "baseFare": {
             "type": "number"
           },
-          "distanceCharge": {
+          "baseKm": {
             "type": "number"
           },
-          "weightMultiplier": {
+          "perKm": {
             "type": "number"
           },
-          "vehicleMultiplier": {
+          "distanceKm": {
             "type": "number"
           },
-          "totalMultiplier": {
+          "weightInTons": {
+            "type": "number"
+          },
+          "effectiveBasePrice": {
             "type": "number"
           }
         },
         "required": [
           "baseFare",
-          "distanceCharge",
-          "weightMultiplier",
-          "vehicleMultiplier",
-          "totalMultiplier"
+          "baseKm",
+          "perKm",
+          "distanceKm",
+          "weightInTons",
+          "effectiveBasePrice"
         ]
       },
       "VehicleOptionDto": {
         "type": "object",
         "properties": {
-          "vehicleType": {
+          "vehicleModelName": {
             "type": "string"
           },
           "estimatedCost": {
             "type": "number"
           },
-          "isAvailable": {
-            "type": "boolean"
-          },
-          "weightLimit": {
+          "maxWeightTons": {
             "type": "number"
           },
           "breakdown": {
@@ -2411,10 +2336,9 @@
           }
         },
         "required": [
-          "vehicleType",
+          "vehicleModelName",
           "estimatedCost",
-          "isAvailable",
-          "weightLimit",
+          "maxWeightTons",
           "breakdown"
         ]
       },
@@ -2424,10 +2348,10 @@
           "distanceKm": {
             "type": "number"
           },
-          "suggestedVehicleType": {
+          "idealVehicleModel": {
             "type": "string"
           },
-          "vehicleOptions": {
+          "topVehicles": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VehicleOptionDto"
@@ -2436,8 +2360,8 @@
         },
         "required": [
           "distanceKm",
-          "suggestedVehicleType",
-          "vehicleOptions"
+          "idealVehicleModel",
+          "topVehicles"
         ]
       },
       "CreateBookingRequestDto": {
@@ -2451,16 +2375,12 @@
           },
           "package": {
             "$ref": "#/components/schemas/PackageDetailsDto"
-          },
-          "selectedVehicleType": {
-            "type": "object"
           }
         },
         "required": [
           "pickupAddress",
           "dropAddress",
-          "package",
-          "selectedVehicleType"
+          "package"
         ]
       },
       "UploadUrlResponseDto": {
@@ -2481,61 +2401,6 @@
           "publicUrl",
           "token"
         ]
-      },
-      "UpdateBookingAddressDto": {
-        "type": "object",
-        "properties": {
-          "addressName": {
-            "type": "string"
-          },
-          "contactName": {
-            "type": "string"
-          },
-          "contactPhone": {
-            "type": "string"
-          },
-          "noteToDriver": {
-            "type": "string"
-          },
-          "latitude": {
-            "type": "number"
-          },
-          "longitude": {
-            "type": "number"
-          },
-          "formattedAddress": {
-            "type": "string"
-          },
-          "addressDetails": {
-            "type": "string"
-          }
-        }
-      },
-      "UpdatePackageDetailsDto": {
-        "type": "object",
-        "properties": {
-          "packageType": {
-            "type": "object"
-          },
-          "productType": {
-            "type": "object"
-          },
-          "agricultural": {
-            "$ref": "#/components/schemas/AgriculturalProductDto"
-          },
-          "nonAgricultural": {
-            "$ref": "#/components/schemas/NonAgriculturalProductDto"
-          },
-          "gstBillUrl": {
-            "type": "string"
-          },
-          "transportDocUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
       },
       "UpdateDriverVerificationDto": {
         "type": "object",
@@ -2992,6 +2857,9 @@
           "vehicleType": {
             "type": "object"
           },
+          "vehicleModelName": {
+            "type": "string"
+          },
           "vehicleBodyLength": {
             "minimum": 1,
             "allOf": [
@@ -3017,6 +2885,7 @@
         "required": [
           "vehicleNumber",
           "vehicleType",
+          "vehicleModelName",
           "vehicleBodyLength",
           "vehicleBodyType",
           "fuelType",
@@ -3306,6 +3175,38 @@
           }
         }
       },
+      "UpdateVehicleDto": {
+        "type": "object",
+        "properties": {
+          "vehicleNumber": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "object"
+          },
+          "vehicleModelName": {
+            "type": "string"
+          },
+          "vehicleBodyLength": {
+            "minimum": 1,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/i"
+              }
+            ]
+          },
+          "vehicleBodyType": {
+            "type": "object"
+          },
+          "fuelType": {
+            "type": "object"
+          },
+          "vehicleImageUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
       "VehicleOwnerResponseDto": {
         "type": "object",
         "properties": {
@@ -3367,93 +3268,6 @@
           "createdAt",
           "updatedAt"
         ]
-      },
-      "VehicleResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "driverId": {
-            "type": "string"
-          },
-          "vehicleNumber": {
-            "type": "string"
-          },
-          "vehicleType": {
-            "type": "object"
-          },
-          "vehicleBodyLength": {
-            "$ref": "#/components/schemas/i"
-          },
-          "vehicleBodyType": {
-            "type": "object"
-          },
-          "fuelType": {
-            "type": "object"
-          },
-          "vehicleImageUrl": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "owner": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VehicleOwnerResponseDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "driverId",
-          "vehicleNumber",
-          "vehicleType",
-          "vehicleBodyLength",
-          "vehicleBodyType",
-          "fuelType",
-          "vehicleImageUrl",
-          "createdAt",
-          "updatedAt",
-          "owner"
-        ]
-      },
-      "UpdateVehicleDto": {
-        "type": "object",
-        "properties": {
-          "vehicleNumber": {
-            "type": "string"
-          },
-          "vehicleType": {
-            "type": "object"
-          },
-          "vehicleBodyLength": {
-            "minimum": 1,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/i"
-              }
-            ]
-          },
-          "vehicleBodyType": {
-            "type": "object"
-          },
-          "fuelType": {
-            "type": "object"
-          },
-          "vehicleImageUrl": {
-            "type": "string",
-            "format": "uri"
-          }
-        }
       },
       "UpdateVehicleOwnerDto": {
         "type": "object",

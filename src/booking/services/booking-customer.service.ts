@@ -1,11 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { BookingEstimateService } from './booking-estimate.service';
-import { CreateBookingRequestDto, BookingResponseDto } from '../dtos/booking.dto';
-import { UpdateBookingAddressDto } from '../dtos/booking-address.dto';
-import { UpdatePackageDetailsDto } from '../dtos/package.dto';
-import { BookingEstimateRequestDto } from '../dtos/booking-estimate.dto';
-import { Address, Booking, BookingStatus, Package, VehicleType, WeightUnit } from '@prisma/client';
+import { BookingInvoiceService } from './booking-invoice.service';
+import { CreateBookingRequestDto } from '../dtos/booking.dto';
+import { Booking, BookingStatus } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { AssignmentService } from '../assignment/assignment.service';
@@ -16,7 +13,6 @@ import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils
 
 @Injectable()
 export class BookingCustomerService {
-  private readonly locationEditLimitMeters = 1000;
   private readonly STATUS_ORDER: BookingStatus[] = [
     BookingStatus.PENDING,
     BookingStatus.DRIVER_ASSIGNED,
@@ -33,7 +29,7 @@ export class BookingCustomerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly bookingEstimateService: BookingEstimateService,
+    private readonly invoiceService: BookingInvoiceService,
     private readonly firebaseService: FirebaseService,
     private readonly bookingAssignmentService: AssignmentService,
     private readonly redisService: RedisService,
@@ -46,62 +42,53 @@ export class BookingCustomerService {
     userId: string,
     createRequest: CreateBookingRequestDto,
   ): Promise<Booking> {
-    // First get estimate to validate and get pricing details
-    const estimateRequest: BookingEstimateRequestDto = {
-      pickupAddress: createRequest.pickupAddress,
-      dropAddress: createRequest.dropAddress,
-      packageDetails: createRequest.package,
-    };
-
-    const estimate = this.bookingEstimateService.calculateEstimate(estimateRequest);
-
-    // Find the selected vehicle option
-    const selectedVehicleOption = estimate.vehicleOptions.find(
-      option => option.vehicleType === createRequest.selectedVehicleType
-    );
-
-    if (!selectedVehicleOption || !selectedVehicleOption.isAvailable) {
-      throw new BadRequestException('Selected vehicle type is not available for this booking');
-    }
 
     // Generate OTPs
-    // const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
-    // const dropOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit OTP
-    const pickupOtp = '1234';
+    const pickupOtp = '1234'; // TODO: Generate random OTP
     const dropOtp = '1234';
-    console.log("Otp generated", pickupOtp, dropOtp);
 
-    // Create booking with nested address and package creation
-    const booking = await this.prisma.booking.create({
-      data: {
-        customer: {
-          connect: { id: userId },
+    // Use transaction to ensure atomicity
+    const booking = await this.prisma.$transaction(async (tx) => {
+      // 1. Create booking
+      const createdBooking = await tx.booking.create({
+        data: {
+          customer: {
+            connect: { id: userId },
+          },
+          package: {
+            create: toPackageCreateData(createRequest.package),
+          },
+          pickupAddress: {
+            create: toAddressCreateData(createRequest.pickupAddress),
+          },
+          dropAddress: {
+            create: toAddressCreateData(createRequest.dropAddress),
+          },
+          status: BookingStatus.PENDING,
+          pickupOtp,
+          dropOtp,
         },
-        package: {
-          create: toPackageCreateData(createRequest.package),
+        include: {
+          package: true,
+          pickupAddress: true,
+          dropAddress: true,
+          customer: true,
         },
-        pickupAddress: {
-          create: toAddressCreateData(createRequest.pickupAddress),
+      });
+
+      // 2. Create ESTIMATE invoice with wallet applied using InvoiceService
+      await this.invoiceService.createEstimateInvoice(
+        createdBooking.id,
+        {
+          packageDetails: toPackageDetailsDto(createdBooking.package),
+          pickupAddress: toBookingAddressDto(createdBooking.pickupAddress),
+          dropAddress: toBookingAddressDto(createdBooking.dropAddress),
         },
-        dropAddress: {
-          create: toAddressCreateData(createRequest.dropAddress),
-        },
-        estimatedCost: selectedVehicleOption.estimatedCost,
-        distanceKm: estimate.distanceKm,
-        baseFare: selectedVehicleOption.breakdown.baseFare,
-        distanceCharge: selectedVehicleOption.breakdown.distanceCharge,
-        weightMultiplier: selectedVehicleOption.breakdown.weightMultiplier,
-        vehicleMultiplier: selectedVehicleOption.breakdown.vehicleMultiplier,
-        suggestedVehicleType: createRequest.selectedVehicleType,
-        status: BookingStatus.PENDING,
-        pickupOtp: pickupOtp,
-        dropOtp: dropOtp,
-      },
-      include: {
-        package: true,
-        pickupAddress: true,
-        dropAddress: true,
-      },
+        Number(createdBooking.customer?.walletBalance),
+        tx,
+      );
+
+      return createdBooking;
     });
 
     await this.bookingAssignmentService.onBookingCreated(booking.id);

@@ -23,30 +23,30 @@ class BreakdownDto {
   baseFare: number;
 
   @Expose()
-  distanceCharge: number;
+  baseKm: number;
 
   @Expose()
-  weightMultiplier: number;
+  perKm: number;
 
   @Expose()
-  vehicleMultiplier: number;
+  distanceKm: number;
 
   @Expose()
-  totalMultiplier: number;
+  weightInTons: number;
+
+  @Expose()
+  effectiveBasePrice: number;
 }
 
 class VehicleOptionDto {
   @Expose()
-  vehicleType: string;
+  vehicleModelName: string;
 
   @Expose()
   estimatedCost: number;
 
   @Expose()
-  isAvailable: boolean;
-
-  @Expose()
-  weightLimit: number;
+  maxWeightTons: number;
 
   @Expose()
   @Type(() => BreakdownDto)
@@ -58,9 +58,9 @@ export class BookingEstimateResponseDto {
   distanceKm: number;
 
   @Expose()
-  suggestedVehicleType: string;
+  idealVehicleModel: string;
 
   @Expose()
   @Type(() => VehicleOptionDto)
-  vehicleOptions: VehicleOptionDto[];
+  topVehicles: VehicleOptionDto[];
 }
