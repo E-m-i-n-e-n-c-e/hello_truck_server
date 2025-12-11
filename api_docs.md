@@ -118,6 +118,10 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `assignedDriver`: `DriverResponseDto | null`
     *   `createdAt`: `Date`
     *   `updatedAt`: `Date`
+*   **`RideSummaryDto`**: Driver's daily ride summary.
+    *   `totalRides`: `number` - Number of completed rides
+    *   `totalEarnings`: `number` - Total earnings from FINAL invoices
+    *   `date`: `string` - YYYY-MM-DD format (IST timezone)
 
 ### Profile & Address DTOs
 *   **`CreateProfileDto` / `UpdateProfileDto`**: For customer profile creation/updates.
@@ -260,6 +264,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/bookings/driver/drop/verify` 🔒 | Verifies drop-off with a code. | `VerifyCodeDto` | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/start` 🔒 | Starts the trip. | - | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/finish` 🔒 | Finishes the trip. | - | `SuccessResponseDto` |
+| `GET` | `/bookings/driver/ride-summary` 🔒 | Gets daily ride summary (total rides and earnings). Defaults to today in IST timezone. | Query: `date?` (YYYY-MM-DD) | `RideSummaryDto` |
 
 ### Customer Profile (`CustomerProfile`)
 | Method | Path | Description | Request Body | Success Response |

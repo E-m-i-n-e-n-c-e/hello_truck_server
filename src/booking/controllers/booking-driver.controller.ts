@@ -70,6 +70,16 @@ export class BookingDriverController {
   finishRide(@User('userId') driverId: string) {
     return this.bookingDriverService.finishRide(driverId);
   }
+
+  // Get ride summary (total rides and earnings for a date)
+  @Get('ride-summary')
+  @Serialize(RideSummaryDto)
+  getRideSummary(
+    @User('userId') driverId: string,
+    @Query('date') date?: string, // Optional: YYYY-MM-DD format, defaults to today
+  ) {
+    return this.bookingDriverService.getRideSummary(driverId, date);
+  }
 }
 
 

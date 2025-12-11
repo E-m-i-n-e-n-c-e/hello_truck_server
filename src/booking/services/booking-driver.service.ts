@@ -348,4 +348,58 @@ export class BookingDriverService {
       take: 10,
     });
   }
+
+  async getRideSummary(driverId: string, date?: string): Promise<{
+    totalRides: number;
+    totalEarnings: number;
+    date: string;
+  }> {
+    // Parse input date or use today in IST
+    const inputDate = date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD in IST
+    
+    // Create UTC timestamps for IST day boundaries
+    // When Date parses '2025-01-01T00:00:00+05:30', it automatically converts to UTC (2024-12-31T18:30:00Z)
+    const startUTC = new Date(`${inputDate}T00:00:00+05:30`);
+    const endUTC = new Date(`${inputDate}T23:59:59.999+05:30`);
+
+    // Query DB with UTC timestamps, filter FINAL invoices at DB level
+    const completedBookings = await this.prisma.bookingAssignment.findMany({
+      where: {
+        driverId,
+        status: AssignmentStatus.ACCEPTED,
+        booking: {
+          status: BookingStatus.COMPLETED,
+          completedAt: {
+            gte: startUTC,
+            lte: endUTC,
+          },
+          invoices: {
+            some: { type: 'FINAL' },
+          },
+        },
+      },
+      include: {
+        booking: {
+          include: {
+            invoices: {
+              where: { type: 'FINAL' },
+              select: { finalAmount: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Calculate total earnings
+    const totalEarnings = completedBookings.reduce((sum, assignment) => {
+      const finalInvoice = assignment.booking.invoices[0];
+      return sum + (finalInvoice ? Number(finalInvoice.finalAmount) : 0);
+    }, 0);
+
+    return {
+      totalRides: completedBookings.length,
+      totalEarnings: Math.round(totalEarnings * 100) / 100,
+      date: inputDate, // Return in YYYY-MM-DD format (IST date)
+    };
+  }
 }
