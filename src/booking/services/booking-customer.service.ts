@@ -184,11 +184,13 @@ export class BookingCustomerService {
    * Cancel a booking
    */
   async cancelBooking(userId: string, bookingId: string): Promise<void> {
-    const booking = await this.prisma.booking.findFirst({
+    const booking = await this.prisma.booking.findUnique({
       where: {
         id: bookingId,
         customerId: userId,
-        status: BookingStatus.PENDING,
+        status: {
+          in: [BookingStatus.PENDING, BookingStatus.DRIVER_ASSIGNED],
+        },
       },
     });
 
@@ -198,7 +200,7 @@ export class BookingCustomerService {
 
     await this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: BookingStatus.CANCELLED },
+      data: { status: BookingStatus.CANCELLED, cancelledAt: new Date() },
     });
 
     await this.bookingAssignmentService.onBookingCancelled(booking.id);

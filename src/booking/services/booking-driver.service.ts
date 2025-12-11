@@ -70,7 +70,7 @@ export class BookingDriverService {
       // Update booking status to CONFIRMED
       await tx.booking.update({
         where: { id: assignment.booking.id },
-        data: { status: BookingStatus.CONFIRMED }
+        data: { status: BookingStatus.CONFIRMED, acceptedAt: new Date() }
       });
 
       // Update driver status to ON_RIDE
@@ -183,9 +183,9 @@ export class BookingDriverService {
     await this.prisma.booking.update({
       where: {
         id: assignment.booking.id,
-        status: BookingStatus.CONFIRMED
+        status: BookingStatus.CONFIRMED,
       },
-      data: { status: BookingStatus.PICKUP_ARRIVED }
+      data: { status: BookingStatus.PICKUP_ARRIVED, pickupArrivedAt: new Date() }
     });
     if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
@@ -209,7 +209,7 @@ export class BookingDriverService {
         id: assignment.booking.id,
         status: { in: [BookingStatus.PICKUP_VERIFIED, BookingStatus.IN_TRANSIT ] }
       },
-      data: { status: BookingStatus.DROP_ARRIVED }
+      data: { status: BookingStatus.DROP_ARRIVED, dropArrivedAt: new Date() }
     });
     if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
@@ -236,7 +236,7 @@ export class BookingDriverService {
         id: assignment.booking.id,
         status: { in: [BookingStatus.CONFIRMED, BookingStatus.PICKUP_ARRIVED] }
       },
-      data: { status: BookingStatus.PICKUP_VERIFIED }
+      data: { status: BookingStatus.PICKUP_VERIFIED, pickupVerifiedAt: new Date() }
     });
     if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
@@ -263,7 +263,7 @@ export class BookingDriverService {
         id: assignment.booking.id,
         status: { in: [BookingStatus.PICKUP_VERIFIED, BookingStatus.IN_TRANSIT, BookingStatus.DROP_ARRIVED] }
       },
-      data: { status: BookingStatus.DROP_VERIFIED }
+      data: { status: BookingStatus.DROP_VERIFIED, dropVerifiedAt: new Date() }
     });
     if (!assignment.booking.customerId) return;
     this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
@@ -310,7 +310,7 @@ export class BookingDriverService {
       }
       await tx.booking.update({
         where: { id: assignment.booking.id, status: BookingStatus.DROP_VERIFIED },
-        data: { status: BookingStatus.COMPLETED }
+        data: { status: BookingStatus.COMPLETED, completedAt: new Date() }
       });
       return assignment;
     });
