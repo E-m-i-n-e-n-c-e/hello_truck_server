@@ -11,10 +11,8 @@ import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.d
 import { AssignmentService } from '../assignment/assignment.service';
 import { RedisService } from 'src/redis/redis.service';
 import { Response, Request } from 'express';
-import * as geolib from 'geolib';
-import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import { mergeUpdateToPackageDto, toPackageDetailsDto, toPackageCreateData, toPackageUpdateData } from '../utils/package.utils';
-import { toAddressCreateData, toAddressUpdateData, mergeAddressUpdateToDto, toBookingAddressDto } from '../utils/address.utils';
+import { toPackageDetailsDto, toPackageCreateData } from '../utils/package.utils';
+import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils';
 
 @Injectable()
 export class BookingCustomerService {
@@ -33,10 +31,6 @@ export class BookingCustomerService {
     BookingStatus.EXPIRED,
   ];
 
-  private isAtOrAfter(current: BookingStatus, threshold: BookingStatus): boolean {
-    return this.STATUS_ORDER.indexOf(current) >= this.STATUS_ORDER.indexOf(threshold);
-  }
-  
   constructor(
     private readonly prisma: PrismaService,
     private readonly bookingEstimateService: BookingEstimateService,
@@ -223,130 +217,6 @@ export class BookingCustomerService {
     await this.bookingAssignmentService.onBookingCancelled(booking.id);
   }
 
-  /** Update only pickup address */
-  async updatePickup(
-    userId: string,
-    bookingId: string,
-    pickupAddress: UpdateBookingAddressDto,
-  ): Promise<SuccessResponseDto> {
-    const existing = await this.getBookingWithDetailsOrThrow(userId, bookingId);
-    this.validatePickupUpdate(existing, pickupAddress);
-    
-    // Use utility function to merge existing pickup with update for estimate
-    const mergedPickupForEstimate = mergeAddressUpdateToDto(existing.pickupAddress, pickupAddress);
-    
-    const estimate = this.bookingEstimateService.calculateEstimate({
-      pickupAddress: mergedPickupForEstimate,
-      dropAddress: toBookingAddressDto(existing.dropAddress),
-      packageDetails: toPackageDetailsDto(existing.package),
-    });
-    const selectedVehicleType = this.getSelectedVehicleType(existing);
-    const option = estimate.vehicleOptions.find(o => o.vehicleType === selectedVehicleType);
-    if (!option || !option.isAvailable) {
-      throw new BadRequestException('Updated route is not compatible with vehicle');
-    }
-
-    // Use utility function to create update data
-    const pickupUpdateData = toAddressUpdateData(pickupAddress);
-
-    await this.prisma.booking.update({
-      where: { id: existing.id },
-      data: {
-        distanceKm: estimate.distanceKm,
-        estimatedCost: option.estimatedCost,
-        baseFare: option.breakdown.baseFare,
-        distanceCharge: option.breakdown.distanceCharge,
-        weightMultiplier: option.breakdown.weightMultiplier,
-        vehicleMultiplier: option.breakdown.vehicleMultiplier,
-        pickupAddress: { update: pickupUpdateData },
-      },
-    });
-    return { success: true, message: 'Pickup updated successfully' };
-  }
-
-  /** Update only drop address */
-  async updateDrop(
-    userId: string,
-    bookingId: string,
-    dropAddress: UpdateBookingAddressDto,
-  ): Promise<SuccessResponseDto> {
-    const existing = await this.getBookingWithDetailsOrThrow(userId, bookingId);
-    this.validateDropUpdate(existing, dropAddress);
-    
-    // Use utility function to merge existing drop with update for estimate
-    const mergedDropForEstimate = mergeAddressUpdateToDto(existing.dropAddress, dropAddress);
-    
-    const estimate = this.bookingEstimateService.calculateEstimate({
-      pickupAddress: toBookingAddressDto(existing.pickupAddress),
-      dropAddress: mergedDropForEstimate,
-      packageDetails: toPackageDetailsDto(existing.package),
-    });
-    const selectedVehicleType = this.getSelectedVehicleType(existing);
-    const option = estimate.vehicleOptions.find(o => o.vehicleType === selectedVehicleType);
-    if (!option || !option.isAvailable) {
-      throw new BadRequestException('Updated route is not compatible with vehicle');
-    }
-
-    // Use utility function to create update data
-    const dropUpdateData = toAddressUpdateData(dropAddress);
-
-    await this.prisma.booking.update({
-      where: { id: existing.id },
-      data: {
-        distanceKm: estimate.distanceKm,
-        estimatedCost: option.estimatedCost,
-        baseFare: option.breakdown.baseFare,
-        distanceCharge: option.breakdown.distanceCharge,
-        weightMultiplier: option.breakdown.weightMultiplier,
-        vehicleMultiplier: option.breakdown.vehicleMultiplier,
-        dropAddress: { update: dropUpdateData },
-      },
-    });
-    return { success: true, message: 'Drop updated successfully' };
-  }
-
-  /** Update only package */
-  async updatePackage(
-    userId: string,
-    bookingId: string,
-    packageDetails: UpdatePackageDetailsDto,
-  ): Promise<SuccessResponseDto> {
-    const existing = await this.getBookingWithDetailsOrThrow(userId, bookingId);
-    this.validatePackageUpdate(existing, packageDetails);
-
-    // Use utility function to merge existing package with update for estimate
-    const mergedPackageForEstimate = mergeUpdateToPackageDto(existing.package, packageDetails);
-    
-    const estimate = this.bookingEstimateService.calculateEstimate({
-      pickupAddress: toBookingAddressDto(existing.pickupAddress),
-      dropAddress: toBookingAddressDto(existing.dropAddress),
-      packageDetails: mergedPackageForEstimate,
-    });
-    
-    const selectedVehicleType = this.getSelectedVehicleType(existing);
-    const option = estimate.vehicleOptions.find(o => o.vehicleType === selectedVehicleType);
-    if (!option || !option.isAvailable) {
-      throw new BadRequestException('Updated package exceeds vehicle limits');
-    }
-
-    // Use utility function to create update data
-    const packageUpdateData = toPackageUpdateData(packageDetails);
-
-    await this.prisma.booking.update({
-      where: { id: existing.id },
-      data: {
-        distanceKm: estimate.distanceKm,
-        estimatedCost: option.estimatedCost,
-        baseFare: option.breakdown.baseFare,
-        distanceCharge: option.breakdown.distanceCharge,
-        weightMultiplier: option.breakdown.weightMultiplier,
-        vehicleMultiplier: option.breakdown.vehicleMultiplier,
-        package: { update: packageUpdateData },
-      },
-    });
-    return { success: true, message: 'Package updated successfully' };
-  }
-
   async getUploadUrl(userId: string, uploadUrlDto: uploadUrlDto): Promise<UploadUrlResponseDto> {
     const uploadUrl = await this.firebaseService.generateSignedUploadUrl(
       uploadUrlDto.filePath,
@@ -433,75 +303,5 @@ export class BookingCustomerService {
       await this.redisService.unsubscribeChannel(sseKey, handler);
       response.end();
     });
-  }
-
-  // **************** Private Helper Methods ********************
-
-   /** Validate pickup-only edits */
-   private validatePickupUpdate(
-    existing: Booking & { pickupAddress: Address },
-    pickup: UpdateBookingAddressDto,
-  ): void {
-    if (this.isAtOrAfter(existing.status, BookingStatus.PICKUP_ARRIVED)) {
-      throw new BadRequestException('Pickup location cannot be changed after driver has arrived at pickup');
-    }
-
-    if (pickup.latitude !== undefined && pickup.longitude !== undefined) {
-      const distance = geolib.getDistance(
-        { latitude: Number(existing.pickupAddress.latitude), longitude: Number(existing.pickupAddress.longitude) },
-        { latitude: Number(pickup.latitude), longitude: Number(pickup.longitude) },
-      );
-      if (distance > this.locationEditLimitMeters) {
-        throw new BadRequestException(`Pickup location change exceeds ${this.locationEditLimitMeters} meters limit`);
-      }
-    }
-  }
-
-  /** Validate drop-only edits */
-  private validateDropUpdate(
-    existing: Booking & { dropAddress: Address },
-    drop?: UpdateBookingAddressDto,
-  ): void {
-    if (!drop) return; // nothing to validate
-    if (this.isAtOrAfter(existing.status, BookingStatus.DROP_ARRIVED)) {
-      throw new BadRequestException('Drop location cannot be changed after driver has arrived at drop');
-    }
-
-    if (drop.latitude !== undefined && drop.longitude !== undefined) {
-      const distance = geolib.getDistance(
-        { latitude: Number(existing.dropAddress.latitude), longitude: Number(existing.dropAddress.longitude) },
-        { latitude: Number(drop.latitude), longitude: Number(drop.longitude) },
-      );
-      if (distance > this.locationEditLimitMeters) {
-        throw new BadRequestException(`Drop location change exceeds ${this.locationEditLimitMeters} meters limit`);
-      }
-    }
-  }
-
-  /** Validate package-only edits */
-  private validatePackageUpdate(
-    existing: Booking & { package: Package },
-    pkg?: UpdatePackageDetailsDto,
-  ): void {
-    if (!pkg) return; // nothing to validate
-    if (this.isAtOrAfter(existing.status, BookingStatus.PICKUP_VERIFIED)) {
-      throw new ForbiddenException('Package details cannot be changed after pickup verification');
-    }
-  }
-
-  // Helpers
-  private async getBookingWithDetailsOrThrow(userId: string, bookingId: string) {
-    const booking = await this.prisma.booking.findFirst({
-      where: { id: bookingId, customerId: userId },
-      include: { 
-        pickupAddress: true, dropAddress: true, package: true,
-        assignedDriver: { include: { vehicle: { select: { vehicleType: true } } } } },
-    });
-    if (!booking) throw new NotFoundException('Booking not found');
-    return booking;
-  }
-
-  private getSelectedVehicleType(existing: any): any {
-    return existing.assignedDriver?.vehicle?.vehicleType ?? existing.suggestedVehicleType;
   }
 }
