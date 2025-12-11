@@ -5,6 +5,12 @@ export enum FcmEventType {
   AssignmentEscalated = 'ASSIGNMENT_ESCALATED',
   NoDriverAvailable = 'NO_DRIVER_AVAILABLE',
   BookingStatusChange = 'BOOKING_STATUS_CHANGE',
+  PaymentSuccess = 'PAYMENT_SUCCESS',
+  PaymentFailed = 'PAYMENT_FAILED',
+  RideCancelled = 'RIDE_CANCELLED',
+  WalletCredit = 'WALLET_CREDIT',
+  WalletDebit = 'WALLET_DEBIT',
+  PayoutProcessed = 'PAYOUT_PROCESSED',
 }
 
 // App-level typed payload for FCM

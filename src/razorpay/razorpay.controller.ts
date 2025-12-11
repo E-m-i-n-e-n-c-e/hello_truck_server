@@ -16,14 +16,4 @@ export class RazorpayController {
   async createFundAccount(@Body() body: { contactId: string, payoutDetails: CreatePayoutDetailsDto }) {
     return this.razorpayService.createFundAccount(body.contactId, body.payoutDetails);
   }
-
-  @Post('create-order')
-  async createOrder(@Body() body: { order: Orders.RazorpayOrderCreateRequestBody }) {
-    return this.razorpayService.createOrder(body.order);
-  }
-
-  @Post('create-payment-link')
-  async createPaymentLink(@Body() body: { orderId: string }) {
-    return this.razorpayService.createPaymentLinkFromOrder(body.orderId);
-  }
 }

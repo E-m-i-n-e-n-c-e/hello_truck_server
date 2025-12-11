@@ -77,3 +77,19 @@ export class BookingResponseDto {
   @Expose()
   scheduledAt: Date | null;
 }
+
+export class RideSummaryDto {
+  @Expose()
+  totalRides: number;
+
+  @Expose()
+  totalEarnings: number;
+
+  @Expose()
+  date: string; // YYYY-MM-DD format
+}
+
+export class CancelBookingDto {
+  @IsString()
+  reason: string;
+}

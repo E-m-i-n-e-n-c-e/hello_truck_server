@@ -14,6 +14,7 @@ import { PricingService } from '../pricing/pricing.service';
     PrismaModule,
     FirebaseModule,
     RedisModule,
+    RazorpayModule,
     BullModule.forRootAsync({
       inject: [RedisService],
       useFactory: (redisService: RedisService) => ({
