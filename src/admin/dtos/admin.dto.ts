@@ -1,5 +1,5 @@
-import { DriverStatus, VerificationStatus, VehicleOwner, Vehicle, VehicleType, VehicleBodyType, FuelType, DriverDocuments, DriverAddress } from "@prisma/client";
-import { Expose, Type, Transform } from "class-transformer";
+import { DriverStatus, VerificationStatus, VehicleOwner, VehicleType, VehicleBodyType, FuelType, DriverDocuments, DriverAddress } from "@prisma/client";
+import { Expose, Type } from "class-transformer";
 import { IsOptional } from "class-validator";
 
 export class VehicleOwnerResponseDto implements VehicleOwner {
@@ -36,6 +36,8 @@ export class VehicleResponseDto {
 
   @Expose()
   vehicleNumber: string;
+  @Expose()
+  vehicleModelName: string;
   @Expose()
   vehicleType: VehicleType;
   @Expose()
