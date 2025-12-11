@@ -65,6 +65,28 @@ export class RedisService extends Redis implements OnModuleDestroy {
     return sub;
   }
 
+  /**
+   * Try to acquire a distributed lock with TTL
+   * Uses SET NX EX for atomic lock acquisition
+   * @param key Lock key
+   * @param ttlSeconds Time to live in seconds
+   * @returns true if lock acquired, false otherwise
+   */
+  async tryLock(key: string, ttlSeconds: number): Promise<boolean> {
+    const result = await this.set(key, '1', 'EX', ttlSeconds, 'NX');
+    return result === 'OK';
+  }
+
+  /**
+   * Release a distributed lock
+   * @param key Lock key
+   * @returns true if lock was released, false if it didn't exist
+   */
+  async releaseLock(key: string): Promise<boolean> {
+    const result = await this.del(key);
+    return result === 1;
+  }
+
   async subscribeChannel(channel: string, handler: (message: string) => void): Promise<void> {
     const sub = await this.ensureSubscriber();
     let listeners = this.channelToListeners.get(channel);
