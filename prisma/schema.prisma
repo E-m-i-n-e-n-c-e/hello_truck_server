@@ -27,6 +27,7 @@ model Customer {
   addresses   SavedAddress[]
   bookings    Booking[]
   transactions Transaction[]
+  walletLogs   CustomerWalletLog[]
 
   @@index([isActive])
 }
@@ -129,6 +130,7 @@ model Driver {
   statusLogs         DriverStatusLog[]
   transactions       Transaction[]
   payouts            Payout[]
+  walletLogs         DriverWalletLog[]
 
   @@index([isActive, verificationStatus])
   @@index([lastSeenAt, driverStatus])
@@ -348,6 +350,7 @@ model Booking {
   dropVerifiedAt       DateTime?
   completedAt          DateTime?
   cancelledAt          DateTime?
+  cancellationReason   String?
 
   // Booking Status & Assignment
   status               BookingStatus       @default(PENDING)
@@ -360,6 +363,10 @@ model Booking {
 
   // Transactions
   transactions         Transaction[]
+  
+  // Wallet logs
+  driverWalletLogs     DriverWalletLog[]
+  customerWalletLogs   CustomerWalletLog[]
 
   // Timestamps
   createdAt            DateTime            @default(now())
@@ -422,13 +429,18 @@ model Invoice {
   walletApplied      Decimal       @default(0) @db.Decimal(10, 2)
   finalAmount        Decimal       @db.Decimal(10, 2)
   paymentLinkUrl     String?
-  rzpOrderId         String?
+  rzpOrderId         String?       @unique
   rzpPaymentId       String?
+  
+  // Payment status
+  isPaid             Boolean       @default(false)
+  paidAt             DateTime?
   
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   @@unique([bookingId, type]) // One estimate and one final per booking
+  @@index([bookingId])
 }
 
 // Central transaction ledger for ALL financial transactions on the platform
@@ -485,6 +497,48 @@ model Payout {
 
   @@index([driverId, status])
   @@index([status, createdAt])
+}
+
+model DriverWalletLog {
+  id            String   @id @default(uuid())
+  driverId      String
+  driver        Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  
+  // Wallet change details
+  beforeBalance Decimal  @db.Decimal(10, 2)
+  afterBalance  Decimal  @db.Decimal(10, 2)
+  amount        Decimal  @db.Decimal(10, 2)  // Change amount (+ or -)
+  reason        String   // e.g., "Booking earnings", "Commission deduction"
+  
+  // Optional reference
+  bookingId     String?
+  booking       Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([driverId, createdAt])
+  @@index([createdAt])
+}
+
+model CustomerWalletLog {
+  id            String    @id @default(uuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Wallet change details
+  beforeBalance Decimal   @db.Decimal(10, 2)
+  afterBalance  Decimal   @db.Decimal(10, 2)
+  amount        Decimal   @db.Decimal(10, 2)  // Change amount (+ or -)
+  reason        String    // e.g., "Applied to booking", "Refund"
+  
+  // Optional reference
+  bookingId     String?
+  booking       Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  
+  createdAt     DateTime  @default(now())
+  
+  @@index([customerId, createdAt])
+  @@index([createdAt])
 }
 
 model WebhookLog {
@@ -596,10 +650,9 @@ enum TransactionType {
 }
 
 enum TransactionCategory {
-  BOOKING_PAYMENT      // Customer pays for booking
-  BOOKING_REFUND       // Customer receives refund
-  DRIVER_PAYOUT        // Driver receives payout (after 7% platform fee deduction)
-  PENALTY              // Penalty charged to driver
+  BOOKING_PAYMENT  // Customer pays for booking
+  BOOKING_REFUND   // Refund to customer (Razorpay)
+  DRIVER_PAYOUT    // Payout to driver (Razorpay)
 }
 
 enum PayoutStatus {
