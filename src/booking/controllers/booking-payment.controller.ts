@@ -47,23 +47,19 @@ export class BookingPaymentController {
     // Handle payment link paid event
     if (event === 'payment_link.paid') {
       const paymentLinkEntity = payload.payment_link.entity;
-      const paymentEntity = payload.payment_link.entity.payments?.[0];
+      const paymentEntity = payload.payment.entity;
       
       // Extract reference_id (our bookingId)
       const bookingId = paymentLinkEntity.reference_id;
-      const rzpPaymentId = paymentEntity?.id;
+      const rzpPaymentId = paymentEntity.id;
+      const rzpPaymentLinkId = paymentLinkEntity.id;
       
       if (!bookingId) {
         this.logger.error('No reference_id (bookingId) found in payment link webhook');
         return { status: 'error', message: 'No reference_id' };
       }
       
-      if (!rzpPaymentId) {
-        this.logger.error('No payment ID found in payment link webhook');
-        return { status: 'error', message: 'No payment ID' };
-      }
-      
-      await this.bookingPaymentService.handlePaymentSuccess(bookingId, rzpPaymentId);
+      await this.bookingPaymentService.handlePaymentSuccess(bookingId, rzpPaymentId, rzpPaymentLinkId);
     }
 
     return { status: 'ok' };

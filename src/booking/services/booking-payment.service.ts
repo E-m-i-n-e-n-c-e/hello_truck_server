@@ -23,6 +23,7 @@ export class BookingPaymentService {
   async handlePaymentSuccess(
     bookingId: string,
     rzpPaymentId: string,
+    rzpPaymentLinkId: string,
   ): Promise<void> {
     this.logger.log(`Processing payment success for booking: ${bookingId}`);
 
@@ -61,6 +62,7 @@ export class BookingPaymentService {
           isPaid: true,
           paidAt: new Date(),
           rzpPaymentId,
+          rzpPaymentLinkId,
         },
       });
 
