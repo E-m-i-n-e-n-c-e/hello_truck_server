@@ -200,6 +200,13 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `bookingId`: `string | null`
     *   `payoutId`: `string | null`
     *   `createdAt`: `Date`
+*   **`ExpiryAlertsResponseDto`**: Document expiry alerts for driver.
+    *   `licenseAlert?`: `string` - Alert message for license expiry (shown at 15, 30, 45 days or when expired)
+    *   `insuranceAlert?`: `string` - Alert message for insurance expiry (shown at 15, 30, 45 days or when expired)
+    *   `isLicenseExpired`: `boolean` - True if license has expired (driver cannot take bookings)
+    *   `isInsuranceExpired`: `boolean` - True if insurance has expired (driver cannot take bookings)
+    *   `licenseExpiry`: `Date | null` - Actual license expiry date (set by admin)
+    *   `insuranceExpiry`: `Date | null` - Actual insurance expiry date (set by admin)
 
 ### Razorpay DTOs
 *   **`CreateOrderDto`**:
