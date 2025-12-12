@@ -5,7 +5,7 @@ import { $Enums, Driver, VehicleType } from '@prisma/client';
 import { CreateBookingAddressDto, BookingAddressResponseDto } from './booking-address.dto';
 import { PackageDetailsDto, PackageDetailsResponseDto } from './package.dto';
 import { Expose } from 'class-transformer';
-import { InvoiceResponseDto } from './invoice.dto';
+import { InvoiceResponseDto } from './booking-invoice.dto';
 
 export class CreateBookingRequestDto {
   @ValidateNested()

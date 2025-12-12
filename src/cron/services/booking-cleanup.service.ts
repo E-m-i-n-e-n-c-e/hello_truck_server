@@ -22,12 +22,12 @@ export class BookingCleanupService {
   }
 
   async cleanupOldBookings() {
-    // Delete expired or completed bookings older than 30 days
+    // Delete expired or completed bookings older than 6 months
     const result = await this.prisma.booking.deleteMany({
       where: {
         status: { in: [BookingStatus.EXPIRED, BookingStatus.COMPLETED, BookingStatus.CANCELLED] },
         createdAt: {
-          lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),  // 30 days
+          lt: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),  // 6 months
         },
       },
     });

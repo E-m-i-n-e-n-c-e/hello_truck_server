@@ -10,6 +10,8 @@ import { RedisService } from 'src/redis/redis.service';
 import { Response, Request } from 'express';
 import { toPackageDetailsDto, toPackageCreateData } from '../utils/package.utils';
 import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils';
+import { BookingPaymentService } from './booking-payment.service';
+import { FcmEventType } from 'src/common/types/fcm.types';
 
 @Injectable()
 export class BookingCustomerService {
@@ -27,12 +29,17 @@ export class BookingCustomerService {
     BookingStatus.EXPIRED,
   ];
 
+  private isAtOrAfter(current: BookingStatus, threshold: BookingStatus): boolean {
+    return this.STATUS_ORDER.indexOf(current) >= this.STATUS_ORDER.indexOf(threshold);
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly invoiceService: BookingInvoiceService,
     private readonly firebaseService: FirebaseService,
     private readonly bookingAssignmentService: AssignmentService,
     private readonly redisService: RedisService,
+    private readonly bookingPaymentService: BookingPaymentService,
   ) {}
 
   /**
@@ -150,7 +157,7 @@ export class BookingCustomerService {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 10, // Limit to last 10 bookings
+      take: 20, // Limit to last 20 bookings
     });
 
     return bookings;
@@ -181,29 +188,112 @@ export class BookingCustomerService {
   }
 
   /**
-   * Cancel a booking
+   * Cancel a booking with refund processing
    */
-  async cancelBooking(userId: string, bookingId: string): Promise<void> {
+  async cancelBooking(
+    userId: string, 
+    bookingId: string,
+    reason?: string,
+  ): Promise<void> {
+    const logger = new Logger('BookingCustomerService');
+    logger.log(`Processing cancellation for booking ${bookingId} by customer ${userId}`);
+
     const booking = await this.prisma.booking.findUnique({
-      where: {
-        id: bookingId,
-        customerId: userId,
-        status: {
-          in: [BookingStatus.PENDING, BookingStatus.DRIVER_ASSIGNED],
+      where: { id: bookingId },
+      include: {
+        customer: true,
+        assignedDriver: true,
+        invoices: {
+          where: { type: 'FINAL' },
         },
       },
     });
 
     if (!booking) {
-      throw new NotFoundException('Booking not found or cannot be cancelled');
+      throw new NotFoundException('Booking not found');
     }
 
-    await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { status: BookingStatus.CANCELLED, cancelledAt: new Date() },
+    if(!booking.customer){
+      throw new NotFoundException('Customer not found');
+    }
+
+    if (booking.customerId !== userId) {
+      throw new BadRequestException('You can only cancel your own bookings');
+    }
+
+    if (booking.status === BookingStatus.CANCELLED) {
+      throw new BadRequestException('Booking is already cancelled');
+    }
+
+    // Check if cancellable
+    if (
+      this.isAtOrAfter(booking.status, BookingStatus.PICKUP_VERIFIED)
+    ) {
+      throw new BadRequestException('Booking cannot be cancelled after pickup verification');
+    }
+
+    const finalInvoice = booking.invoices[0];
+    if (!finalInvoice) {
+      throw new NotFoundException('Final invoice not found');
+    }
+
+    // Process cancellation and refunds in transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Update booking status
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      // Process refunds using payment service utility
+      await this.bookingPaymentService.processRefund(
+        userId,
+        {
+          ...booking,
+          customer: booking.customer!,
+        },
+        finalInvoice,
+        reason,
+        tx,
+      );
+
+      // Reset driver status if assigned
+      if (booking.assignedDriverId) {
+        await tx.driver.update({
+          where: { id: booking.assignedDriverId },
+          data: { driverStatus: 'AVAILABLE' },
+        });
+      }
     });
 
+    this.firebaseService.notifyAllSessions(userId, 'customer', {
+      notification: {
+        title: 'Booking Cancelled',
+        body: 'Your booking has been successfully cancelled. Any applicable refund will be processed and credited to your original payment method within 24 hours.',
+      },
+      data: {
+        event: FcmEventType.BookingStatusChange,
+      },
+    });
+
+    if (booking.assignedDriverId) {
+      this.firebaseService.notifyAllSessions(booking.assignedDriverId, 'driver', {
+        notification: {
+          title: 'Booking Cancelled',
+          body: 'Sorry, your ride has been cancelled by the customer. You will receive some compensation for your time.',
+        },
+        data: {
+          event: FcmEventType.RideCancelled,
+        },
+      });
+    }
+
     await this.bookingAssignmentService.onBookingCancelled(booking.id);
+    logger.log(`Cancellation processed for booking ${bookingId}`);
   }
 
   async getUploadUrl(userId: string, uploadUrlDto: uploadUrlDto): Promise<UploadUrlResponseDto> {

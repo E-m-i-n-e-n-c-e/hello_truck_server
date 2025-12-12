@@ -8,6 +8,12 @@ export class LogCleanupService {
   async cleanupOldLogs() {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);  // 30 days
 
+    // Delete booking logs older than 30 days
+    const bookingLogsResult = await this.prisma.bookingStatusLog.deleteMany({
+      where: { statusChangedAt: { lt: thirtyDaysAgo } },
+    });
+    console.log(`Cleaned up ${bookingLogsResult.count} booking logs`);
+    
     // Delete driver status logs older than 30 days
     const driverStatusLogsResult = await this.prisma.driverStatusLog.deleteMany({
       where: { statusChangedAt: { lt: thirtyDaysAgo } },

@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma } from '@prisma/client';
+import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { FcmEventType } from 'src/common/types/fcm.types';
 import { BookingInvoiceService } from './booking-invoice.service';
+import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
 export class BookingDriverService {
@@ -53,7 +54,7 @@ export class BookingDriverService {
       throw new BadRequestException('Driver does not have a vehicle');
     }
 
-    if (!assignment.booking.customerId) {
+    if (!assignment.booking.customer) {
       throw new BadRequestException('Booking does not have a customer');
     }
 
@@ -80,12 +81,11 @@ export class BookingDriverService {
       });
 
       await this.invoiceService.createFinalInvoice(
-        assignment.booking.id,
-        assignment.booking.customerId!,
+        {
+          ...assignment.booking,
+          customer: assignment.booking.customer!,
+        },
         assignment.driver.vehicle!.vehicleModel,
-        assignment.booking.pickupAddress,
-        assignment.booking.dropAddress,
-        assignment.booking.package,
         tx
       );
 
@@ -154,7 +154,7 @@ export class BookingDriverService {
     });
   }
 
-  async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<BookingAssignment & { booking: Booking } | null> {
+  async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<BookingAssignment & { driver: Driver; booking: Booking & { invoices: Invoice[] } } | null> {
     return tx.bookingAssignment.findFirst({
       where: {
         driverId,
@@ -164,11 +164,10 @@ export class BookingDriverService {
         }
       },
       include: {
+        driver: true,
         booking: {
           include: {
-            package: true,
-            pickupAddress: true,
-            dropAddress: true,
+            invoices: true,
           },
         },
       }
@@ -299,29 +298,119 @@ export class BookingDriverService {
   }
 
   async finishRide(driverId: string): Promise<void> {
+    let walletChange = 0;
+    let isCashPayment = false;
+    
     const assignment = await this.prisma.$transaction(async (tx) => {
-      await tx.driver.update({
-        where: { id: driverId },
-        data: { driverStatus: DriverStatus.AVAILABLE }
-      });
       const assignment = await this.getDriverAssignment(driverId, tx);
       if (!assignment) {
         throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
       }
+
+      // Get final invoice to calculate driver earnings
+      const finalInvoice = assignment.booking.invoices.find(invoice => invoice.type === 'FINAL');
+
+      if (!finalInvoice || !finalInvoice.isPaid) {
+        throw new BadRequestException('Booking payment must be completed before finishing ride');
+      }
+
+      const totalAmount = Number(finalInvoice.finalAmount);
+      const commissionRate = parseFloat(process.env.COMMISSION_RATE || '0.07');
+      const commission = Math.round(totalAmount * commissionRate * 100) / 100;
+      
+      // Check payment type
+      isCashPayment = finalInvoice.rzpPaymentId === 'CASH';
+      
+      // Get current driver wallet balance
+      const driver = assignment.driver;
+      const currentBalance = Number(driver.walletBalance);
+      let newBalance: number;
+      let walletLogReason: string;
+
+      if (isCashPayment) {
+        // Cash payment: Driver received cash, owes commission to platform (DEBIT)
+        walletChange = truncate2(-commission);
+        newBalance = truncate2(currentBalance - commission);
+        walletLogReason = `Commission for cash payment - Booking #${assignment.booking.bookingNumber} (${commissionRate * 100}%)`;
+      } else {
+        // Online payment: Driver gets net earnings (CREDIT)
+        const driverEarnings = truncate2(totalAmount - commission);
+        walletChange = driverEarnings;
+        newBalance = truncate2(currentBalance + driverEarnings);
+        walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber} (${commissionRate * 100}% commission deducted)`;
+      }
+
+      // Update driver status and wallet
+      await tx.driver.update({
+        where: { id: driverId },
+        data: {
+          driverStatus: DriverStatus.AVAILABLE,
+          walletBalance: newBalance,
+        },
+      });
+
+      // Log wallet change
+      await tx.driverWalletLog.create({
+        data: {
+          driverId,
+          beforeBalance: currentBalance,
+          afterBalance: newBalance,
+          amount: walletChange,
+          reason: walletLogReason,
+          bookingId: assignment.booking.id,
+        },
+      });
+
+      // Complete the booking
       await tx.booking.update({
         where: { id: assignment.booking.id, status: BookingStatus.DROP_VERIFIED },
-        data: { status: BookingStatus.COMPLETED, completedAt: new Date() }
+        data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
       });
+
       return assignment;
     });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      notification: {
-        title: 'Ride Completed',
-        body: 'Your driver has completed the ride. Thank you for using Hello Truck.',
-      },
+    
+    
+    if(walletChange !== 0){
+      // Notify driver based on payment type
+      this.firebase.notifyAllSessions(driverId, 'driver', {
+        notification: {
+          title: 'Ride Completed',
+          body: isCashPayment
+            ? `₹${Math.abs(walletChange).toFixed(2)} commission deducted from wallet for cash payment`
+            : `₹${walletChange.toFixed(2)} earnings credited to your wallet`,
+        },
+        data: {
+          event: isCashPayment ? FcmEventType.WalletDebit : FcmEventType.WalletCredit,
+        },
+      });
+    }
+  }
+
+  async settleWithCash(driverId: string): Promise<void> {
+    const assignment = await this.getDriverAssignment(driverId);
+    if (!assignment) {
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+    }
+
+    // Get final invoice
+    const finalInvoice = assignment.booking.invoices.find(invoice => invoice.type === 'FINAL');
+
+    if (!finalInvoice) {
+      throw new BadRequestException('Final invoice not found');
+    }
+
+    if (finalInvoice.isPaid) {
+      throw new BadRequestException('Payment already received');
+    }
+
+    // Simply mark invoice as paid (cash)
+    await this.prisma.invoice.update({
+      where: { id: finalInvoice.id },
       data: {
-        event: FcmEventType.BookingStatusChange,
+        isPaid: true,
+        paidAt: new Date(),
+        rzpPaymentId: 'CASH',
       },
     });
   }

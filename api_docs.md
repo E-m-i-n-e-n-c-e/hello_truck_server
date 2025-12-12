@@ -122,6 +122,8 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `totalRides`: `number` - Number of completed rides
     *   `totalEarnings`: `number` - Total earnings from FINAL invoices
     *   `date`: `string` - YYYY-MM-DD format (IST timezone)
+*   **`CancelBookingDto`**: Booking cancellation request.
+    *   `reason`: `string` - Cancellation reason
 
 ### Profile & Address DTOs
 *   **`CreateProfileDto` / `UpdateProfileDto`**: For customer profile creation/updates.
@@ -139,6 +141,22 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `gstNumber`: `string`
     *   `businessName`: `string`
     *   `businessAddress`: `string`
+*   **`CustomerWalletLogResponseDto`**: Customer wallet transaction log.
+    *   `id`: `string`
+    *   `beforeBalance`: `number`
+    *   `afterBalance`: `number`
+    *   `amount`: `number` - Transaction amount (+ for credit, - for debit)
+    *   `reason`: `string` - Description of transaction
+    *   `bookingId`: `string | null` - Related booking if applicable
+    *   `createdAt`: `Date`
+*   **`CustomerTransactionLogResponseDto`**: Customer transaction ledger entry.
+    *   `id`: `string`
+    *   `amount`: `number`
+    *   `type`: `enum` (CREDIT, DEBIT)
+    *   `category`: `enum` (BOOKING_PAYMENT, BOOKING_REFUND, DRIVER_PAYOUT)
+    *   `description`: `string`
+    *   `bookingId`: `string | null`
+    *   `createdAt`: `Date`
 
 ### Driver DTOs
 *   **`CreateDriverProfileDto` / `UpdateDriverProfileDto`**:
@@ -165,6 +183,23 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `baseKm`: `number`
     *   `baseFare`: `number`
     *   `maxWeightTons`: `number`
+*   **`DriverWalletLogResponseDto`**: Driver wallet transaction log.
+    *   `id`: `string`
+    *   `beforeBalance`: `number`
+    *   `afterBalance`: `number`
+    *   `amount`: `number` - Transaction amount (+ for credit, - for debit)
+    *   `reason`: `string` - Description of transaction
+    *   `bookingId`: `string | null` - Related booking if applicable
+    *   `createdAt`: `Date`
+*   **`DriverTransactionLogResponseDto`**: Driver transaction ledger entry.
+    *   `id`: `string`
+    *   `amount`: `number`
+    *   `type`: `enum` (CREDIT, DEBIT)
+    *   `category`: `enum` (BOOKING_PAYMENT, BOOKING_REFUND, DRIVER_PAYOUT)
+    *   `description`: `string`
+    *   `bookingId`: `string | null`
+    *   `payoutId`: `string | null`
+    *   `createdAt`: `Date`
 
 ### Razorpay DTOs
 *   **`CreateOrderDto`**:
@@ -246,10 +281,10 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/bookings/customer` 🔒 | Creates a new booking. System automatically selects the ideal (cheapest suitable) vehicle model. Creates ESTIMATE invoice with wallet applied. | `CreateBookingRequestDto` | `BookingResponseDto` |
 | `GET` | `/bookings/customer/active` 🔒 | Lists customer's active bookings with invoices. | - | `BookingResponseDto[]` |
 | `GET` | `/bookings/customer/history` 🔒 | Lists customer's past bookings with invoices. | - | `BookingResponseDto[]` |
-| `GET` | `/bookings/customer/{id}` 🔒 | Gets a booking by its ID with all invoices (ESTIMATE and FINAL if driver accepted). | - | `BookingResponseDto` |
-| `DELETE`| `/bookings/customer/{id}` 🔒 | Cancels a PENDING booking. Cannot cancel after driver is assigned. | - | `SuccessResponseDto` |
+| `POST` | `/bookings/customer/cancel/{bookingId}` 🔒 | Cancels a booking with refund based on status. | `CancelBookingDto` | `SuccessResponseDto` |
 | `GET` | `/bookings/customer/upload-url` 🔒 | Gets a signed URL for file uploads. | Query: `filePath`, `type` | `UploadUrlResponseDto` |
 | `GET` | `/bookings/customer/driver-navigation/{bookingId}` 🔒 | SSE endpoint for real-time driver location updates. | - | Server-Sent Events stream |
+| `GET` | `/bookings/customer/{bookingId}` 🔒 | Gets a booking by its ID | - | `BookingResponseDto` |
 
 ### Booking (Driver) (`BookingDriver`)
 | Method | Path | Description | Request Body | Success Response |
@@ -264,7 +299,13 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/bookings/driver/drop/verify` 🔒 | Verifies drop-off with a code. | `VerifyCodeDto` | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/start` 🔒 | Starts the trip. | - | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/finish` 🔒 | Finishes the trip. | - | `SuccessResponseDto` |
+| `POST` | `/bookings/driver/settle-cash` 🔒 | Marks cash payment as settled (driver acknowledges receiving cash). | - | `SuccessResponseDto` |
 | `GET` | `/bookings/driver/ride-summary` 🔒 | Gets daily ride summary (total rides and earnings). Defaults to today in IST timezone. | Query: `date?` (YYYY-MM-DD) | `RideSummaryDto` |
+
+### Booking (Payment) (`BookingPayment`)
+| Method | Path | Description | Request Body | Success Response |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/bookings/webhook/razorpay` | Called by Razorpay when a payment is made | `RazorpayWebhookPayload` | `{ status: string, message?: string }` |
 
 ### Customer Profile (`CustomerProfile`)
 | Method | Path | Description | Request Body | Success Response |
@@ -273,6 +314,8 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `GET` | `/customer/profile` 🔒 | Retrieves the customer's profile. | - | `GetProfileResponseDto` |
 | `PUT` | `/customer/profile` 🔒 | Updates the customer's profile. | `UpdateProfileDto` | `SuccessResponseDto` |
 | `PUT` | `/customer/profile/fcm-token` 🔒 | Adds or updates a Firebase Cloud Messaging token. | `UsertFcmTokenDto` | `SuccessResponseDto` |
+| `GET` | `/customer/profile/wallet-logs` 🔒 | Retrieves customer's wallet transaction history (latest 50). | - | `CustomerWalletLogResponseDto[]` |
+| `GET` | `/customer/profile/transaction-logs` 🔒 | Retrieves customer's transaction ledger (latest 50). | - | `CustomerTransactionLogResponseDto[]` |
 
 ### Customer Address (`CustomerAddress`)
 | Method | Path | Description | Request Body | Success Response |
@@ -292,6 +335,8 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `PUT` | `/driver/profile` 🔒 | Updates the driver's profile. | `UpdateDriverProfileDto` | `DriverProfileResponseDto` |
 | `PUT` | `/driver/profile/status` 🔒 | Updates the driver's availability status. | `UpdateDriverStatusDto` | `SuccessResponseDto` |
 | `PUT` | `/driver/profile/payout-details` 🔒 | Updates the driver's payout details. | `UpdatePayoutDetailsDto` | `SuccessResponseDto` |
+| `GET` | `/driver/profile/wallet-logs` 🔒 | Retrieves driver's wallet transaction history (latest 50). | - | `DriverWalletLogResponseDto[]` |
+| `GET` | `/driver/profile/transaction-logs` 🔒 | Retrieves driver's transaction ledger (latest 50). | - | `DriverTransactionLogResponseDto[]` |
 
 ### Driver Documents (`DriverDocuments`)
 | Method | Path | Description | Request Body | Success Response |

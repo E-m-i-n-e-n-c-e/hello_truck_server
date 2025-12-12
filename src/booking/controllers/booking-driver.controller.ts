@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { Roles } from 'src/token/decorators/roles.decorator';
@@ -6,6 +6,7 @@ import { User } from 'src/token/decorators/user.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingAssignmentResponseDto } from '../dtos/booking-assignment.dto';
 import { BookingDriverService } from '../services/booking-driver.service';
+import { RideSummaryDto } from '../dtos/booking.dto';
 
 @Controller('bookings/driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -71,6 +72,12 @@ export class BookingDriverController {
     return this.bookingDriverService.finishRide(driverId);
   }
 
+  // Settle with cash (mark payment as received in cash)
+  @Post('settle-cash')
+  settleWithCash(@User('userId') driverId: string) {
+    return this.bookingDriverService.settleWithCash(driverId);
+  }
+
   // Get ride summary (total rides and earnings for a date)
   @Get('ride-summary')
   @Serialize(RideSummaryDto)
@@ -81,5 +88,4 @@ export class BookingDriverController {
     return this.bookingDriverService.getRideSummary(driverId, date);
   }
 }
-
 

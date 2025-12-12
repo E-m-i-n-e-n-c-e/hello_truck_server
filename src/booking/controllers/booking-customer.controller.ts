@@ -5,8 +5,8 @@ import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingCustomerService } from '../services/booking-customer.service';
-import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-estimate.dto';
-import { CreateBookingRequestDto, BookingResponseDto } from '../dtos/booking.dto';
+import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-invoice.dto';
+import { CreateBookingRequestDto, BookingResponseDto, CancelBookingDto } from '../dtos/booking.dto';
 import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
@@ -62,21 +62,18 @@ export class BookingCustomerController {
     return this.bookingCustomerService.getUploadUrl(userId, uploadUrlDto);
   }
 
-  @Get(':id')
-  @Serialize(BookingResponseDto)
-  async getBooking(
-    @User('userId') userId: string,
-    @Param('id') bookingId: string,
-  ) {
-    return this.bookingCustomerService.getBooking(userId, bookingId);
-  }
-
-  @Delete(':id')
+  @Post('cancel/:id')
   async cancelBooking(
     @User('userId') userId: string,
     @Param('id') bookingId: string,
+    @Body() cancelDto: CancelBookingDto,
   ) {
-    return this.bookingCustomerService.cancelBooking(userId, bookingId);
+    await this.bookingCustomerService.cancelBooking(
+      userId,
+      bookingId,
+      cancelDto.reason,
+    );
+    return { message: 'Booking cancelled successfully' };
   }
 
   @Get('driver-navigation/:bookingId')
@@ -87,5 +84,14 @@ export class BookingCustomerController {
     @Req() request: Request,
   ) {
     return this.bookingCustomerService.getDriverNavigationUpdates(userId, bookingId, response, request);
+  }
+
+  @Get(':id')
+  @Serialize(BookingResponseDto)
+  async getBooking(
+    @User('userId') userId: string,
+    @Param('id') bookingId: string,
+  ) {
+    return this.bookingCustomerService.getBooking(userId, bookingId);
   }
 }

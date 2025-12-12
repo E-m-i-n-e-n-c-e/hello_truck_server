@@ -429,7 +429,7 @@ model Invoice {
   walletApplied      Decimal       @default(0) @db.Decimal(10, 2)
   finalAmount        Decimal       @db.Decimal(10, 2)
   paymentLinkUrl     String?
-  rzpOrderId         String?       @unique
+  rzpPaymentLinkId   String?       @unique
   rzpPaymentId       String?
   
   // Payment status
@@ -542,21 +542,12 @@ model CustomerWalletLog {
 }
 
 model WebhookLog {
-  id String @id @default(uuid())
-  event String
-  razorpayOrderId String
-  payload Json
-  signature String
-  processed Boolean @default(false)
-  processedAt DateTime?
-  error String?
-
-  createdAt DateTime @default(now())
-
-  @@index([razorpayOrderId])
-  @@index([processed, createdAt])
+  id               String   @id @default(uuid())
+  event            String   // e.g., "payment_link.paid"
+  payload          Json
+  signature        String
+  createdAt        DateTime @default(now())
 }
-
 
 // Enums
 enum VerificationStatus {

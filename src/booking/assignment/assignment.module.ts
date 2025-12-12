@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { FirebaseModule } from 'src/firebase/firebase.module';
 import { RedisModule } from 'src/redis/redis.module';
+import { RazorpayModule } from 'src/razorpay/razorpay.module';
 import { BullModule } from '@nestjs/bullmq';
 import { AssignmentService } from './assignment.service';
 import { AssignmentWorker } from './assignment.worker';

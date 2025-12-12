@@ -199,4 +199,32 @@ export class ProfileService {
       )
       .exec();
   }
+
+  async getWalletLogs(userId: string) {
+    const logs = await this.prisma.driverWalletLog.findMany({
+      where: { driverId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return logs.map(log => ({
+      ...log,
+      beforeBalance: Number(log.beforeBalance),
+      afterBalance: Number(log.afterBalance),
+      amount: Number(log.amount),
+    }));
+  }
+
+  async getTransactionLogs(userId: string) {
+    const transactions = await this.prisma.transaction.findMany({
+      where: { driverId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return transactions.map(txn => ({
+      ...txn,
+      amount: Number(txn.amount),
+    }));
+  }
 }

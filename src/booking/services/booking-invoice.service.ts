@@ -1,17 +1,24 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { BookingAddress, Invoice, InvoiceType, Package, Prisma, ProductType, VehicleModel, WeightUnit } from '@prisma/client';
-import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-estimate.dto';
+import { Booking, BookingAddress, Customer, Driver, Invoice, InvoiceType, Package, Prisma, ProductType, Vehicle, VehicleModel, WeightUnit } from '@prisma/client';
+import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-invoice.dto';
 import { PricingService } from '../pricing/pricing.service';
 import { PackageDetailsDto, PersonalProductDto } from '../dtos/package.dto';
+import { CreateBookingAddressDto } from '../dtos/booking-address.dto';
 import * as geolib from 'geolib';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { RazorpayService } from 'src/razorpay/razorpay.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { FcmEventType } from 'src/common/types/fcm.types';
+import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
 export class BookingInvoiceService {
   constructor(
     private readonly pricingService: PricingService,
     private readonly prisma: PrismaService,
+    private readonly razorpayService: RazorpayService,
+    private readonly firebaseService: FirebaseService,
   ) {}
 
   /**
@@ -26,12 +33,14 @@ export class BookingInvoiceService {
     const estimate = await this.calculateEstimate(bookingEstimateRequest);
     const idealVehicle = estimate.topVehicles[0];
 
-    // Apply wallet balance to estimate
-    const walletApplied = Math.min(
-      Math.max(0, walletBalance), // Only positive wallet balance
-      idealVehicle.estimatedCost,
-    );
-    const finalAmount = idealVehicle.estimatedCost - walletApplied;
+    // Support both positive (credits) and negative (debt) balances
+    const walletApplied = walletBalance !== 0
+      ? (walletBalance > 0 
+          ? Math.min(walletBalance, idealVehicle.estimatedCost)
+          : walletBalance)
+      : 0;
+    
+    const finalAmount = truncate2(idealVehicle.estimatedCost - walletApplied);
 
     return tx.invoice.create({
       data: {
@@ -57,15 +66,11 @@ export class BookingInvoiceService {
    * Applies wallet balance and updates customer wallet
    */
   async createFinalInvoice(
-    bookingId: string,
-    customerId: string,
+    booking: Booking & { customer: Customer, pickupAddress: BookingAddress, dropAddress: BookingAddress, package: Package },
     vehicleModel: VehicleModel,
-    pickupAddress: BookingAddress,
-    dropAddress: BookingAddress,
-    packageDetails: Package,
     tx: Prisma.TransactionClient = this.prisma
   ): Promise<Invoice> {
-
+    const { customer, pickupAddress, dropAddress, package: packageDetails } = booking;
     const distanceKm = this.calculateDistanceKm(pickupAddress, dropAddress);
     const weightInTons = this.calculateTotalWeightInTons(packageDetails);
 
@@ -76,28 +81,93 @@ export class BookingInvoiceService {
       weightInTons,
     );
 
-    // Get customer for wallet balance
-    const customer = await tx.customer.findUnique({
-      where: { id: customerId },
-    });
-
-    if (!customer) {
-      throw new BadRequestException('Customer not found');
+    // Support both positive (credits) and negative (debt) balances
+    const walletBalance = Number(customer.walletBalance);
+    let walletApplied = 0;
+    let finalAmount = pricing.totalPrice;
+    
+    if (walletBalance !== 0) {
+      // For positive: apply credit (reduce payment)
+      // For negative: apply debt (increase payment)
+      walletApplied = walletBalance > 0 
+        ? Math.min(walletBalance, pricing.totalPrice) 
+        : walletBalance;
+      
+      finalAmount = truncate2(pricing.totalPrice - walletApplied);
+      const newBalance = truncate2(walletBalance - walletApplied);
+      
+      await tx.customer.update({
+        where: { id: customer.id },
+        data: { walletBalance: newBalance },
+      });
+      
+      await tx.customerWalletLog.create({
+        data: {
+          customerId: customer.id,
+          beforeBalance: walletBalance,
+          afterBalance: newBalance,
+          amount: -walletApplied,
+          reason: walletApplied > 0 
+            ? `Applied to Booking #${booking.bookingNumber}`
+            : `Debt added to Booking #${booking.bookingNumber}`,
+          bookingId: booking.id,
+        },
+      });
     }
 
-    // Apply wallet balance
-    const walletBalance = Number(customer.walletBalance);
-    const walletApplied = Math.min(
-      Math.max(0, walletBalance),
-      pricing.totalPrice
-    );
-    const finalAmount = pricing.totalPrice - walletApplied;
+    // Notify wallet changes after transaction
+    if (walletBalance !== 0) {
+      if (walletApplied > 0) {
+        // Wallet credit was applied (debit from wallet)
+        this.firebaseService.notifyAllSessions(customer.id, 'customer', {
+          notification: {
+            title: 'Wallet Applied',
+            body: `₹${walletApplied.toFixed(2)} wallet balance applied to your booking`,
+          },
+          data: {
+            event: FcmEventType.WalletDebit,
+            amount: walletApplied.toString(),
+          },
+        });
+      } else {
+        // Debt was added to payment (debit to wallet)
+        this.firebaseService.notifyAllSessions(customer.id, 'customer', {
+          notification: {
+            title: 'Wallet Debt Cleared',
+            body: `₹${Math.abs(walletApplied).toFixed(2)} debt added to booking payment`,
+          },
+          data: {
+            event: FcmEventType.WalletDebit,
+            amount: Math.abs(walletApplied).toString(),
+          },
+        });
+      }
+    }
+
+    // Generate payment link only if finalAmount > 0
+    let paymentLinkUrl: string | undefined;
+    let rzpPaymentLinkId: string | undefined;
+
+    if (finalAmount > 0) {
+      const { paymentLinkUrl: linkUrl, paymentLinkId } = await this.razorpayService.createPaymentLink({
+        amount: finalAmount,
+        description: `Booking #${booking.bookingNumber} Payment`,
+        customerName: customer.firstName || customer.phoneNumber,
+        customerContact: customer.phoneNumber,
+        customerEmail: customer.email ?? undefined,
+        referenceId: booking.id,
+      });
+
+      paymentLinkUrl = linkUrl;
+      rzpPaymentLinkId = paymentLinkId;
+    }
 
     // Create FINAL invoice
     const invoice = await tx.invoice.create({
       data: {
-        bookingId,
+        bookingId: booking.id,
         type: InvoiceType.FINAL,
+        isPaid: finalAmount > 0,
         vehicleModelName: vehicleModel.name,
         basePrice: vehicleModel.baseFare,
         perKmPrice: vehicleModel.perKm,
@@ -108,19 +178,15 @@ export class BookingInvoiceService {
         totalPrice: pricing.totalPrice,
         walletApplied,
         finalAmount,
-        // TODO: Add Razorpay payment link generation here
-        // paymentLinkUrl: paymentLink.url,
-        // rzpOrderId: paymentLink.orderId,
+        paymentLinkUrl: paymentLinkUrl || undefined,
+        rzpPaymentLinkId: rzpPaymentLinkId || undefined,
       },
     });
 
-    // Update customer wallet balance
-    if (walletApplied > 0) {
-      await tx.customer.update({
-        where: { id: customerId },
-        data: { walletBalance: walletBalance - walletApplied },
-      });
-    }
+    await tx.customer.update({
+      where: { id: customer.id },
+      data: { walletBalance: walletBalance - walletApplied },
+    });
 
     return invoice;
   }
@@ -146,6 +212,10 @@ export class BookingInvoiceService {
     return estimate;
   }
 
+  calculateTotalWeightInTons(packageDetails: {approximateWeight: number | Decimal, weightUnit: WeightUnit}): number {
+    return this.convertToKg(Number(packageDetails.approximateWeight), packageDetails.weightUnit) / 1000;    
+  }
+
   /**
    * Validate estimate request
    */
@@ -154,7 +224,7 @@ export class BookingInvoiceService {
     this.validatePackageDetails(request.packageDetails);
   }
 
-  private validateAddresses(pickupAddress: any, dropAddress: any): void {
+  private validateAddresses(pickupAddress: CreateBookingAddressDto, dropAddress: CreateBookingAddressDto): void {
     // Check if addresses are different
     if (
       pickupAddress.latitude === dropAddress.latitude &&
@@ -223,9 +293,5 @@ export class BookingInvoiceService {
       default:
         throw new BadRequestException('Invalid weight unit');
     }
-  }
-
-  calculateTotalWeightInTons(packageDetails: {approximateWeight: number | Decimal, weightUnit: WeightUnit}): number {
-    return this.convertToKg(Number(packageDetails.approximateWeight), packageDetails.weightUnit) / 1000;    
   }
 }

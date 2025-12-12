@@ -9,6 +9,8 @@ import { ProfileService } from '../profile/profile.service';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
+import { CustomerWalletLogResponseDto } from '../dtos/wallet-log.dto';
+import { CustomerTransactionLogResponseDto } from '../dtos/transaction-log.dto';
 
 @Controller('customer/profile')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -50,5 +52,17 @@ export class CustomerProfileController {
     @Body() upsertFcmTokenDto: UsertFcmTokenDto,
   ) {
     return this.profileService.upsertFcmToken(sessionId, upsertFcmTokenDto.fcmToken);
+  }
+
+  @Get('wallet-logs')
+  @Serialize(CustomerWalletLogResponseDto)
+  async getWalletLogs(@User('userId') userId: string): Promise<CustomerWalletLogResponseDto[]> {
+    return this.profileService.getWalletLogs(userId);
+  }
+
+  @Get('transaction-logs')
+  @Serialize(CustomerTransactionLogResponseDto)
+  async getTransactionLogs(@User('userId') userId: string): Promise<CustomerTransactionLogResponseDto[]> {
+    return this.profileService.getTransactionLogs(userId);
   }
 }

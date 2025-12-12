@@ -89,4 +89,32 @@ export class ProfileService {
   async upsertFcmToken(sessionId: string, fcmToken: string) {
     await this.firebaseService.upsertFcmToken({sessionId, fcmToken, userType: 'customer'});
   }
+
+  async getWalletLogs(userId: string) {
+    const logs = await this.prisma.customerWalletLog.findMany({
+      where: { customerId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return logs.map(log => ({
+      ...log,
+      beforeBalance: Number(log.beforeBalance),
+      afterBalance: Number(log.afterBalance),
+      amount: Number(log.amount),
+    }));
+  }
+
+  async getTransactionLogs(userId: string) {
+    const transactions = await this.prisma.transaction.findMany({
+      where: { customerId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return transactions.map(txn => ({
+      ...txn,
+      amount: Number(txn.amount),
+    }));
+  }
 }
