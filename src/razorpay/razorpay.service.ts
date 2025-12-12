@@ -17,7 +17,7 @@ export class RazorpayService {
   constructor(private readonly configService: ConfigService) {
     const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
     const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
-    this.webhookSecret = this.configService.get<string>('RAZORPAY_WEBHOOK_SECRET') || 'change_me';
+    this.webhookSecret = this.configService.get<string>('RAZORPAY_WEBHOOK_SECRET')!;
 
     if (!keyId || !keySecret) {
       throw new Error('Razorpay credentials not configured');

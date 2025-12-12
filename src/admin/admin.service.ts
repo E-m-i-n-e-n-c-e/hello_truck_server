@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { VerificationStatus } from '@prisma/client';
 import { UpdateDriverVerificationDto } from './dtos/admin.dto';
@@ -9,11 +10,12 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async login(username: string, pass: string): Promise<{ accessToken: string }> {
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminUsername = this.configService.get<string>('ADMIN_USERNAME')!;
+    const adminPassword = this.configService.get<string>('ADMIN_PASSWORD')!;
 
     if (username !== adminUsername || pass !== adminPassword) {
       throw new UnauthorizedException('Invalid credentials');
@@ -22,7 +24,7 @@ export class AdminService {
     const payload = { username: adminUsername, role: 'admin' };
     return {
       accessToken: await this.jwtService.signAsync(payload, {
-        secret: process.env.ADMIN_JWT_SECRET || 'admin-secret-key-change-me',
+        secret: this.configService.get<string>('ADMIN_JWT_SECRET')!,
         expiresIn: '1d',
       }),
     };

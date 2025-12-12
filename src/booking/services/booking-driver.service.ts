@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
@@ -15,6 +16,7 @@ export class BookingDriverService {
     private readonly bookingAssignmentService: AssignmentService,
     private readonly firebase: FirebaseService,
     private readonly invoiceService: BookingInvoiceService,
+    private readonly configService: ConfigService,
   ) { }
 
   async acceptBooking(driverAssignmentId: string): Promise<void> {
@@ -315,7 +317,7 @@ export class BookingDriverService {
       }
 
       const totalAmount = Number(finalInvoice.finalAmount);
-      const commissionRate = parseFloat(process.env.COMMISSION_RATE || '0.07');
+      const commissionRate = this.configService.get<number>('COMMISSION_RATE')!;
       const commission = Math.round(totalAmount * commissionRate * 100) / 100;
       
       // Check payment type

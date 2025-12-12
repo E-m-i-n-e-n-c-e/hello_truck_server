@@ -1,4 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
@@ -7,16 +8,13 @@ export class RedisService extends Redis implements OnModuleDestroy {
   private subscriberInstance: Redis | null = null;
   private channelToListeners: Map<string, Set<(message: string) => void>> = new Map();
 
-  constructor() {
-    super(
-      process.env.REDIS_URL ||
-        'rediss://default:ARqpAAImcDFkNDJiYzliM2NjNDA0MThmODlmMWNhZjVkODRjZTE0OHAxNjgyNQ@blessed-bobcat-6825.upstash.io:6379',
-      {
-        maxRetriesPerRequest: 3,
-        enableReadyCheck: true,
-        lazyConnect: true,
-      }
-    );
+  constructor(private readonly configService: ConfigService) {
+    const redisUrl = configService.get<string>('REDIS_URL')!; // Validated on startup
+    super(redisUrl, {
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      lazyConnect: true,
+    });
   }
 
   async onModuleDestroy() {
@@ -33,15 +31,12 @@ export class RedisService extends Redis implements OnModuleDestroy {
 
   get bullClient(): Redis {
     if (!this.bullRedisInstance) {
-      this.bullRedisInstance = new Redis(
-        process.env.REDIS_URL ||
-          'rediss://default:ARqpAAImcDFkNDJiYzliM2NjNDA0MThmODlmMWNhZjVkODRjZTE0OHAxNjgyNQ@blessed-bobcat-6825.upstash.io:6379',
-        {
-          maxRetriesPerRequest: null, // Important for Bull queues - null means infinite retries
-          enableReadyCheck: false,    // Prevents some connection issues
-          lazyConnect: true,
-        }
-      );
+      const redisUrl = this.configService.get<string>('REDIS_URL')!; // Validated on startup
+      this.bullRedisInstance = new Redis(redisUrl, {
+        maxRetriesPerRequest: null, // Important for Bull queues - null means infinite retries
+        enableReadyCheck: false,    // Prevents some connection issues
+        lazyConnect: true,
+      });
     }
     return this.bullRedisInstance;
   }

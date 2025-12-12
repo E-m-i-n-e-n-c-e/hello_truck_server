@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 
 function setupSwagger(app: INestApplication) {
@@ -63,6 +64,9 @@ async function bootstrap() {
       : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
+  // Get ConfigService for typed environment access
+  const configService = app.get(ConfigService);
+
   // Enable CORS for admin dashboard
   app.enableCors({
     origin: '*',
@@ -81,7 +85,8 @@ async function bootstrap() {
 
   setupSwagger(app);
 
-  await app.listen(process.env.PORT || 3000);
+  const port = configService.get<number>('PORT', 3000);
+  await app.listen(port);
 }
 
 bootstrap();

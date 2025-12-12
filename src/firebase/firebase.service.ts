@@ -52,7 +52,7 @@ export class FirebaseService implements OnModuleInit {
 
       // Initialize Google Auth Client
       this.googleClient = new OAuth2Client(
-        this.configService.get<string>('GOOGLE_CLIENT_ID') || '691159300275-37gn4bpd7jrkld0cmot36vl181s3tsf3.apps.googleusercontent.com'
+        this.configService.get<string>('GOOGLE_CLIENT_ID')
       );
 
       this.logger.log('Firebase Admin SDK initialized successfully');

@@ -395,9 +395,9 @@
         ]
       }
     },
-    "/bookings/customer/{id}": {
-      "get": {
-        "operationId": "getBooking",
+    "/bookings/customer/cancel/{id}": {
+      "post": {
+        "operationId": "cancelBooking",
         "parameters": [
           {
             "name": "id",
@@ -408,8 +408,18 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelBookingDto"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
+          "201": {
             "description": ""
           }
         },
@@ -421,12 +431,14 @@
             "access-token": []
           }
         ]
-      },
-      "delete": {
-        "operationId": "cancelBooking",
+      }
+    },
+    "/bookings/customer/driver-navigation/{bookingId}": {
+      "get": {
+        "operationId": "getDriverNavigationUpdates",
         "parameters": [
           {
-            "name": "id",
+            "name": "bookingId",
             "required": true,
             "in": "path",
             "schema": {
@@ -449,12 +461,12 @@
         ]
       }
     },
-    "/bookings/customer/driver-navigation/{bookingId}": {
+    "/bookings/customer/{id}": {
       "get": {
-        "operationId": "getDriverNavigationUpdates",
+        "operationId": "getBooking",
         "parameters": [
           {
-            "name": "bookingId",
+            "name": "id",
             "required": true,
             "in": "path",
             "schema": {
@@ -702,6 +714,81 @@
         ]
       }
     },
+    "/bookings/driver/settle-cash": {
+      "post": {
+        "operationId": "settleWithCash",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/ride-summary": {
+      "get": {
+        "operationId": "getRideSummary",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/webhook/razorpay": {
+      "post": {
+        "operationId": "handleRazorpayWebhook",
+        "parameters": [
+          {
+            "name": "x-razorpay-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingPayment"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/admin/auth/login": {
       "post": {
         "operationId": "login",
@@ -869,6 +956,58 @@
         },
         "tags": [
           "Admin"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/razorpay/create-contact": {
+      "post": {
+        "operationId": "createContact",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Razorpay"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/razorpay/create-fund-account": {
+      "post": {
+        "operationId": "createFundAccount",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Razorpay"
         ],
         "security": [
           {
@@ -1213,6 +1352,64 @@
         ]
       }
     },
+    "/customer/profile/wallet-logs": {
+      "get": {
+        "operationId": "getWalletLogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerWalletLogResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/profile/transaction-logs": {
+      "get": {
+        "operationId": "getTransactionLogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerTransactionLogResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/customer/addresses": {
       "post": {
         "operationId": "createSavedAddress",
@@ -1540,6 +1737,64 @@
         "responses": {
           "200": {
             "description": ""
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/profile/wallet-logs": {
+      "get": {
+        "operationId": "getWalletLogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DriverWalletLogResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DriverProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/profile/transaction-logs": {
+      "get": {
+        "operationId": "getTransactionLogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DriverTransactionLogResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1970,58 +2225,6 @@
           }
         ]
       }
-    },
-    "/razorpay/create-contact": {
-      "post": {
-        "operationId": "createContact",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Razorpay"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
-    "/razorpay/create-fund-account": {
-      "post": {
-        "operationId": "createFundAccount",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Razorpay"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
     }
   },
   "info": {
@@ -2402,6 +2605,17 @@
           "token"
         ]
       },
+      "CancelBookingDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
       "UpdateDriverVerificationDto": {
         "type": "object",
         "properties": {
@@ -2682,6 +2896,80 @@
         },
         "required": [
           "fcmToken"
+        ]
+      },
+      "CustomerWalletLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "beforeBalance": {
+            "type": "number"
+          },
+          "afterBalance": {
+            "type": "number"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "beforeBalance",
+          "afterBalance",
+          "amount",
+          "reason",
+          "bookingId",
+          "createdAt"
+        ]
+      },
+      "CustomerTransactionLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "type": {
+            "type": "object"
+          },
+          "category": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "type",
+          "category",
+          "description",
+          "bookingId",
+          "createdAt"
         ]
       },
       "UpdateAddressDto": {
@@ -3048,6 +3336,85 @@
           "status"
         ]
       },
+      "DriverWalletLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "beforeBalance": {
+            "type": "number"
+          },
+          "afterBalance": {
+            "type": "number"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "beforeBalance",
+          "afterBalance",
+          "amount",
+          "reason",
+          "bookingId",
+          "createdAt"
+        ]
+      },
+      "DriverTransactionLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "type": {
+            "type": "object"
+          },
+          "category": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "payoutId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "type",
+          "category",
+          "description",
+          "bookingId",
+          "payoutId",
+          "createdAt"
+        ]
+      },
       "DriverDocumentsResponseDto": {
         "type": "object",
         "properties": {
@@ -3172,8 +3539,30 @@
           },
           "insuranceAlert": {
             "type": "string"
+          },
+          "isLicenseExpired": {
+            "type": "boolean"
+          },
+          "isInsuranceExpired": {
+            "type": "boolean"
+          },
+          "licenseExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "insuranceExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
           }
-        }
+        },
+        "required": [
+          "isLicenseExpired",
+          "isInsuranceExpired",
+          "licenseExpiry",
+          "insuranceExpiry"
+        ]
       },
       "UpdateVehicleDto": {
         "type": "object",

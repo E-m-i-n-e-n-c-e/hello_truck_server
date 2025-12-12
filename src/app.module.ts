@@ -11,10 +11,14 @@ import { CustomThrottlerGuard } from './token/guards/custom-throttler.guard';
 import { DriverModule } from './driver/driver.module';
 import { BookingModule } from './booking/booking.module';
 import { AdminModule } from './admin/admin.module';
+import { validate } from './config/env.config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ 
+      isGlobal: true,
+      validate, // Fail-fast validation on startup
+    }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{
       ttl: seconds(60), // 1 minute
