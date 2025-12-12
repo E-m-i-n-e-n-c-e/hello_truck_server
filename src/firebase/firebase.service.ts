@@ -68,7 +68,6 @@ export class FirebaseService implements OnModuleInit {
     expiresInSeconds = 300
   ): Promise<{ signedUrl: string; publicUrl: string; token: string }> {
     const token = uuidv4();
-    console.log('Token: ', token);
 
     const bucket = this.app.storage().bucket();
     const file = bucket.file(filePath);
@@ -158,7 +157,6 @@ export class FirebaseService implements OnModuleInit {
     });
 
     await this.sessionService.updateSessionsByUserId(userId, userType, { lastNotifiedAt: new Date() });
-    console.log('Notification sent to all sessions', res);
     return res;
   }
 

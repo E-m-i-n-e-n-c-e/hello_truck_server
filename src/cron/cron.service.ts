@@ -7,9 +7,11 @@ import { BookingCleanupService } from './services/booking-cleanup.service';
 import { LogCleanupService } from './services/log-cleanup.service';
 import { PayoutService } from './services/payout.service';
 import { RedisService } from '../redis/redis.service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class CronService {
+  private readonly logger = new Logger(CronService.name);
   constructor(
     private documentCleanup: DocumentCleanupService,
     private sessionCleanup: SessionCleanupService,
@@ -27,13 +29,13 @@ export class CronService {
     const acquired = await this.redisService.tryLock(lockKey, 1800); // 30 minutes
 
     if (!acquired) {
-      console.log('[CRON] Another instance is already running daily payouts. Skipping.');
+      this.logger.log('[CRON] Another instance is already running daily payouts. Skipping.');
       return;
     }
 
-    console.log('[CRON] Running daily payout processing...');
+    this.logger.log('[CRON] Running daily payout processing...');
     await this.payoutService.processDailyPayouts();
-    console.log('[CRON] Daily payout processing completed.');
+    this.logger.log('[CRON] Daily payout processing completed.');
   }
 
   // Daily 2 AM jobs - cleanup
@@ -43,11 +45,11 @@ export class CronService {
     const acquired = await this.redisService.tryLock(lockKey, 3600); // 1 hour
 
     if (!acquired) {
-      console.log('[CRON] Another instance is already running daily cleanup. Skipping.');
+      this.logger.log('[CRON] Another instance is already running daily cleanup. Skipping.');
       return;
     }
 
-    console.log('[CRON] Running daily cleanup jobs...');
+    this.logger.log('[CRON] Running daily cleanup jobs...');
 
     await this.documentCleanup.checkExpiredDocuments();
     await this.sessionCleanup.cleanupExpiredSessions();
@@ -55,7 +57,7 @@ export class CronService {
     await this.bookingCleanup.cleanupOldBookings();
     await this.logCleanup.cleanupOldLogs();
 
-    console.log('[CRON] Daily cleanup jobs completed.');
+    this.logger.log('[CRON] Daily cleanup jobs completed.');
   }
 
   // Hourly job - mark expired bookings
@@ -65,14 +67,14 @@ export class CronService {
     const acquired = await this.redisService.tryLock(lockKey, 600); // 10 minutes
 
     if (!acquired) {
-      console.log('[CRON] Another instance is already running hourly jobs. Skipping.');
+      this.logger.log('[CRON] Another instance is already running hourly jobs. Skipping.');
       return;
     }
 
-    console.log('[CRON] Running hourly cleanup jobs...');
+    this.logger.log('[CRON] Running hourly cleanup jobs...');
 
     await this.bookingCleanup.markExpiredBookings();
 
-    console.log('[CRON] Hourly cleanup jobs completed.');
+    this.logger.log('[CRON] Hourly cleanup jobs completed.');
   }
 }

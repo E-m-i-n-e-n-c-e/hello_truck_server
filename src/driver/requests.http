@@ -5,7 +5,7 @@ POST https://hello-truck-server.fly.dev/auth/driver/send-otp
 Content-Type: application/json
 
 {
-  "phoneNumber": "6300045921"
+  "phoneNumber": "6300045929"
 }
 
 ### Verify OTP
@@ -13,14 +13,14 @@ POST https://hello-truck-server.fly.dev/auth/driver/verify-otp
 Content-Type: application/json
 
 {
-  "phoneNumber": "6300045921",
+  "phoneNumber": "6300045929",
   "otp": "123456"
 }
 
 ### Get Profile
-GET http://localhost:3000/driver/profile
+GET http://localhost:3000/driver/profile?includeVehicle=true
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6IjAwODcwNDQyLTY2ODgtNDRlOC04OTY5LTA1MzdmOGZiNGVkMyIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyMSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOmZhbHNlLCJpYXQiOjE3NTU3MDM0NjcsImV4cCI6MTc1NTcwNDM2N30.cbc95eyTE51HEibfTwszbtn1c4bWOIXGyQqBDMT7s5Y
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6IjU3ZTRlZGI0LTRkNjktNGQyNC04YzQxLTEyNWRmYjU4Nzc5OCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImU5Yzg3MDFmLWRmMTAtNDdiZC04MzQ2LTcyMjhlYzI5MjM3YiIsImlhdCI6MTc2NDk0NzM2MywiZXhwIjoxNzY0OTQ4MjYzfQ.lobE6z56NL_LnVEmxCxeRHwzBK8iDMUSeFsoovnhxm0
 
 ### Create Complete Profile (Onboarding)
 POST http://localhost:3000/driver/profile

@@ -4,9 +4,11 @@ import * as bcrypt from 'bcrypt';
 import axios from 'axios';
 import { randomInt } from 'crypto';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class OtpService {
+  private readonly logger = new Logger(OtpService.name);
   private readonly OTP_EXPIRY_SECONDS = 60; // 60 seconds
   private readonly MAX_RETRY_COUNT = 5;
 
@@ -37,7 +39,7 @@ export class OtpService {
     const apiKey = this.configService.get<string>('TWO_FACTOR_API_KEY');
     const url = `https://2factor.in/API/V1/${apiKey}/SMS/+91${phoneNumber}/${otp}/HelloTruckOtpTemplate`;
 
-    console.log(`Sending OTP to ${phoneNumber} via URL: ${url}`);
+    this.logger.log(`Sending OTP to ${phoneNumber} via URL: ${url}`);
     // try {
     //   const response = await axios.get(url);
     //   if (response.data.Status !== 'Success') {
@@ -47,7 +49,7 @@ export class OtpService {
     //   throw new BadRequestException(error.message);
     // }
 
-    console.log(`OTP for ${phoneNumber}: ${otp}`);
+    this.logger.log(`OTP for ${phoneNumber}: ${otp}`);
 
     return {
       success: true,

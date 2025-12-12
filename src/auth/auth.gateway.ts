@@ -6,7 +6,7 @@ import {
   SubscribeMessage,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UnauthorizedException } from '@nestjs/common';
+import { Logger, UnauthorizedException } from '@nestjs/common';
 import { TokenService } from '../token/token.service';
 
 @WebSocketGateway({
@@ -15,6 +15,8 @@ import { TokenService } from '../token/token.service';
   },
 })
 export class AuthGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private logger = new Logger(AuthGateway.name);
+
   @WebSocketServer()
   server: Server;
 
@@ -36,7 +38,7 @@ export class AuthGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
   @SubscribeMessage('refresh-token')

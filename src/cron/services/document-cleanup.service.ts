@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class DocumentCleanupService {
+  private readonly logger = new Logger(DocumentCleanupService.name);
   constructor(private prisma: PrismaService) {}
 
   async checkExpiredDocuments() {
@@ -35,7 +37,7 @@ export class DocumentCleanupService {
       data: { insuranceStatus: 'PENDING' }
     });
 
-    console.log(`Expired docs: License=${expiredLicenses.count}, FC=${expiredFCs.count}, Insurance=${expiredInsurances.count}.`);
+    this.logger.log(`Expired docs: License=${expiredLicenses.count}, FC=${expiredFCs.count}, Insurance=${expiredInsurances.count}.`);
 
     // 4. Update Driver status to PENDING ONLY if they have EXPIRED documents
     const demotedDrivers = await this.prisma.driver.updateMany({
@@ -52,6 +54,6 @@ export class DocumentCleanupService {
       data: { verificationStatus: 'PENDING' }
     });
 
-    console.log(`Demoted ${demotedDrivers.count} drivers due to expired documents.`);
+    this.logger.log(`Demoted ${demotedDrivers.count} drivers due to expired documents.`);
   }
 }

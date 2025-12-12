@@ -55,7 +55,6 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
 
         next();
       } catch (error) {
-        console.log('❌ Auth error:', error.message);
         next(new Error('Authentication error: Invalid token'));
       }
     });

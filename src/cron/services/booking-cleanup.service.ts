@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BookingStatus } from '@prisma/client';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class BookingCleanupService {
+  private readonly logger = new Logger(BookingCleanupService.name);
   constructor(private prisma: PrismaService) {}
 
   async markExpiredBookings() {
@@ -18,7 +20,7 @@ export class BookingCleanupService {
         status: BookingStatus.EXPIRED,
       },
     });
-    console.log(`Cleaned up ${result.count} expired bookings`);
+    this.logger.log(`Cleaned up ${result.count} expired bookings`);
   }
 
   async cleanupOldBookings() {
@@ -31,7 +33,7 @@ export class BookingCleanupService {
         },
       },
     });
-    console.log(`Cleaned up ${result.count} expired or completed bookings`);
+    this.logger.log(`Cleaned up ${result.count} expired or completed bookings`);
 
     // Delete booking addresses that are not associated with any booking (orphaned addresses)
     const bookingAddressResult = await this.prisma.bookingAddress.deleteMany({
@@ -40,7 +42,7 @@ export class BookingCleanupService {
         dropBooking: null,
       },
     });
-    console.log(`Cleaned up ${bookingAddressResult.count} orphaned booking addresses`);
+    this.logger.log(`Cleaned up ${bookingAddressResult.count} orphaned booking addresses`);
 
     // Delete packages that are not associated with any booking (orphaned packages)
     const packageResult = await this.prisma.package.deleteMany({
@@ -48,6 +50,6 @@ export class BookingCleanupService {
         booking: null,
       },
     });
-    console.log(`Cleaned up ${packageResult.count} orphaned packages`);
+    this.logger.log(`Cleaned up ${packageResult.count} orphaned packages`);
   }
 }

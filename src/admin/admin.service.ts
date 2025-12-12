@@ -16,7 +16,6 @@ export class AdminService {
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
 
     if (username !== adminUsername || pass !== adminPassword) {
-      console.log(username, pass);
       throw new UnauthorizedException('Invalid credentials');
     }
 
