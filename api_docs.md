@@ -137,10 +137,22 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `contactPhone`: `string`
     *   `isDefault?`: `boolean`
     *   `address`: `CreateAddressDto` / `UpdateAddressDto`
-*   **`CreateGstDetailsDto` / `UpdateGstDetailsDto`**:
+*   **`CreateGstDetailsDto` / `UpdateGstDetailsDto`**: For customer GST details.
+    *   `gstNumber`: `string` - GST number (format: 22AAAAA0000A1Z5)
+    *   `businessName`: `string`
+    *   `businessAddress`: `string`
+*   **`DeactivateGstDetailsDto`**: To deactivate a GST entry.
+    *   `id`: `string` - GST details ID
+*   **`ReactivateGstDetailsDto`**: To reactivate a GST entry.
+    *   `gstNumber`: `string` - GST number to reactivate
+*   **`GstDetailsResponseDto`**: GST details response.
+    *   `id`: `string`
     *   `gstNumber`: `string`
     *   `businessName`: `string`
     *   `businessAddress`: `string`
+    *   `isActive`: `boolean`
+    *   `createdAt`: `Date`
+    *   `updatedAt`: `Date`
 *   **`CustomerWalletLogResponseDto`**: Customer wallet transaction log.
     *   `id`: `string`
     *   `beforeBalance`: `number`
@@ -177,6 +189,27 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `licenseUrl?`: `string` (URL)
     *   `rcBookUrl?`: `string` (URL)
     *   ... and other document URLs.
+*   **`CreateDriverAddressDto` / `UpdateDriverAddressDto`**: Driver's permanent address.
+    *   `addressLine1`: `string`
+    *   `landmark?`: `string`
+    *   `pincode`: `string` - 6-digit pincode
+    *   `city`: `string`
+    *   `district`: `string`
+    *   `state`: `string`
+    *   `latitude?`: `number`
+    *   `longitude?`: `number`
+*   **`DriverAddressResponseDto`**: Driver address response.
+    *   `id`: `string`
+    *   `addressLine1`: `string`
+    *   `landmark`: `string | null`
+    *   `pincode`: `string`
+    *   `city`: `string`
+    *   `district`: `string`
+    *   `state`: `string`
+    *   `latitude`: `number | null`
+    *   `longitude`: `number | null`
+    *   `createdAt`: `Date`
+    *   `updatedAt`: `Date`
 *   **`VehicleModelResponseDto`**:
     *   `name`: `string`
     *   `perKm`: `number`
@@ -209,16 +242,6 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `insuranceExpiry`: `Date | null` - Actual insurance expiry date (set by admin)
 
 ### Razorpay DTOs
-*   **`CreateOrderDto`**:
-    *   `amount`: `number` (in smallest currency unit, e.g., paise)
-    *   `currency`: `string` (e.g., "INR")
-    *   `receipt`: `string`
-*   **`CreatePaymentLinkDto`**:
-    *   `amount`: `number` (in smallest currency unit)
-    *   `description`: `string`
-    *   `customerName`: `string`
-    *   `customerPhone`: `string`
-    *   `customerEmail`: `string`
 *   **`CreateContactDto`**:
     *   `name`: `string`
     *   `email`: `string`
@@ -334,6 +357,16 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `PUT` | `/customer/addresses/{id}` 🔒 | Updates a saved address. | `UpdateSavedAddressDto` | `AddressResponseDto` |
 | `DELETE`| `/customer/addresses/{id}` 🔒 | Deletes a saved address. | - | `SuccessResponseDto` |
 
+### Customer GST Details (`CustomerGst`)
+| Method | Path | Description | Request Body | Success Response |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/customer/gst` 🔒 | Adds new GST details for the customer. | `CreateGstDetailsDto` | `SuccessResponseDto` |
+| `GET` | `/customer/gst` 🔒 | Retrieves all GST details for the customer. | - | `GstDetailsResponseDto[]` |
+| `GET` | `/customer/gst/{id}` 🔒 | Retrieves a specific GST detail by ID. | - | `GstDetailsResponseDto` |
+| `PUT` | `/customer/gst/{id}` 🔒 | Updates GST details. | `UpdateGstDetailsDto` | `SuccessResponseDto` |
+| `POST` | `/customer/gst/deactivate` 🔒 | Deactivates a GST entry. | `DeactivateGstDetailsDto` | `SuccessResponseDto` |
+| `POST` | `/customer/gst/reactivate` 🔒 | Reactivates a previously deactivated GST entry. | `ReactivateGstDetailsDto` | `SuccessResponseDto` |
+
 ### Driver Profile (`DriverProfile`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
@@ -341,6 +374,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `GET` | `/driver/profile` 🔒 | Retrieves the driver's profile. | - | `DriverProfileResponseDto` |
 | `PUT` | `/driver/profile` 🔒 | Updates the driver's profile. | `UpdateDriverProfileDto` | `DriverProfileResponseDto` |
 | `PUT` | `/driver/profile/status` 🔒 | Updates the driver's availability status. | `UpdateDriverStatusDto` | `SuccessResponseDto` |
+| `PUT` | `/driver/profile/fcm-token` 🔒 | Adds or updates a Firebase Cloud Messaging token. | `UsertFcmTokenDto` | `SuccessResponseDto` |
 | `PUT` | `/driver/profile/payout-details` 🔒 | Updates the driver's payout details. | `UpdatePayoutDetailsDto` | `SuccessResponseDto` |
 | `GET` | `/driver/profile/wallet-logs` 🔒 | Retrieves driver's wallet transaction history (latest 50). | - | `DriverWalletLogResponseDto[]` |
 | `GET` | `/driver/profile/transaction-logs` 🔒 | Retrieves driver's transaction ledger (latest 50). | - | `DriverTransactionLogResponseDto[]` |
@@ -364,13 +398,19 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/driver/vehicle/owner` 🔒 | Adds vehicle owner details. | `CreateVehicleOwnerDto` | `VehicleOwnerResponseDto` |
 | `PUT` | `/driver/vehicle/owner` 🔒 | Updates vehicle owner details. | `UpdateVehicleOwnerDto` | `VehicleOwnerResponseDto` |
 
+### Driver Address (`DriverAddress`)
+| Method | Path | Description | Request Body | Success Response |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/driver/address` 🔒 | Creates driver's permanent address. | `CreateDriverAddressDto` | `DriverAddressResponseDto` |
+| `GET` | `/driver/address` 🔒 | Retrieves driver's permanent address. | - | `DriverAddressResponseDto` |
+| `PUT` | `/driver/address` 🔒 | Updates driver's permanent address. | `UpdateDriverAddressDto` | `DriverAddressResponseDto` |
+| `DELETE`| `/driver/address` 🔒 | Deletes driver's permanent address. | - | `SuccessResponseDto` |
+
 ### Razorpay Payments (`Razorpay`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/razorpay/create-contact` 🔒 | Creates a new contact in Razorpay. | `CreateContactDto` | Razorpay Contact Object |
 | `POST` | `/razorpay/create-fund-account` 🔒 | Creates a fund account for a contact. | `CreateFundAccountDto` | Razorpay Fund Account Object |
-| `POST` | `/razorpay/create-order` 🔒 | Creates a Razorpay order. | `CreateOrderDto` | Razorpay Order Object |
-| `POST` | `/razorpay/create-payment-link` 🔒 | Creates a Razorpay payment link. | `CreatePaymentLinkDto` | Razorpay Payment Link Object |
 
 ### Admin (`Admin`)
 | Method | Path | Description | Request Body | Success Response |
