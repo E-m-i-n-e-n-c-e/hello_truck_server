@@ -1,16 +1,25 @@
+###############################################################################
+# Razorpay API Test Requests
+# Base URL: http://localhost:3000/razorpay
+###############################################################################
 
+@baseUrl = http://localhost:3000/razorpay
 
-### Create Contact
-POST http://localhost:3000/razorpay/create-contact
+###############################################################################
+# CONTACT & FUND ACCOUNT MANAGEMENT
+###############################################################################
+
+### 1. Create Contact
+POST {{baseUrl}}/create-contact
 Content-Type: application/json
 
 {
   "phoneNumber": "9876543210",
-  "name": "John Does"
+  "name": "John Doe"
 }
 
-### Create Fund Account with Bank Details
-POST http://localhost:3000/razorpay/create-fund-account
+### 2. Create Fund Account with Bank Details
+POST {{baseUrl}}/create-fund-account
 Content-Type: application/json
 
 {
@@ -25,9 +34,8 @@ Content-Type: application/json
   }
 }
 
-
-### Create Fund Account with VPA
-POST http://localhost:3000/razorpay/create-fund-account
+### 3. Create Fund Account with VPA
+POST {{baseUrl}}/create-fund-account
 Content-Type: application/json
 
 {
@@ -40,49 +48,212 @@ Content-Type: application/json
   }
 }
 
+### 4. Get Fund Account Details
+GET {{baseUrl}}/fund-account/fa_R2vhW6OW6Sv8MD
 
-### Create Order
-POST http://localhost:3000/razorpay/create-order
+
+###############################################################################
+# PAYMENT LINKS
+###############################################################################
+
+### 7. Create Payment Link
+POST {{baseUrl}}/create-payment-link
 Content-Type: application/json
 
 {
-  "order": {
-    "amount": 50000,
-    "currency": "INR",
-    "notes": {
-      "customer_name": "Akhil Raj",
-      "customer_contact": "+916300045929",
-      "customer_email": "kssakhilraj@gmail.com",
-      "description": "Dummy payment order for testing"
-    }
-  }
+  "amount": 500,
+  "currency": "INR",
+  "description": "Booking payment for Truck #1234",
+  "referenceId": "booking_1234",
+  "customerName": "Akhil Raj",
+  "customerContact": "6300045929",
+  "customerEmail": "kssakhilraj@gmail.com"
 }
 
-### Create payment link for dummy order
-POST http://localhost:3000/razorpay/create-payment-link
+###############################################################################
+# WEBHOOK VERIFICATION
+###############################################################################
+
+### 8. Verify Webhook Signature
+POST {{baseUrl}}/verify-webhook-signature
 Content-Type: application/json
 
 {
-  "orderId": "order_RY2am36EV65jsn"
+  "payload": "{\"event\":\"payment.captured\",\"payment_id\":\"pay_123\"}",
+  "signature": "a1b2c3d4e5f6"
 }
 
+###############################################################################
+# REFUNDS
+###############################################################################
 
-### Create Refund (Manual Test)
-POST http://localhost:3000/razorpay/refund
+### 9. Create Full Refund
+POST {{baseUrl}}/refund
 Content-Type: application/json
 
 {
   "paymentId": "pay_Rr5UpdNJ8Y5mp1",
   "notes": {
-    "reason": "Test refund from manual request",
+    "reason": "Customer cancelled booking",
     "bookingId": "123456"
-  }
+  },
+  "referenceId": "refund_booking_123456"
 }
 
-### Fetch Refunds (Manual Test)
-POST http://localhost:3000/razorpay/fetch-refunds
+### 10. Create Partial Refund
+POST {{baseUrl}}/refund
 Content-Type: application/json
 
 {
-  "paymentId": "pay_Rr5UpdNJ8Y5mp1"
+  "paymentId": "pay_Rr5UpdNJ8Y5mp1",
+  "amount": 250,
+  "notes": {
+    "reason": "Partial refund for cancellation charges",
+    "bookingId": "123456"
+  },
+  "referenceId": "refund_partial_123456"
 }
+
+### 11. Fetch All Refunds for Payment
+POST {{baseUrl}}/fetch-refunds
+Content-Type: application/json
+
+{
+  "paymentId": "pay_RrCW6o4nlu8MDE"
+}
+
+###############################################################################
+# RAZORPAYX PAYOUT OPERATIONS
+###############################################################################
+
+### 12. Create Payout (Bank Account - IMPS)
+POST {{baseUrl}}/payout/create
+Content-Type: application/json
+
+{
+  "fundAccountId": "fa_R2vifLMfVhC7sH",
+  "amount": 1000,
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "payout",
+  "referenceId": "payout_booking_123456"
+}
+
+### 13. Create Payout (Bank Account - NEFT)
+POST {{baseUrl}}/payout/create
+Content-Type: application/json
+
+{
+  "fundAccountId": "fa_R2vifLMfVhC7sH",
+  "amount": 5000,
+  "currency": "INR",
+  "mode": "NEFT",
+  "purpose": "payout",
+  "referenceId": "payout_booking_789012"
+}
+
+### 14. Create Payout (VPA - UPI)
+POST {{baseUrl}}/payout/create
+Content-Type: application/json
+
+{
+  "fundAccountId": "fa_VPA123456789",
+  "amount": 500,
+  "currency": "INR",
+  "mode": "UPI",
+  "purpose": "payout",
+  "referenceId": "payout_booking_345678"
+}
+
+### 15. Fetch Payout Status
+GET {{baseUrl}}/payout/pout_R2vkZXN3YgH8Vz
+
+###############################################################################
+# COMPLETE WORKFLOW EXAMPLES
+###############################################################################
+
+### Example 1: Complete Driver Payout Setup (Bank Account)
+# Step 1: Create Contact
+POST {{baseUrl}}/create-contact
+Content-Type: application/json
+
+{
+  "phoneNumber": "9876543210",
+  "name": "Driver John"
+}
+
+# Step 2: Create Fund Account with Bank Details (use contactId from step 1)
+# POST {{baseUrl}}/create-fund-account
+# {
+#   "contactId": "cont_XXXXXXX",
+#   "payoutDetails": {
+#     "payoutMethod": "BANK_ACCOUNT",
+#     "bankDetails": {
+#       "accountHolderName": "Driver John",
+#       "accountNumber": "9876543210",
+#       "ifscCode": "SBIN0001234"
+#     }
+#   }
+# }
+
+# Step 3: Create Payout (use fundAccountId from step 2)
+# POST {{baseUrl}}/payout/create
+# {
+#   "fundAccountId": "fa_XXXXXXX",
+#   "amount": 2500,
+#   "currency": "INR",
+#   "mode": "IMPS",
+#   "purpose": "payout",
+#   "referenceId": "payout_driver_john_001"
+# }
+
+### Example 2: Complete Driver Payout Setup (VPA/UPI)
+# Step 1: Validate VPA first
+POST {{baseUrl}}/validate-vpa
+Content-Type: application/json
+
+{
+  "vpa": "driver@okaxis"
+}
+
+# Step 2: Create Contact
+# POST {{baseUrl}}/create-contact
+# {
+#   "phoneNumber": "9123456789",
+#   "name": "Driver Jane"
+# }
+
+# Step 3: Create Fund Account with VPA (use contactId from step 2)
+# POST {{baseUrl}}/create-fund-account
+# {
+#   "contactId": "cont_XXXXXXX",
+#   "payoutDetails": {
+#     "payoutMethod": "VPA",
+#     "vpaDetails": {
+#       "vpa": "driver@okaxis"
+#     }
+#   }
+# }
+
+# Step 4: Create Payout with UPI mode (use fundAccountId from step 3)
+# POST {{baseUrl}}/payout/create
+# {
+#   "fundAccountId": "fa_XXXXXXX",
+#   "amount": 1500,
+#   "currency": "INR",
+#   "mode": "UPI",
+#   "purpose": "payout",
+#   "referenceId": "payout_driver_jane_001"
+# }
+
+###############################################################################
+# NOTES
+###############################################################################
+# 1. Replace placeholder IDs (cont_XXXXXXX, fa_XXXXXXX, etc.) with actual IDs
+#    from your Razorpay account or from previous API responses
+# 2. Ensure your Razorpay account is properly configured with test mode enabled
+# 3. For payouts, ensure you have sufficient balance in your RazorpayX account
+# 4. VPA fund accounts MUST use mode="UPI" for payouts
+# 5. Bank account fund accounts CANNOT use mode="UPI"
+# 6. Amount is in INR (rupees), not paise
+###############################################################################

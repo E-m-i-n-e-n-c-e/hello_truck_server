@@ -70,35 +70,48 @@ export class RazorpayXService {
 
       const purpose = params.purpose || 'payout';
 
-      // Fetch fund account details to validate mode compatibility
+      // Fetch fund account details to determine correct mode
       const fundAccount = await this.getFundAccountDetails(params.fundAccountId);
 
-      // CRITICAL: Validate payout mode based on fund account type
+      // Auto-correct payout mode based on fund account type
       // RazorpayX enforces strict rules:
       // - VPA (UPI) accounts MUST use mode="UPI"
       // - Bank accounts CANNOT use mode="UPI"
+      let finalMode = mode;
+
       if (fundAccount.account_type === 'vpa' && mode !== 'UPI') {
-        throw new BadRequestException(
-          `UPI fund accounts must use mode="UPI". Current mode: ${mode}`,
+        this.logger.warn(
+          `Auto-correcting mode from ${mode} to UPI for VPA fund account ${params.fundAccountId}`,
         );
+        finalMode = 'UPI';
       }
 
       if (fundAccount.account_type === 'bank_account' && mode === 'UPI') {
-        throw new BadRequestException(
-          'Bank account fund accounts cannot use mode="UPI". Use IMPS, NEFT, or RTGS instead.',
+        this.logger.warn(
+          `Auto-correcting mode from UPI to IMPS for bank account ${params.fundAccountId}`,
         );
+        finalMode = 'IMPS'; // Default to IMPS for instant transfer
       }
 
-      const payoutData = {
+      const payoutData: Record<string, any> = {
         account_number: this.accountNumber,
         fund_account_id: params.fundAccountId,
         amount: amountInPaise,
         currency,
-        mode,
+        mode: finalMode,
         purpose,
         queue_if_low_balance: true,
         reference_id: params.referenceId,
       };
+
+      // Add optional fields if provided
+      if (params.narration) {
+        // Razorpay limits narration to 30 characters
+        payoutData.narration = params.narration.substring(0, 30);
+      }
+      if (params.notes) {
+        payoutData.notes = params.notes;
+      }
 
       this.logger.log(
         `Creating RazorpayX payout: fund_account=${params.fundAccountId}, amount=₹${params.amount} ${currency}, mode=${mode}`,
@@ -216,7 +229,16 @@ export class RazorpayXService {
         amount: payoutData.amount / 100, // Convert from paisa to rupees
         currency: payoutData.currency,
         mode: payoutData.mode,
+        purpose: payoutData.purpose,
+        referenceId: payoutData.reference_id,
+        utr: payoutData.utr || undefined,
+        createdAt: payoutData.created_at,
         failureReason: payoutData.failure_reason || undefined,
+        statusDetails: payoutData.status_details ? {
+          description: payoutData.status_details.description,
+          source: payoutData.status_details.source,
+          reason: payoutData.status_details.reason,
+        } : undefined,
       };
     } catch (error) {
       const message = error.response?.data || error.message;

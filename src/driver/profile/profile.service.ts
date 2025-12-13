@@ -2,12 +2,13 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UpdateDriverProfileDto, CreateDriverProfileDto, UpdateLocationDto } from '../dtos/profile.dto';
-import { Driver, DriverStatus } from '@prisma/client';
+import { Driver, DriverStatus, PayoutMethodType } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { AddressService } from '../address/address.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { RedisService } from 'src/redis/redis.service';
+import { PayoutMethod } from 'src/razorpay/dtos/payout-details.dto';
 
 interface GetProfileOptions {
   includeDocuments?: boolean;
@@ -84,6 +85,7 @@ export class ProfileService {
       // Create payout details if provided
       let contactId: string | null = null;
       let fundAccountId: string | null = null;
+      let payoutMethodType: PayoutMethodType | null = null;
 
       if (payoutDetails) {
         const driverName = profileData.lastName
@@ -91,6 +93,8 @@ export class ProfileService {
           : profileData.firstName;
         contactId = await this.razorpayService.createContact(driver.phoneNumber, driverName);
         fundAccountId = await this.razorpayService.createFundAccount(contactId, payoutDetails);
+        // Map DTO payoutMethod to Prisma enum
+        payoutMethodType = payoutDetails.payoutMethod === PayoutMethod.VPA ? 'VPA' : 'BANK_ACCOUNT';
       }
 
       // Update driver profile
@@ -101,6 +105,7 @@ export class ProfileService {
           ...(email && { email }),
           ...(contactId && { contactId }),
           ...(fundAccountId && { fundAccountId }),
+          ...(payoutMethodType && { payoutMethod: payoutMethodType }),
         },
       });
     });
@@ -127,13 +132,17 @@ export class ProfileService {
 
     // Create payout details if provided
     let contactId: string | null = null;
-    let fundAccountId: string | null = null
+    let fundAccountId: string | null = null;
+    let payoutMethodType: PayoutMethodType | null = null;
+
     if (payoutDetails) {
       const driverName = profileData.lastName
         ? `${profileData.firstName} ${profileData.lastName}`
         : profileData.firstName;
       contactId = await this.razorpayService.createContact(driver.phoneNumber, driverName);
       fundAccountId = await this.razorpayService.createFundAccount(contactId, payoutDetails);
+      // Map DTO payoutMethod to Prisma enum
+      payoutMethodType = payoutDetails.payoutMethod === PayoutMethod.VPA ? 'VPA' : 'BANK_ACCOUNT';
     }
 
     await this.prisma.driver.update({
@@ -143,6 +152,7 @@ export class ProfileService {
         ...(email && { email }),
         ...(contactId && { contactId }),
         ...(fundAccountId && { fundAccountId }),
+        ...(payoutMethodType && { payoutMethod: payoutMethodType }),
       },
     });
 

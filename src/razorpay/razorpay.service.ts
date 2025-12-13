@@ -112,47 +112,6 @@ export class RazorpayService {
     }
   }
 
-  async validateBankDetails(ifscCode: string, accountNumber: string): Promise<boolean> {
-    try {
-      this.logger.log(`Validating bank details for IFSC: ${ifscCode}`);
-
-      const response: AxiosResponse = await this.axiosInstance.get('/bank_accounts/validate', {
-        params: {
-          ifsc: ifscCode,
-          account_number: accountNumber,
-        },
-      });
-
-      const isValid = response.data.valid === true || response.data.success === true;
-      this.logger.log(`Bank details validation result: ${isValid}`);
-
-      return isValid;
-    } catch (error) {
-      this.logger.error(`Failed to validate bank details: ${error.message}`);
-      return false;
-    }
-  }
-
-  async validateVpa(vpa: string): Promise<boolean> {
-    try {
-      this.logger.log(`Validating VPA: ${vpa}`);
-
-      const response: AxiosResponse = await this.axiosInstance.get('/vpa/validate', {
-        params: {
-          vpa: vpa,
-        },
-      });
-
-      const isValid = response.data.valid === true || response.data.success === true;
-      this.logger.log(`VPA validation result: ${isValid}`);
-
-      return isValid;
-    } catch (error) {
-      this.logger.error(`Failed to validate VPA: ${error.message}`);
-      return false;
-    }
-  }
-
   /**
    * Creates a Razorpay payment link.
    * @param params Payment link parameters
@@ -325,9 +284,7 @@ export class RazorpayService {
       }));
     } catch (error) {
       this.logger.error(`Failed to fetch refunds: ${error.message}`);
-      // return empty array if fetch fails to allow flow to continue (risk of duplication but better than blocking?)
-      // OR throw. If we throw, cancellation fails.
-      return []; 
+      throw new Error(`Failed to fetch refunds: ${error.message}`);
     }
   }
 }

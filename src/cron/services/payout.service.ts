@@ -23,6 +23,7 @@ export class PayoutService {
       where: {
         walletBalance: { gt: 0 },
         fundAccountId: { not: null },
+        payoutMethod: { not: null },
       },
     });
     
@@ -37,12 +38,17 @@ export class PayoutService {
       const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const referenceId = `payout-${driver.id}-${todayStr}`;
 
+      // Select payout mode based on driver's registered payout method
+      // BANK_ACCOUNT → IMPS (instant bank transfer)
+      // VPA → UPI (instant UPI transfer)
+      const payoutMode = driver.payoutMethod === 'VPA' ? 'UPI' : 'IMPS';
+
       // Create payout via RazorpayX
       const payout = await this.razorpayxService.createPayout({
         fundAccountId: driver.fundAccountId!,
         amount: payoutAmount,
         currency: 'INR',
-        mode: 'IMPS',
+        mode: payoutMode,
         purpose: 'payout',
         referenceId,
       });

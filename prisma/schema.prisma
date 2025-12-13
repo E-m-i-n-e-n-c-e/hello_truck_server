@@ -111,6 +111,7 @@ model Driver {
   photo              String?
   contactId          String?
   fundAccountId      String?
+  payoutMethod       PayoutMethodType?   
   score              Int                @default(0)
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
@@ -666,4 +667,9 @@ enum InvoiceType {
 enum PaymentMethod {
   ONLINE
   CASH
+}
+
+enum PayoutMethodType {
+  BANK_ACCOUNT
+  VPA
 }

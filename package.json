@@ -17,7 +17,11 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "smoke:razorpay": "ts-node test/smoke/razorpay.smoke.ts",
+    "smoke:razorpayx": "ts-node test/smoke/razorpayx.smoke.ts",
+    "smoke:all": "ts-node test/smoke/razorpay.smoke.ts && ts-node test/smoke/razorpayx.smoke.ts",
+    "test:smoke": "npm run smoke:razorpay && npm run smoke:razorpayx"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.3",
