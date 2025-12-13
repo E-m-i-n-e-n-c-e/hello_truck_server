@@ -161,13 +161,18 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `reason`: `string` - Description of transaction
     *   `bookingId`: `string | null` - Related booking if applicable
     *   `createdAt`: `Date`
-*   **`CustomerTransactionLogResponseDto`**: Customer transaction ledger entry.
+*   **`CustomerTransactionLogResponseDto`**: Customer transaction ledger entry with full booking details.
     *   `id`: `string`
+    *   `customerId`: `string | null`
+    *   `driverId`: `string | null`
     *   `amount`: `number`
     *   `type`: `enum` (CREDIT, DEBIT)
-    *   `category`: `enum` (BOOKING_PAYMENT, BOOKING_REFUND, DRIVER_PAYOUT)
+    *   `category`: `enum` (BOOKING_PAYMENT, BOOKING_REFUND, WALLET_CREDIT, etc.)
     *   `description`: `string`
     *   `bookingId`: `string | null`
+    *   `booking`: `BookingResponseDto | null` - Full booking details including package, addresses, driver, invoices
+    *   `payoutId`: `string | null`
+    *   `paymentMethod`: `enum` (CASH, ONLINE, WALLET)
     *   `createdAt`: `Date`
 
 ### Driver DTOs
@@ -222,16 +227,31 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `afterBalance`: `number`
     *   `amount`: `number` - Transaction amount (+ for credit, - for debit)
     *   `reason`: `string` - Description of transaction
-    *   `bookingId`: `string | null` - Related booking if applicable
+    *   `bookingId`: `string | null` - Related booking ID reference
     *   `createdAt`: `Date`
-*   **`DriverTransactionLogResponseDto`**: Driver transaction ledger entry.
+*   **`PayoutResponseDto`**: Payout details for driver transactions.
     *   `id`: `string`
+    *   `driverId`: `string`
+    *   `amount`: `number`
+    *   `razorpayPayoutId`: `string | null`
+    *   `status`: `enum` (PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED)
+    *   `failureReason`: `string | null`
+    *   `retryCount`: `number`
+    *   `createdAt`: `Date`
+    *   `processedAt`: `Date | null`
+*   **`DriverTransactionLogResponseDto`**: Driver transaction ledger entry with full booking and payout details.
+    *   `id`: `string`
+    *   `customerId`: `string | null`
+    *   `driverId`: `string | null`
     *   `amount`: `number`
     *   `type`: `enum` (CREDIT, DEBIT)
     *   `category`: `enum` (BOOKING_PAYMENT, BOOKING_REFUND, DRIVER_PAYOUT)
     *   `description`: `string`
     *   `bookingId`: `string | null`
+    *   `booking`: `BookingResponseDto | null` - Full booking details including package, addresses, invoices
     *   `payoutId`: `string | null`
+    *   `payout`: `PayoutResponseDto | null` - Full payout details (amount, status, razorpayPayoutId, etc.)
+    *   `paymentMethod`: `enum` (CASH, ONLINE, WALLET)
     *   `createdAt`: `Date`
 *   **`ExpiryAlertsResponseDto`**: Document expiry alerts for driver.
     *   `licenseAlert?`: `string` - Alert message for license expiry (shown at 15, 30, 45 days or when expired)
@@ -405,12 +425,6 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `GET` | `/driver/address` 🔒 | Retrieves driver's permanent address. | - | `DriverAddressResponseDto` |
 | `PUT` | `/driver/address` 🔒 | Updates driver's permanent address. | `UpdateDriverAddressDto` | `DriverAddressResponseDto` |
 | `DELETE`| `/driver/address` 🔒 | Deletes driver's permanent address. | - | `SuccessResponseDto` |
-
-### Razorpay Payments (`Razorpay`)
-| Method | Path | Description | Request Body | Success Response |
-| :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/razorpay/create-contact` 🔒 | Creates a new contact in Razorpay. | `CreateContactDto` | Razorpay Contact Object |
-| `POST` | `/razorpay/create-fund-account` 🔒 | Creates a fund account for a contact. | `CreateFundAccountDto` | Razorpay Fund Account Object |
 
 ### Admin (`Admin`)
 | Method | Path | Description | Request Body | Success Response |

@@ -408,12 +408,13 @@ export class BookingDriverService {
           include: {
             package: true,
             pickupAddress: true,
+            invoices: true,
             dropAddress: true,
           },
         },
       },
       orderBy: { offeredAt: 'desc' },
-      take: 20,
+      take: 30,
     });
   }
 

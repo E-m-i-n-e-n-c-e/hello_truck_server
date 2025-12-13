@@ -78,6 +78,7 @@ export class BookingCustomerService {
         },
         include: {
           package: true,
+          invoices: true,
           pickupAddress: true,
           dropAddress: true,
           customer: true,
@@ -129,6 +130,7 @@ export class BookingCustomerService {
         pickupAddress: true,
         dropAddress: true,
         assignedDriver: true,
+        invoices: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -153,12 +155,13 @@ export class BookingCustomerService {
         package: true,
         pickupAddress: true,
         dropAddress: true,
+        invoices: true,
         assignedDriver: true,
       },
       orderBy: {
         createdAt: 'desc',
       },
-      take: 20, // Limit to last 20 bookings
+      take: 30,
     });
 
     return bookings;
@@ -177,6 +180,7 @@ export class BookingCustomerService {
         package: true,
         pickupAddress: true,
         dropAddress: true,
+        invoices: true,
         assignedDriver: true,
       },
     });
@@ -255,6 +259,7 @@ export class BookingCustomerService {
         userId,
         {
           ...booking,
+          assignedDriver: booking.assignedDriver,
           customer: booking.customer!,
         },
         finalInvoice,

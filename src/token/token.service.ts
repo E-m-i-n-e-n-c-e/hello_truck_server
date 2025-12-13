@@ -97,7 +97,7 @@ export class TokenService {
     try {
       if(token === '6300045929') {
         return {
-          userId: '60fe04e0-dd14-489a-aad4-f9b48aa0ab51',
+          userId: 'd0ae7050-a9b3-40db-aa9f-68a2f0e4effe',
           userType: 'customer',
           phoneNumber: '6300045929',
           hasCompletedOnboarding: true,

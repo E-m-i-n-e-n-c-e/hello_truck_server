@@ -1,5 +1,5 @@
-# @base_url = http://localhost:3000
-@base_url = https://hello-truck-server.fly.dev
+@base_url = http://localhost:3000
+# @base_url = https://hello-truck-server.fly.dev
 
 ### Create Booking (Customer)
 POST {{base_url}}/bookings/customer
@@ -24,16 +24,14 @@ Content-Type: application/json
     "longitude": 78.42151087
   },
   "package": {
-    "packageType": "PERSONAL",
     "productType": "AGRICULTURAL",
+    "approximateWeight": 12,
+    "weightUnit": "KG",
     "agricultural": {
-      "productName": "12",
-      "approximateWeight": 12,
-      "weightUnit": "KG"
-    },
-    "transportDocUrls": []
-  },
-  "selectedVehicleType": "THREE_WHEELER"
+      "productName": "Rice",
+      "gstBillUrl": "https://example.com/gst-bill.pdf"
+    }
+  }
 }
 
 ### Get Booking (Customer)

@@ -97,24 +97,27 @@ export class ProfileService {
       take: 50,
     });
 
-    return logs.map(log => ({
-      ...log,
-      beforeBalance: Number(log.beforeBalance),
-      afterBalance: Number(log.afterBalance),
-      amount: Number(log.amount),
-    }));
+    return logs;
   }
 
   async getTransactionLogs(userId: string) {
     const transactions = await this.prisma.transaction.findMany({
       where: { customerId: userId },
+      include: {
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+            invoices: true,
+          },
+        },
+        payout: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
 
-    return transactions.map(txn => ({
-      ...txn,
-      amount: Number(txn.amount),
-    }));
+    return transactions;
   }
 }

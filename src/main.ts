@@ -55,6 +55,14 @@ function setupSwagger(app: INestApplication) {
       },
     },
   });
+
+  // Count and return total endpoints
+  const totalEndpoints = Object.values(document.paths).reduce(
+    (count, pathItem) => count + Object.keys(pathItem).length,
+    0,
+  );
+  
+  return totalEndpoints;
 }
 
 async function bootstrap() {
@@ -83,7 +91,8 @@ async function bootstrap() {
     }),
   );
 
-  setupSwagger(app);
+  const totalEndpoints = setupSwagger(app);
+  console.log('\nTOTAL ENDPOINTS:', totalEndpoints, '\n');
 
   const port = configService.get<number>('PORT', 3000);
   await app.listen(port);

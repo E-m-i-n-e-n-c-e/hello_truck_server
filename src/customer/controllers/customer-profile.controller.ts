@@ -56,13 +56,13 @@ export class CustomerProfileController {
 
   @Get('wallet-logs')
   @Serialize(CustomerWalletLogResponseDto)
-  async getWalletLogs(@User('userId') userId: string): Promise<CustomerWalletLogResponseDto[]> {
+  async getWalletLogs(@User('userId') userId: string) {
     return this.profileService.getWalletLogs(userId);
   }
 
   @Get('transaction-logs')
   @Serialize(CustomerTransactionLogResponseDto)
-  async getTransactionLogs(@User('userId') userId: string): Promise<CustomerTransactionLogResponseDto[]> {
+  async getTransactionLogs(@User('userId') userId: string) {
     return this.profileService.getTransactionLogs(userId);
   }
 }

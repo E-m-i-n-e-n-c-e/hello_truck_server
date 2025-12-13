@@ -964,58 +964,6 @@
         ]
       }
     },
-    "/razorpay/create-contact": {
-      "post": {
-        "operationId": "createContact",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Razorpay"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
-    "/razorpay/create-fund-account": {
-      "post": {
-        "operationId": "createFundAccount",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Razorpay"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
     "/customer/gst": {
       "post": {
         "operationId": "addGstDetails",
@@ -1358,17 +1306,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CustomerWalletLogResponseDto"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1393,7 +1331,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CustomerTransactionLogResponseDto"
+                    "type": "object"
                   }
                 }
               }
@@ -1755,17 +1693,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DriverWalletLogResponseDto"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1790,7 +1718,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/DriverTransactionLogResponseDto"
+                    "type": "object"
                   }
                 }
               }
@@ -2898,80 +2826,6 @@
           "fcmToken"
         ]
       },
-      "CustomerWalletLogResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "beforeBalance": {
-            "type": "number"
-          },
-          "afterBalance": {
-            "type": "number"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "bookingId": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "beforeBalance",
-          "afterBalance",
-          "amount",
-          "reason",
-          "bookingId",
-          "createdAt"
-        ]
-      },
-      "CustomerTransactionLogResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "type": {
-            "type": "object"
-          },
-          "category": {
-            "type": "object"
-          },
-          "description": {
-            "type": "string"
-          },
-          "bookingId": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "amount",
-          "type",
-          "category",
-          "description",
-          "bookingId",
-          "createdAt"
-        ]
-      },
       "UpdateAddressDto": {
         "type": "object",
         "properties": {
@@ -3334,85 +3188,6 @@
         },
         "required": [
           "status"
-        ]
-      },
-      "DriverWalletLogResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "beforeBalance": {
-            "type": "number"
-          },
-          "afterBalance": {
-            "type": "number"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "bookingId": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "beforeBalance",
-          "afterBalance",
-          "amount",
-          "reason",
-          "bookingId",
-          "createdAt"
-        ]
-      },
-      "DriverTransactionLogResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "type": {
-            "type": "object"
-          },
-          "category": {
-            "type": "object"
-          },
-          "description": {
-            "type": "string"
-          },
-          "bookingId": {
-            "type": "string",
-            "nullable": true
-          },
-          "payoutId": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "amount",
-          "type",
-          "category",
-          "description",
-          "bookingId",
-          "payoutId",
-          "createdAt"
         ]
       },
       "DriverDocumentsResponseDto": {

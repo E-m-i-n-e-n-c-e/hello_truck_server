@@ -66,3 +66,23 @@ Content-Type: application/json
   "orderId": "order_RY2am36EV65jsn"
 }
 
+
+### Create Refund (Manual Test)
+POST http://localhost:3000/razorpay/refund
+Content-Type: application/json
+
+{
+  "paymentId": "pay_Rr5UpdNJ8Y5mp1",
+  "notes": {
+    "reason": "Test refund from manual request",
+    "bookingId": "123456"
+  }
+}
+
+### Fetch Refunds (Manual Test)
+POST http://localhost:3000/razorpay/fetch-refunds
+Content-Type: application/json
+
+{
+  "paymentId": "pay_Rr5UpdNJ8Y5mp1"
+}

@@ -207,24 +207,90 @@ export class ProfileService {
       take: 50,
     });
 
-    return logs.map(log => ({
-      ...log,
-      beforeBalance: Number(log.beforeBalance),
-      afterBalance: Number(log.afterBalance),
-      amount: Number(log.amount),
-    }));
+    return logs;
   }
 
   async getTransactionLogs(userId: string) {
     const transactions = await this.prisma.transaction.findMany({
       where: { driverId: userId },
       orderBy: { createdAt: 'desc' },
+      include: {
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+            invoices: true,
+          },
+        },
+        payout: true,
+      },
       take: 50,
     });
 
-    return transactions.map(txn => ({
-      ...txn,
-      amount: Number(txn.amount),
-    }));
+    return transactions;
+  }
+
+  // TEMPORARY: Test method to create a sample transaction log with payout
+  async createTestTransactionLog(driverId: string) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new BadRequestException('Driver not found');
+
+    // Create a test payout first
+    const payout = await this.prisma.payout.create({
+      data: {
+        driverId,
+        amount: 1234.56,
+        razorpayPayoutId: 'test_payout_' + Date.now(),
+        status: 'COMPLETED',
+      },
+    });
+
+    // Create transaction log with payout
+    return this.prisma.transaction.create({
+      data: {
+        driverId,
+        amount: 1234.56,
+        type: 'CREDIT',
+        category: 'DRIVER_PAYOUT',
+        description: 'Test payout transaction',
+        paymentMethod: 'ONLINE',
+        payoutId: payout.id,
+        bookingId: '7ffb48dc-a36e-40a4-93cf-cdf72f1a8ddb',
+      },
+      include: {
+        payout: true,
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+            invoices: true,
+          },
+        },
+      },
+    });
+  }
+
+  // TEMPORARY: Test method to create a sample wallet log
+  async createTestWalletLog(driverId: string) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new BadRequestException('Driver not found');
+
+    const currentBalance = Number(driver.walletBalance);
+    const changeAmount = 500.75;
+    const newBalance = currentBalance + changeAmount;
+
+    // Create wallet log
+    return this.prisma.driverWalletLog.create({
+      data: {
+        driverId,
+        beforeBalance: currentBalance,
+        afterBalance: newBalance,
+        bookingId: '7ffb48dc-a36e-40a4-93cf-cdf72f1a8ddb',
+        amount: changeAmount,
+        reason: 'Test wallet credit',
+      },
+    });
   }
 }

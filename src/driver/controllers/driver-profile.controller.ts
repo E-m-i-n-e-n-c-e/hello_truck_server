@@ -73,13 +73,13 @@ export class DriverProfileController {
 
   @Get('wallet-logs')
   @Serialize(DriverWalletLogResponseDto)
-  async getWalletLogs(@User('userId') userId: string): Promise<DriverWalletLogResponseDto[]> {
+  async getWalletLogs(@User('userId') userId: string) {
     return this.profileService.getWalletLogs(userId);
   }
 
   @Get('transaction-logs')
   @Serialize(DriverTransactionLogResponseDto)
-  async getTransactionLogs(@User('userId') userId: string): Promise<DriverTransactionLogResponseDto[]> {
+  async getTransactionLogs(@User('userId') userId: string) {
     return this.profileService.getTransactionLogs(userId);
   }
 }

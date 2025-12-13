@@ -22,7 +22,7 @@ import { validate } from './config/env.config';
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{
       ttl: seconds(60), // 1 minute
-      limit: 1000, // 1000 requests per ttl
+      limit: 200, // 200 requests per ttl
     }]),
     AuthModule,
     CronModule,
