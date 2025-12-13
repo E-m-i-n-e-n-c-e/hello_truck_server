@@ -43,6 +43,7 @@ export interface RefundResponse {
   currency: string;
   status: string;
   createdAt: number;
+  notes?: Record<string, string | undefined>;
 }
 
 /**
@@ -56,4 +57,5 @@ export interface RazorpayRefundResponse {
   currency: string;
   status: string;
   created_at: number;
+  notes?: Record<string, string | undefined>;
 }

@@ -1,15 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { Booking, BookingAddress, Customer, Driver, Invoice, InvoiceType, Package, Prisma, ProductType, Vehicle, VehicleModel, WeightUnit } from '@prisma/client';
+import { Booking, BookingAddress, Customer, Invoice, InvoiceType, Package, Prisma, ProductType, VehicleModel, WeightUnit } from '@prisma/client';
 import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-invoice.dto';
 import { PricingService } from '../pricing/pricing.service';
-import { PackageDetailsDto, PersonalProductDto } from '../dtos/package.dto';
+import { PackageDetailsDto } from '../dtos/package.dto';
 import { CreateBookingAddressDto } from '../dtos/booking-address.dto';
 import * as geolib from 'geolib';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
-import { FirebaseService } from 'src/firebase/firebase.service';
-import { FcmEventType } from 'src/common/types/fcm.types';
 import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
@@ -18,7 +16,6 @@ export class BookingInvoiceService {
     private readonly pricingService: PricingService,
     private readonly prisma: PrismaService,
     private readonly razorpayService: RazorpayService,
-    private readonly firebaseService: FirebaseService,
   ) {}
 
   /**
@@ -68,7 +65,7 @@ export class BookingInvoiceService {
   async createFinalInvoice(
     booking: Booking & { customer: Customer, pickupAddress: BookingAddress, dropAddress: BookingAddress, package: Package },
     vehicleModel: VehicleModel,
-    tx: Prisma.TransactionClient = this.prisma
+    tx: Prisma.TransactionClient
   ): Promise<Invoice> {
     const { customer, pickupAddress, dropAddress, package: packageDetails } = booking;
     const distanceKm = this.calculateDistanceKm(pickupAddress, dropAddress);
@@ -113,35 +110,6 @@ export class BookingInvoiceService {
           bookingId: booking.id,
         },
       });
-    }
-
-    // Notify wallet changes after transaction
-    if (walletBalance !== 0) {
-      if (walletApplied > 0) {
-        // Wallet credit was applied (debit from wallet)
-        this.firebaseService.notifyAllSessions(customer.id, 'customer', {
-          notification: {
-            title: 'Wallet Applied',
-            body: `₹${walletApplied.toFixed(2)} wallet balance applied to your booking`,
-          },
-          data: {
-            event: FcmEventType.WalletDebit,
-            amount: walletApplied.toString(),
-          },
-        });
-      } else {
-        // Debt was added to payment (debit to wallet)
-        this.firebaseService.notifyAllSessions(customer.id, 'customer', {
-          notification: {
-            title: 'Wallet Debt Cleared',
-            body: `₹${Math.abs(walletApplied).toFixed(2)} debt added to booking payment`,
-          },
-          data: {
-            event: FcmEventType.WalletDebit,
-            amount: Math.abs(walletApplied).toString(),
-          },
-        });
-      }
     }
 
     // Generate payment link only if finalAmount > 0

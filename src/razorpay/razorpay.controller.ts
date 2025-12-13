@@ -16,4 +16,18 @@ export class RazorpayController {
   async createFundAccount(@Body() body: { contactId: string, payoutDetails: CreatePayoutDetailsDto }) {
     return this.razorpayService.createFundAccount(body.contactId, body.payoutDetails);
   }
+
+  @Post('refund')
+  async createRefund(@Body() body: { paymentId: string, amount?: number, notes?: any }) {
+    return this.razorpayService.createRefund({
+      paymentId: body.paymentId,
+      amount: body.amount,
+      notes: body.notes,
+    });
+  }
+
+  @Post('fetch-refunds')
+  async fetchRefunds(@Body() body: { paymentId: string }) {
+    return this.razorpayService.fetchRefunds(body.paymentId);
+  }
 }

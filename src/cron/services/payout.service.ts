@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RazorpayXService } from '../../razorpay/razorpayx.service';
 import { FirebaseService } from '../../firebase/firebase.service';
 import { FcmEventType } from '../../common/types/fcm.types';
+import { PaymentMethod } from '@prisma/client';
 
 @Injectable()
 export class PayoutService {
@@ -33,6 +34,9 @@ export class PayoutService {
       
       this.logger.log(`Processing payout for driver ${driver.id}: ₹${payoutAmount}`);
       
+      const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const referenceId = `payout-${driver.id}-${todayStr}`;
+
       // Create payout via RazorpayX
       const payout = await this.razorpayxService.createPayout({
         fundAccountId: driver.fundAccountId!,
@@ -40,6 +44,7 @@ export class PayoutService {
         currency: 'INR',
         mode: 'IMPS',
         purpose: 'payout',
+        referenceId,
       });
       
       await this.prisma.$transaction(async (tx) => {
@@ -64,6 +69,7 @@ export class PayoutService {
         await tx.transaction.create({
           data: {
             driverId: driver.id,
+            paymentMethod: PaymentMethod.ONLINE,
             amount: payoutAmount,
             type: 'DEBIT',
             category: 'DRIVER_PAYOUT',

@@ -11,7 +11,7 @@ import { Response, Request } from 'express';
 import { toPackageDetailsDto, toPackageCreateData } from '../utils/package.utils';
 import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils';
 import { BookingPaymentService } from './booking-payment.service';
-import { FcmEventType } from 'src/common/types/fcm.types';
+import { BookingNotificationService } from './booking-notification.service';
 
 @Injectable()
 export class BookingCustomerService {
@@ -40,6 +40,7 @@ export class BookingCustomerService {
     private readonly bookingAssignmentService: AssignmentService,
     private readonly redisService: RedisService,
     private readonly bookingPaymentService: BookingPaymentService,
+    private readonly notificationService: BookingNotificationService,
   ) {}
 
   /**
@@ -238,7 +239,7 @@ export class BookingCustomerService {
     }
 
     // Process cancellation and refunds in transaction
-    await this.prisma.$transaction(async (tx) => {
+    const { walletRefund, driverCompensation, driverId } = await this.prisma.$transaction(async (tx) => {
       // Update booking status
       await tx.booking.update({
         where: { id: bookingId },
@@ -250,7 +251,7 @@ export class BookingCustomerService {
       });
 
       // Process refunds using payment service utility
-      await this.bookingPaymentService.processRefund(
+      const refundAmounts = await this.bookingPaymentService.processRefund(
         userId,
         {
           ...booking,
@@ -268,28 +269,29 @@ export class BookingCustomerService {
           data: { driverStatus: 'AVAILABLE' },
         });
       }
+      
+      return refundAmounts;
     });
 
-    this.firebaseService.notifyAllSessions(userId, 'customer', {
-      notification: {
-        title: 'Booking Cancelled',
-        body: 'Your booking has been successfully cancelled. Any applicable refund will be processed and credited to your original payment method within 24 hours.',
-      },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    // Send notifications (fire-and-forget, outside transaction)
+    this.notificationService.notifyCustomerBookingCancelled(userId);
+    
+    // Notify about wallet refund or charge
+    if (walletRefund > 0) {
+      this.notificationService.notifyCustomerWalletCredited(userId, walletRefund);
+    } else if (walletRefund < 0) {
+      // Wallet was debited for cancellation charge
+      this.notificationService.notifyCustomerWalletDebtCleared(userId, walletRefund);
+    }
 
-    if (booking.assignedDriverId) {
-      this.firebaseService.notifyAllSessions(booking.assignedDriverId, 'driver', {
-        notification: {
-          title: 'Booking Cancelled',
-          body: 'Sorry, your ride has been cancelled by the customer. You will receive some compensation for your time.',
-        },
-        data: {
-          event: FcmEventType.RideCancelled,
-        },
-      });
+    // Notify driver about cancellation and compensation
+    if (driverId) {
+      this.notificationService.notifyDriverRideCancelled(driverId);
+      
+      // Notify driver about compensation if applicable
+      if (driverCompensation > 0) {
+        this.notificationService.notifyDriverWalletChange(driverId, driverCompensation, false);
+      }
     }
 
     await this.bookingAssignmentService.onBookingCancelled(booking.id);

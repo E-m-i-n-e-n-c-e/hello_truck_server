@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver } from '@prisma/client';
+import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver, PaymentMethod } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
-import { FirebaseService } from 'src/firebase/firebase.service';
-import { FcmEventType } from 'src/common/types/fcm.types';
 import { BookingInvoiceService } from './booking-invoice.service';
+import { BookingPaymentService } from './booking-payment.service';
+import { BookingNotificationService } from './booking-notification.service';
 import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
@@ -14,8 +14,9 @@ export class BookingDriverService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bookingAssignmentService: AssignmentService,
-    private readonly firebase: FirebaseService,
     private readonly invoiceService: BookingInvoiceService,
+    private readonly paymentService: BookingPaymentService,
+    private readonly notificationService: BookingNotificationService,
     private readonly configService: ConfigService,
   ) { }
 
@@ -60,7 +61,7 @@ export class BookingDriverService {
       throw new BadRequestException('Booking does not have a customer');
     }
 
-    await this.prisma.$transaction(async (tx) => {
+    const walletData = await this.prisma.$transaction(async (tx) => {
       // Update assignment status to ACCEPTED
       await tx.bookingAssignment.updateMany({
         where: { id: assignment.id, status: AssignmentStatus.OFFERED },
@@ -82,7 +83,7 @@ export class BookingDriverService {
         data: { driverStatus: DriverStatus.ON_RIDE }
       });
 
-      await this.invoiceService.createFinalInvoice(
+      const invoice = await this.invoiceService.createFinalInvoice(
         {
           ...assignment.booking,
           customer: assignment.booking.customer!,
@@ -92,17 +93,27 @@ export class BookingDriverService {
       );
 
       await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
+      
+      return { walletApplied: Number(invoice.walletApplied), customerId: assignment.booking.customerId };
     });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      notification: {
-        title: 'Booking Confirmed',
-        body: `Your booking has been confirmed. Your driver ${assignment.driver.firstName ?? ''} ${assignment.driver.lastName ?? ''} is on the way to pick up your parcel.`.trim(),
-      },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    
+    // Send wallet notifications (fire-and-forget, outside transaction)
+    if (walletData.walletApplied !== 0 && walletData.customerId) {
+      if (walletData.walletApplied > 0) {
+        this.notificationService.notifyCustomerWalletApplied(walletData.customerId, walletData.walletApplied);
+      } else {
+        this.notificationService.notifyCustomerWalletDebtCleared(walletData.customerId, walletData.walletApplied);
+      }
+    }
+    
+    // Send booking confirmed notification (fire-and-forget, outside transaction)
+    if (assignment.booking.customerId) {
+      this.notificationService.notifyCustomerBookingConfirmed(
+        assignment.booking.customerId,
+        assignment.driver.firstName,
+        assignment.driver.lastName,
+      );
+    }
   }
 
 
@@ -148,12 +159,13 @@ export class BookingDriverService {
 
       await this.bookingAssignmentService.onDriverReject(assignment.booking.id, assignment.driver.id);
     });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    
+    // Send notification (fire-and-forget, outside transaction)
+    if (assignment.booking.customerId) {
+      this.notificationService.notifyCustomerBookingStatusChange(
+        assignment.booking.customerId,
+      );
+    }
   }
 
   async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<BookingAssignment & { driver: Driver; booking: Booking & { invoices: Invoice[] } } | null> {
@@ -188,16 +200,11 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_ARRIVED, pickupArrivedAt: new Date() }
     });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      notification: {
-        title: 'Parcel Pickup Arrived',
-        body: 'Your driver has arrived at the pickup location. Please verify the pickup and proceed with the delivery.',
-      },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    
+    // Send notification (fire-and-forget, outside transaction)
+    if (assignment.booking.customerId) {
+      this.notificationService.notifyCustomerPickupArrived(assignment.booking.customerId);
+    }
   }
 
   async dropArrived(driverId: string): Promise<void> {
@@ -212,16 +219,11 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_ARRIVED, dropArrivedAt: new Date() }
     });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      notification: {
-        title: 'Parcel Drop Arrived',
-        body: 'Your parcel has arrived at the drop location. Please verify the drop and proceed with the delivery.',
-      },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    
+    // Send notification (fire-and-forget, outside transaction)
+    if (assignment.booking.customerId) {
+      this.notificationService.notifyCustomerDropArrived(assignment.booking.customerId);
+    }
   }
 
   async verifyPickup(driverId: string, pickupOtp: string): Promise<void> {
@@ -239,16 +241,11 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_VERIFIED, pickupVerifiedAt: new Date() }
     });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      notification: {
-        title: 'Parcel Pickup Verified',
-        body: 'Your parcel has been picked up and is on its way to the drop location.',
-      },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    
+    // Send notification (fire-and-forget, outside transaction)
+    if (assignment.booking.customerId) {
+      this.notificationService.notifyCustomerPickupVerified(assignment.booking.customerId);
+    }
   }
 
   async verifyDrop(driverId: string, dropOtp: string): Promise<void> {
@@ -266,16 +263,11 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_VERIFIED, dropVerifiedAt: new Date() }
     });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      notification: {
-        title: 'Parcel Drop Verified',
-        body: 'Your parcel has been dropped off at the destination.',
-      },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    
+    // Send notification (fire-and-forget, outside transaction)
+    if (assignment.booking.customerId) {
+      this.notificationService.notifyCustomerDropVerified(assignment.booking.customerId);
+    }
   }
 
   async startRide(driverId: string): Promise<void> {
@@ -287,23 +279,15 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.PICKUP_VERIFIED },
         data: { status: BookingStatus.IN_TRANSIT }
       });
-    if (!assignment.booking.customerId) return;
-    this.firebase.notifyAllSessions(assignment.booking.customerId, 'customer', {
-      notification: {
-        title: 'Ride Started',
-        body: 'Driver has started the ride. Please sit back and relax as your parcel is being delivered.',
-      },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
+    
+    // Send notification (fire-and-forget, outside transaction)
+    if (assignment.booking.customerId) {
+      this.notificationService.notifyCustomerRideStarted(assignment.booking.customerId);
+    }
   }
 
   async finishRide(driverId: string): Promise<void> {
-    let walletChange = 0;
-    let isCashPayment = false;
-    
-    const assignment = await this.prisma.$transaction(async (tx) => {
+    const { walletChange, isCashPayment } = await this.prisma.$transaction(async (tx) => {
       const assignment = await this.getDriverAssignment(driverId, tx);
       if (!assignment) {
         throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
@@ -312,7 +296,7 @@ export class BookingDriverService {
       // Get final invoice to calculate driver earnings
       const finalInvoice = assignment.booking.invoices.find(invoice => invoice.type === 'FINAL');
 
-      if (!finalInvoice || !finalInvoice.isPaid) {
+      if (!finalInvoice || !finalInvoice.isPaid || !finalInvoice.paymentMethod ) {
         throw new BadRequestException('Booking payment must be completed before finishing ride');
       }
 
@@ -321,13 +305,14 @@ export class BookingDriverService {
       const commission = Math.round(totalAmount * commissionRate * 100) / 100;
       
       // Check payment type
-      isCashPayment = finalInvoice.rzpPaymentId === 'CASH';
+      const isCashPayment = finalInvoice.paymentMethod === PaymentMethod.CASH;
       
       // Get current driver wallet balance
       const driver = assignment.driver;
       const currentBalance = Number(driver.walletBalance);
       let newBalance: number;
       let walletLogReason: string;
+      let walletChange: number;
 
       if (isCashPayment) {
         // Cash payment: Driver received cash, owes commission to platform (DEBIT)
@@ -368,24 +353,17 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.DROP_VERIFIED },
         data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
       });
-
-      return assignment;
+      
+      return { walletChange, isCashPayment };
     });
     
-    
-    if(walletChange !== 0){
-      // Notify driver based on payment type
-      this.firebase.notifyAllSessions(driverId, 'driver', {
-        notification: {
-          title: 'Ride Completed',
-          body: isCashPayment
-            ? `₹${Math.abs(walletChange).toFixed(2)} commission deducted from wallet for cash payment`
-            : `₹${walletChange.toFixed(2)} earnings credited to your wallet`,
-        },
-        data: {
-          event: isCashPayment ? FcmEventType.WalletDebit : FcmEventType.WalletCredit,
-        },
-      });
+    // Send notification (fire-and-forget, outside transaction)
+    if (walletChange !== 0) {
+      this.notificationService.notifyDriverWalletChange(
+        driverId,
+        walletChange,
+        isCashPayment,
+      );
     }
   }
 
@@ -406,14 +384,13 @@ export class BookingDriverService {
       throw new BadRequestException('Payment already received');
     }
 
-    // Simply mark invoice as paid (cash)
-    await this.prisma.invoice.update({
-      where: { id: finalInvoice.id },
-      data: {
-        isPaid: true,
-        paidAt: new Date(),
-        rzpPaymentId: 'CASH',
-      },
+    // Use payment service to handle cash payment processing
+    await this.prisma.$transaction(async (tx) => {
+      await this.paymentService.processCashPayment(
+        finalInvoice,
+        assignment.booking,
+        tx,
+      );
     });
   }
 
@@ -436,7 +413,7 @@ export class BookingDriverService {
         },
       },
       orderBy: { offeredAt: 'desc' },
-      take: 10,
+      take: 20,
     });
   }
 

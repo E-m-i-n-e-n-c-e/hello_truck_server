@@ -47,6 +47,7 @@ const envSchema = z.object({
 
   // Business Logic
   COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.07),
+  REFUND_PERCENTAGE: z.coerce.number().min(0).max(1).default(0.5), // 50% refund for CONFIRMED/PICKUP_ARRIVED
 });
 
 // Export the inferred type

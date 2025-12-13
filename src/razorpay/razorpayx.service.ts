@@ -107,7 +107,7 @@ export class RazorpayXService {
       // Add idempotency key to prevent duplicate payouts on retry
       const headers: Record<string, string> = {};
       if (params.referenceId) {
-        headers['Idempotency-Key'] = params.referenceId;
+        headers['X-Payout-Idempotency'] = params.referenceId;
       }
 
       const response = await this.axiosInstance.post<RazorpayPayoutResponse>(

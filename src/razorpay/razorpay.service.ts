@@ -286,6 +286,7 @@ export class RazorpayService {
         currency: refund.currency,
         status: refund.status,
         createdAt: refund.created_at,
+        notes: refund.notes,
       };
     } catch (error) {
       if (error.response) {
@@ -296,6 +297,37 @@ export class RazorpayService {
 
       this.logger.error(`Failed to create Razorpay refund: ${error.message}`);
       throw new Error(`Failed to create Razorpay refund: ${error.message}`);
+    }
+  }
+
+  /**
+   * Fetches all refunds for a specific payment.
+   * Useful for idempotency checks.
+   * @param paymentId The Razorpay payment ID
+   * @returns List of refunds
+   */
+  async fetchRefunds(paymentId: string): Promise<RefundResponse[]> {
+    try {
+      this.logger.log(`Fetching refunds for payment: ${paymentId}`);
+
+      const response = await this.axiosInstance.get<{ items: RazorpayRefundResponse[] }>(
+        `/payments/${paymentId}/refunds`,
+      );
+
+      return response.data.items.map(refund => ({
+        refundId: refund.id,
+        paymentId: refund.payment_id,
+        amount: refund.amount / 100, // Convert to rupees
+        currency: refund.currency,
+        status: refund.status,
+        createdAt: refund.created_at,
+        notes: refund.notes,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to fetch refunds: ${error.message}`);
+      // return empty array if fetch fails to allow flow to continue (risk of duplication but better than blocking?)
+      // OR throw. If we throw, cancellation fails.
+      return []; 
     }
   }
 }

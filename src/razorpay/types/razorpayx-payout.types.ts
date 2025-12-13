@@ -8,7 +8,7 @@ export interface CreatePayoutParams {
   currency?: string;
   mode?: 'IMPS' | 'NEFT' | 'RTGS' | 'UPI';
   purpose?: string;
-  referenceId?: string;
+  referenceId: string;
 }
 
 export interface PayoutResponse {

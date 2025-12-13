@@ -435,6 +435,7 @@ model Invoice {
   // Payment status
   isPaid             Boolean       @default(false)
   paidAt             DateTime?
+  paymentMethod      PaymentMethod? 
   
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -469,6 +470,9 @@ model Transaction {
 
   // Metadata
   metadata Json? // For storing additional context
+
+  // payment method
+  paymentMethod PaymentMethod
 
   createdAt DateTime @default(now())
 
@@ -657,4 +661,9 @@ enum PayoutStatus {
 enum InvoiceType {
   ESTIMATE
   FINAL
+}
+
+enum PaymentMethod {
+  ONLINE
+  CASH
 }
