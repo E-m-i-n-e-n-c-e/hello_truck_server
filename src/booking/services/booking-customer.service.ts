@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, Logger, Inject } fr
 import { PrismaService } from 'src/prisma/prisma.service';
 import { BookingInvoiceService } from './booking-invoice.service';
 import { CreateBookingRequestDto } from '../dtos/booking.dto';
-import { Booking, BookingStatus } from '@prisma/client';
+import { Booking, BookingStatus, Customer, Driver, Invoice } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { AssignmentService } from '../assignment/assignment.service';
@@ -198,10 +198,8 @@ export class BookingCustomerService {
   async cancelBooking(
     userId: string, 
     bookingId: string,
-    reason?: string,
+    reason: string,
   ): Promise<void> {
-    const logger = new Logger('BookingCustomerService');
-    logger.log(`Processing cancellation for booking ${bookingId} by customer ${userId}`);
 
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
@@ -238,11 +236,83 @@ export class BookingCustomerService {
     }
 
     const finalInvoice = booking.invoices[0];
-    if (!finalInvoice) {
-      throw new NotFoundException('Final invoice not found');
+    
+    // If no final invoice exists (PENDING or DRIVER_ASSIGNED booking), just cancel without refund processing
+    if (!finalInvoice || !booking.assignedDriver) {
+      await this.cancelUnconfirmedBooking(bookingId, userId, reason, booking);
+      return;
     }
 
-    // Process cancellation and refunds in transaction
+    await this.cancelConfirmedBooking(
+      bookingId,
+      userId,
+      reason,
+      { ...booking, assignedDriver: booking.assignedDriver, customer: booking.customer },
+      finalInvoice,
+    );
+    return;
+  }
+
+  /**
+   * Cancel an unconfirmed booking (no final invoice)
+   * This is for PENDING or DRIVER_ASSIGNED bookings where no payment/invoice has been finalized.
+   * Simply cancels the booking and releases the driver if assigned.
+   */
+  private async cancelUnconfirmedBooking(
+    bookingId: string,
+    userId: string,
+    reason: string,
+    booking: Booking,
+  ): Promise<void> {
+    const logger = new Logger('BookingCustomerService');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      // If driver was assigned (DRIVER_ASSIGNED state), release them
+      if (booking.assignedDriverId) {
+        await tx.driver.update({
+          where: { id: booking.assignedDriverId },
+          data: { driverStatus: 'AVAILABLE' },
+        });
+
+        // Also mark assignment as rejected/cancelled so it doesn't linger
+        await tx.bookingAssignment.updateMany({
+          where: { bookingId, driverId: booking.assignedDriverId, status: 'OFFERED' },
+          data: { status: 'AUTO_REJECTED', respondedAt: new Date() }
+        });
+      }
+    });
+
+    // Send notification and cleanup
+    this.notificationService.notifyCustomerBookingCancelled(userId);
+    if (booking.assignedDriverId) {
+      this.notificationService.notifyDriverRideCancelled(booking.assignedDriverId);
+    }
+    await this.bookingAssignmentService.onBookingCancelled(bookingId);
+  }
+
+  /**
+   * Cancel a confirmed booking (with final invoice)
+   * This involves refund processing, driver compensation, and financial transaction logging.
+   */
+  private async cancelConfirmedBooking(
+    bookingId: string,
+    userId: string,
+    reason: string,
+    booking: Booking & {assignedDriver: Driver, customer: Customer},
+    finalInvoice: Invoice,
+  ): Promise<void> {
+    const logger = new Logger('BookingCustomerService');
+
+    // Process cancellation and refunds in transaction (for bookings with FINAL invoice)
     const { walletRefund, driverCompensation, driverId } = await this.prisma.$transaction(async (tx) => {
       // Update booking status
       await tx.booking.update({
@@ -269,6 +339,11 @@ export class BookingCustomerService {
 
       // Reset driver status if assigned
       if (booking.assignedDriverId) {
+        await tx.bookingAssignment.updateMany({
+          where: { bookingId, driverId: booking.assignedDriverId},
+          data: { status: 'AUTO_REJECTED', respondedAt: new Date() }
+        });
+
         await tx.driver.update({
           where: { id: booking.assignedDriverId },
           data: { driverStatus: 'AVAILABLE' },
@@ -299,8 +374,7 @@ export class BookingCustomerService {
       }
     }
 
-    await this.bookingAssignmentService.onBookingCancelled(booking.id);
-    logger.log(`Cancellation processed for booking ${bookingId}`);
+    await this.bookingAssignmentService.onBookingCancelled(bookingId);
   }
 
   async getUploadUrl(userId: string, uploadUrlDto: uploadUrlDto): Promise<UploadUrlResponseDto> {

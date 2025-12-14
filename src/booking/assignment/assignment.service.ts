@@ -185,7 +185,11 @@ export class AssignmentService {
     const job = await this.assignmentQueue.getJob(jobId);
     if (job) {
       this.logger.log(`[cancelTimeoutJob] Cancelling timeout job for booking ${bookingId} (jobId: ${jobId})`);
-      await job.remove();
+      try {
+        await job.remove();
+      } catch (error) {
+        this.logger.warn(`[cancelTimeoutJob] Failed to remove job ${jobId}: ${error.message}`);
+      }
     } else {
       this.logger.log(`[cancelTimeoutJob] No timeout job found for booking ${bookingId} (jobId: ${jobId})`);
     }
@@ -194,12 +198,18 @@ export class AssignmentService {
   private async cancelAssignJob(bookingId: string) {
     const jobs = await this.assignmentQueue.getJobs(['waiting', 'active', 'delayed']);
     const jobsToCancel = jobs.filter(job =>
-      job.name === 'assign-driver' && job.data.bookingId === bookingId
+      job && job.name === 'assign-driver' && job.data.bookingId === bookingId
     );
 
     if (jobsToCancel.length > 0) {
       // Use Promise.all to send all remove requests in parallel (single network round-trip for Redis)
-      await Promise.all(jobsToCancel.map(job => job.remove()));
+      await Promise.all(jobsToCancel.map(async (job) => {
+        try {
+          await job.remove();
+        } catch (error) {
+          this.logger.warn(`[cancelAssignJob] Failed to remove job ${job.id}: ${error.message}`);
+        }
+      }));
     }
   }
 

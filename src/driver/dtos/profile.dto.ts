@@ -95,11 +95,14 @@ export class UpdateDriverProfileDto implements Partial<Driver> {
 }
 
 export class ProfileResponseDto {
+  @Expose()
   id: string;
+  @Expose()
   isActive: boolean;
+  @Expose()
   contactId: string | null;
+  @Expose()
   fundAccountId: string | null;
-
   @Expose()
   phoneNumber: string;
   @Expose()

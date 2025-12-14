@@ -174,8 +174,11 @@ export class BookingDriverService {
         driverId,
         status: { in: [AssignmentStatus.OFFERED, AssignmentStatus.ACCEPTED] },
         booking: {
-          status: { not: BookingStatus.COMPLETED }
+          status: { notIn: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.EXPIRED] }
         }
+      },
+      orderBy: {
+        offeredAt: 'desc', // Get most recent assignment first
       },
       include: {
         driver: true,

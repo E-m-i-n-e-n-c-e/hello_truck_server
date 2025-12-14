@@ -135,7 +135,7 @@ export class BookingInvoiceService {
       data: {
         bookingId: booking.id,
         type: InvoiceType.FINAL,
-        isPaid: finalAmount > 0,
+        isPaid: finalAmount <= 0,
         vehicleModelName: vehicleModel.name,
         basePrice: vehicleModel.baseFare,
         perKmPrice: vehicleModel.perKm,
