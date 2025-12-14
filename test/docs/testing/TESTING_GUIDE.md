@@ -55,7 +55,6 @@ npm run test:smoke
 # Run specific tests
 npm run smoke:razorpay
 npm run smoke:razorpayx
-npm run smoke:realtime
 ```
 
 ## 3. Writing Tests

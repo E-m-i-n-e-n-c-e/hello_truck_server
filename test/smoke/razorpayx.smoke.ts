@@ -11,7 +11,11 @@
   Note: RazorpayX must be activated on your account
 */
 
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load .env.test
+dotenv.config({ path: path.resolve(__dirname, '../../.env.test') });
 import { ConfigService } from '@nestjs/config';
 import { RazorpayService } from '../../src/razorpay/razorpay.service';
 import { RazorpayXService } from '../../src/razorpay/razorpayx.service';
@@ -26,9 +30,9 @@ if (process.env.NODE_ENV === 'production') {
   process.exit(1);
 }
 
-if (process.env.RAZORPAY_SMOKE !== 'true') {
-  console.error('❌ Smoke tests disabled. Set RAZORPAY_SMOKE=true to run intentionally.');
-  console.error('   Run: RAZORPAY_SMOKE=true npm run smoke:razorpay');
+if (process.env.SMOKE_TESTS !== 'true') {
+  console.error('❌ Smoke tests disabled. Set SMOKE_TESTS=true to run intentionally.');
+  console.error('   Run: SMOKE_TESTS=true npm run smoke:razorpay');
   process.exit(1);
 }
 

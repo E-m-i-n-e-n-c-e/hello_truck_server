@@ -5,8 +5,19 @@ import { ConfigModule } from '@nestjs/config';
 describe('Redis Integration', () => {
   let redisService: RedisService;
 
+  let module: TestingModule;
+
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    if (process.env.INTEGRATION_TESTS !== 'true') {
+      const red = (text: string) => `\x1b[31m${text}\x1b[0m`;
+      console.log(red('🚨 FATAL ERROR: Integration tests require INTEGRATION_TESTS to be "true".'));
+      console.log(red(`Current INTEGRATION_TESTS value: "${process.env.INTEGRATION_TESTS || 'undefined'}".`));
+      console.log(red('Please ensure INTEGRATION_TESTS=true is set in your .env.test file or environment variables.'));
+      console.log(red('Tests aborted.'));
+      process.exit(1);
+    }
+
+    module = await Test.createTestingModule({
       imports: [ConfigModule.forRoot()],
       providers: [RedisService],
     }).compile();
@@ -16,7 +27,7 @@ describe('Redis Integration', () => {
   });
 
   afterAll(async () => {
-    await redisService.quit();
+    await module.close();
   });
 
   describe('Basic Operations', () => {
