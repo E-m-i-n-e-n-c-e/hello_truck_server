@@ -4,8 +4,11 @@ Welcome to the living documentation for the Hello Truck Backend. This documentat
 
 ## 📂 Structure
 
-### [QA Strategy](QA/QA_DOCUMENT.md)
-High-level strategy, coverage reports, and release checklists.
+### [QA Strategy](QA/QA_STRATEGY.md)
+High-level strategy, testing pyramid, and release checklists.
+
+### [QA Coverage](QA/QA_COVERAGE.md)
+Detailed consolidated matrix of all business rules and test scenarios.
 
 ### [Testing Guide](testing/TESTING_GUIDE.md)
 How to run, write, and debug tests.
