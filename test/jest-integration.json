@@ -2,7 +2,7 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
-  "testRegex": ".e2e-spec.ts$",
+  "testRegex": ".spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
@@ -12,7 +12,5 @@
   "maxWorkers": 1,
   "testTimeout": 30000,
   "setupFilesAfterEnv": ["<rootDir>/setup/jest-setup.ts"],
-  "testSequencer": "<rootDir>/setup/test-sequencer.js",
   "forceExit": true
 }
-

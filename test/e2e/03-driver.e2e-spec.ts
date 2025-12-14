@@ -215,6 +215,18 @@ describe('03 - Driver Profile (E2E)', () => {
           expect(res.body.licenseUrl).toBe('https://example.com/license-updated.jpg');
         });
     });
+
+    it('should get upload url', () => {
+      return request(app.getHttpServer())
+        .get('/driver/documents/upload-url')
+        .query({ filePath: 'drivers/license.jpg', type: 'image/jpeg' })
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.signedUrl).toBeDefined();
+          expect(res.body.publicUrl).toBeDefined();
+        });
+    });
   });
 
   describe('Address', () => {

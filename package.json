@@ -25,12 +25,13 @@
     "test:e2e:logs": "jest --config ./test/jest-e2e.json --testPathPattern=05-logs --detectOpenHandles",
     "test:e2e:cancel": "jest --config ./test/jest-e2e.json --testPathPattern=06-cancellation --detectOpenHandles",
     "test:e2e:realtime": "jest --config ./test/jest-e2e.json --testPathPattern=07-realtime --detectOpenHandles",
-    "test:integration:redis": "jest --config ./test/jest-e2e.json --testPathPattern=redis.spec --detectOpenHandles",
+    "test:e2e:admin": "jest --config ./test/jest-e2e.json --testPathPattern=08-admin --detectOpenHandles",
+    "test:integration:redis": "jest --config ./test/jest-integration.json --testPathPattern=redis.spec --detectOpenHandles",
     "test:integration": "npm run test:integration:redis",
     "smoke:razorpay": "ts-node test/smoke/razorpay.smoke.ts",
     "smoke:razorpayx": "ts-node test/smoke/razorpayx.smoke.ts",
     "test:smoke": "npm run smoke:razorpayx && npm run smoke:razorpay",
-    "test:all": "npm run test:integration && npm run test:e2e"
+    "test:all": "jest --config ./test/jest-all.json --runInBand --detectOpenHandles"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.3",

@@ -1,43 +1,67 @@
-# 05 – Financial & Activity Logs
+# 05 – Wallet & Transaction Logs
 
 ## Covered By
 - `test/e2e/05-logs.e2e-spec.ts`
 
 ## Purpose
-Verifies the audit trail for wallets and payments for both Customers and Drivers.
+Verifies that wallet and transaction logs are correctly created after a completed booking with cash settlement.
 
 ---
 
 ## Preconditions
-- A Booking has been completed (paid/settled).
-- Customer wallet used (optional but tested).
-- Driver earned commission.
+- Customer and Driver authenticated
+- **Full booking completed in `beforeAll`**: Create booking → Assign → Accept → Pickup → Drop → Settle Cash → Finish
+- This ensures logs exist before tests run
 
 ---
 
-## Log Types
+## Setup Flow (in beforeAll)
 
-### 1. Customer Logs
-- **Wallet Logs**: Tracks credits/debits to the internal wallet.
-    - Type: `DEBIT` (Booking payment/Penalty) or `CREDIT` (Refund/Top-up).
-- **Transaction Logs**: Tracks external payment events.
-    - Category: `BOOKING_PAYMENT`.
-
-### 2. Driver Logs
-- **Wallet Logs**: Tracks earnings.
-    - Type: `CREDIT` (Ride earnings) or `DEBIT` (Commission/Penalty).
-- **Transaction Logs**: Tracks cash settlements or online payouts.
-
----
-
-## Rules
-- Every successful booking MUST create:
-    1.  Driver Credit (Wallet Log)
-    2.  Customer Debit (Wallet Log - if wallet used)
-    3.  Transaction Record linked to Booking
+```
+1. Login customer & driver
+2. Create profiles, vehicle
+3. Set driver VERIFIED + AVAILABLE
+4. Create booking
+5. Manually assign driver (via Prisma)
+6. Accept assignment
+7. Complete pickup flow (arrived → verify OTP)
+8. Start trip
+9. Complete drop flow (arrived → verify OTP)
+10. Settle cash payment
+11. Finish booking
+```
 
 ---
 
-## Notes
-- Logs are immutable.
-- Used for "History" and "Passbook" screens in the apps.
+## Test Cases
+
+### Customer Logs (2 tests)
+
+| Test | Endpoint | Expected |
+|------|----------|----------|
+| Get wallet logs | `GET /customer/profile/wallet-logs` | `200 OK`, returns array |
+| Get transaction logs | `GET /customer/profile/transaction-logs` | `200 OK`, returns array |
+
+### Driver Logs (3 tests)
+
+| Test | Endpoint | Expected |
+|------|----------|----------|
+| Get wallet logs | `GET /driver/profile/wallet-logs` | `200 OK`, returns array |
+| Get transaction logs | `GET /driver/profile/transaction-logs` | `200 OK`, returns array |
+| Get ride summary | `GET /bookings/driver/ride-summary` | `200 OK`, returns summary data |
+
+---
+
+## Key Assertions
+
+1. **Wallet Log Structure**: Each log contains `beforeBalance`, `afterBalance`, `amount`, `reason`.
+2. **Transaction Log Structure**: Contains `type` (CREDIT/DEBIT), `category`, `bookingId` reference.
+3. **Driver Earnings**: After cash settlement, driver wallet should show credit entry.
+4. **Ride Summary**: Shows aggregated earnings for the day/period.
+
+---
+
+## Database Tables Verified
+- `CustomerWalletLog` - Tracks customer wallet changes
+- `DriverWalletLog` - Tracks driver wallet changes
+- `Transaction` - Central ledger for all financial transactions

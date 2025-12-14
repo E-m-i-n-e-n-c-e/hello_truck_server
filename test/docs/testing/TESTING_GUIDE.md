@@ -10,6 +10,12 @@ Ensure you have the following services running or configured:
 
 ## 2. Test Types
 
+### 🚀 Run All Automated Tests
+To run both **E2E** and **Integration** tests in a single pass (useful for CI or final verification):
+```bash
+npm run test:all
+```
+
 ### A. End-to-End (E2E) Tests
 **Location:** `test/e2e`
 **Goal:** Verify the system flows from the user's perspective (HTTP requests), including database side-effects.
@@ -30,6 +36,7 @@ npm run test:e2e:driver     # Driver profile/vehicle/docs
 npm run test:e2e:booking    # Full booking lifecycle
 npm run test:e2e:cancel     # Cancellation scenarios
 npm run test:e2e:realtime   # Socket/SSE flow (mocked)
+npm run test:e2e:admin      # Admin flow
 ```
 
 ### B. Integration Tests

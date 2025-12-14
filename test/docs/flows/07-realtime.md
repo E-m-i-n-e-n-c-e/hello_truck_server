@@ -1,41 +1,98 @@
-# 07 – Realtime Updates (Socket & SSE)
+# 07 – Realtime Updates
 
 ## Covered By
 - `test/e2e/07-realtime.e2e-spec.ts`
 
 ## Purpose
-Verifies the realtime communication layer: Driver Location Updates (via Socket.io) -> Server -> Customer Navigation Updates (via SSE).
+Validates the realtime infrastructure setup for location tracking. Full WebSocket testing requires a running server, so this suite focuses on state validation.
+
+---
+
+## Preconditions
+- Customer and Driver authenticated with profiles
+- Booking created and assigned to driver
+- Driver has accepted the booking (`status: CONFIRMED`)
+
+---
+
+## Setup Flow (in beforeAll)
+
+```
+1. Login customer & driver
+2. Create profiles, vehicle
+3. Set driver VERIFIED + AVAILABLE
+4. Create booking
+5. Manually assign driver (via Prisma)
+6. Accept assignment → booking CONFIRMED
+```
+
+---
+
+## Test Cases
+
+### WebSocket Connection (2 tests - SKIPPED)
+
+| Test | Reason Skipped |
+|------|----------------|
+| Connect driver to WebSocket | Requires running server with `npm run start:dev` |
+| Reject connection without token | Requires running server with `npm run start:dev` |
+
+**Note**: Use `npm run test:smoke:realtime` for manual WebSocket testing.
+
+### Realtime Gateway Validation (2 tests)
+
+| Test | Assertion |
+|------|-----------|
+| Booking confirmed | `booking.status === "CONFIRMED"` |
+| Driver assigned | `booking.assignedDriverId === driverId` |
 
 ---
 
 ## Architecture
-- **In-Memory Bus**: Used for E2E tests to simulate Redis Pub/Sub without external dependencies.
-- **Production**: Uses Redis Pub/Sub.
 
----
-
-## Flows
-
-### 1. Driver Location Update
-- **Protocol**: Socket.io
-- **Event**: `driver-navigation-update`
-- **Payload**: `{ bookingId, latitude, longitude, heading }`
-- **Auth**: Bearer Token in Socket Handshake.
-
-### 2. Customer Subscription
-- **Protocol**: Server-Sent Events (SSE)
-- **Endpoint**: `/bookings/customer/driver-navigation/:bookingId`
-- **Auth**: Standard Cookie/Header.
-
----
-
-## Side Effects
-- No database writes (ephemeral data).
-- Events broadcast to specific Redis channels.
+```
+┌─────────────────┐    Socket.io     ┌─────────────────┐
+│  Driver App     │ ───────────────► │  Server         │
+│  (Location)     │                  │  (RealtimeGateway) │
+└─────────────────┘                  └────────┬────────┘
+                                              │
+                                     Redis Pub/Sub (Prod)
+                                     InMemoryBus (Test)
+                                              │
+                                     ┌────────▼────────┐
+                                     │  Customer App   │
+                                     │  (SSE Stream)   │
+                                     └─────────────────┘
+```
 
 ---
 
 ## Testing Strategy
-- Tests utilize `socket.io-client` to simulate driver.
-- Tests utilize `EventSource` simulation to capture SSE stream.
-- Verifies that `Event A` from Driver results in `Event B` to Customer.
+
+| Environment | Realtime Bus | Method |
+|-------------|--------------|--------|
+| E2E Tests | `InMemoryBus` | State validation only |
+| Smoke Tests | Redis | Manual via `test/smoke/realtime.smoke.ts` |
+| Dev/Prod | Redis | Full Socket.io + SSE |
+
+---
+
+## Events
+
+### Driver → Server
+- **Protocol**: Socket.io
+- **Event**: `driver-navigation-update`
+- **Payload**: `{ bookingId, latitude, longitude, heading }`
+
+### Server → Customer
+- **Protocol**: Server-Sent Events (SSE)
+- **Endpoint**: `GET /bookings/customer/driver-navigation/{bookingId}`
+- **Payload**: Location updates streamed in real-time
+
+---
+
+## Key Assertions
+
+1. **Booking Ready**: A confirmed booking exists for realtime tracking.
+2. **Driver Linked**: `assignedDriverId` is set on the booking.
+3. **InMemoryBus**: E2E tests use `InMemoryBus` instead of Redis for CI safety.

@@ -4,40 +4,56 @@
 - `test/e2e/02-customer.e2e-spec.ts`
 
 ## Purpose
-Manages the customer's personal information, FCM tokens for notifications, and saved locations (addresses).
+Tests customer profile management, saved addresses (address book), and GST details for business customers.
 
 ---
 
 ## Preconditions
-- Authenticated as Customer
+- Authenticated as Customer (via `loginAsCustomer` helper)
+- Customer record exists with `phoneNumber` only (created during OTP verification)
 
 ---
 
-## Rules
+## Test Cases
 
-### 1. Profile Management
-- **Create**: Required fields: `firstName`, `lastName`.
-- **Get**: Returns profile + wallet balance.
-- **Update**: Can update name, email.
-- **FCM**: Can update device token for push notifications.
+### Profile (4 tests)
 
-### 2. Address Book
-- **Create**: Requires `formattedAddress`, `lat`, `lng`.
-- **Default Address**: Setting `isDefault: true` on a new/existing address automatically unsets the previous default.
-- **Delete**: Soft deletes or hard deletes depending on implementation (E2E verifies removal from list).
+| Test | Endpoint | Payload | Expected |
+|------|----------|---------|----------|
+| Get profile before creation | `GET /customer/profile` | - | `200 OK`, `firstName: null` |
+| Create profile | `POST /customer/profile` | `{ firstName, lastName }` | `201 Created`, `{ success: true }` |
+| Get profile after creation | `GET /customer/profile` | - | `200 OK`, returns `firstName`, `lastName` |
+| Update profile | `PUT /customer/profile` | `{ firstName: "Updated" }` | `200 OK`, `{ success: true }` |
 
-### 3. GST Details
-- **Manage**: Add/Update GST number for tax invoicing.
-- **Toggle**: Can deactivate/reactivate GST profiles.
+### Saved Addresses (5 tests)
+
+| Test | Endpoint | Payload | Expected |
+|------|----------|---------|----------|
+| Create address | `POST /customer/addresses` | `{ name, contactName, contactPhone, address: { formattedAddress, latitude, longitude } }` | `201 Created`, returns address with `id` |
+| Get all addresses | `GET /customer/addresses` | - | `200 OK`, returns array, length > 0 |
+| Create default address | `POST /customer/addresses` | Same + `isDefault: true` | `201 Created`, `isDefault: true` |
+| Update address | `PUT /customer/addresses/{id}` | `{ name: "Home Updated" }` | `200 OK`, reflects updated name |
+| Delete address | `DELETE /customer/addresses/{id}` | - | `200 OK` |
+
+### GST Details (3 tests)
+
+| Test | Endpoint | Payload | Expected |
+|------|----------|---------|----------|
+| Add GST | `POST /customer/gst` | `{ gstNumber, businessName, businessAddress }` | `201 Created`, `{ success: true }` |
+| Get all GST | `GET /customer/gst` | - | `200 OK`, returns array with GST details |
+| Update GST | `PUT /customer/gst/{id}` | `{ businessName: "Updated Company" }` | `200 OK`, `{ success: true }` |
 
 ---
 
-## Side Effects
-- `Customer` table updated.
-- `Address` table rows created/updated.
-- `CustomerGst` table rows managed.
+## Key Assertions
+
+1. **Profile State**: Before `POST /customer/profile`, the customer exists but `firstName` is `null`.
+2. **Address Uniqueness**: Address names must be unique per customer (`unique_name_per_customer` constraint).
+3. **Default Address Logic**: Setting `isDefault: true` on a new address unsets the previous default.
+4. **GST Validation**: GST numbers must follow valid format (e.g., `29ABCDE1234F1Z5`).
 
 ---
 
-## Notes
-- Profile must exist before booking can be made.
+## State Passed to Next Tests
+- `testState.addressId` - Created address ID
+- `testState.gstId` - Created GST details ID

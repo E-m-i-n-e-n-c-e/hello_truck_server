@@ -4,6 +4,11 @@ import * as path from 'path';
 // Load .env.test before running tests
 dotenv.config({ path: path.resolve(__dirname, '../../.env.test') });
 
+// Ensure Admin Creds are set
+process.env.ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+process.env.ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'supersecretkey';
+
 beforeAll(() => {
   if (process.env.E2E_TESTS !== 'true') {
     const red = (text: string) => `\x1b[31m${text}\x1b[0m`;

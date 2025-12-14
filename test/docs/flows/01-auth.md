@@ -4,54 +4,50 @@
 - `test/e2e/01-auth.e2e-spec.ts`
 
 ## Purpose
-Verifies the OTP-based authentication flow for both Customers and Drivers, including token management (lifecycle, refresh, logout).
+Verifies OTP-based authentication for both Customers and Drivers, including the complete token lifecycle.
 
 ---
 
 ## Preconditions
-- Database is clean (or has existing users for login scenarios)
-- `123456` is the hardcoded OTP in development/test mode
+- Database is clean/seeded
+- `123456` is the hardcoded OTP in test mode (`NODE_ENV=test`)
 
 ---
 
-## Auth Rules
+## Test Cases
 
-### 1. Send OTP
-✅ Allowed
-- Valid phone number (10 digits)
-- Returns `201 Created`
-- Triggers SMS (Mocked)
+### Customer Auth (5 tests)
 
-### 2. Verify OTP
-✅ Allowed
-- Valid phone + Correct OTP
-- Returns `accessToken` & `refreshToken`
-- Creates user if not exists (Auto-signup)
+| Test | Endpoint | Expected |
+|------|----------|----------|
+| Send OTP | `POST /auth/customer/send-otp` | `200 OK`, `{ success: true }` |
+| Verify OTP | `POST /auth/customer/verify-otp` | `200 OK`, returns `accessToken` + `refreshToken` |
+| Invalid OTP | `POST /auth/customer/verify-otp` with `000000` | `400 Bad Request` |
+| Refresh Token | `POST /auth/customer/refresh-token` | `200 OK`, returns new `accessToken` |
+| Logout | `POST /auth/customer/logout` | `200 OK`, invalidates session |
 
-❌ Not Allowed
-- Invalid OTP → `400 Bad Request`
+### Driver Auth (4 tests)
 
-### 3. Refresh Token
-✅ Allowed
-- Valid `refreshToken` in body
-- Returns new `accessToken`
-
-❌ Not Allowed
-- Expired/Invalid token → `401 Unauthorized`
-
-### 4. Logout
-✅ Allowed
-- Authenticated user
-- Invalidates current tokens
+| Test | Endpoint | Expected |
+|------|----------|----------|
+| Send OTP | `POST /auth/driver/send-otp` | `200 OK`, `{ success: true }` |
+| Verify OTP | `POST /auth/driver/verify-otp` | `200 OK`, returns `accessToken` + `refreshToken` |
+| Invalid OTP | `POST /auth/driver/verify-otp` with `000000` | `400 Bad Request` |
+| Logout | `POST /auth/driver/logout` | `200 OK`, invalidates session |
 
 ---
 
-## Side Effects
-- `User` record created (if new)
-- `RefreshToken` stored in DB (hashed)
-- Access logs (optional)
+## Key Assertions
+
+1. **Token Generation**: Both `accessToken` and `refreshToken` must be defined after successful OTP verification.
+2. **Auto-Signup**: Verifying OTP for a new phone number automatically creates a User record.
+3. **Token Refresh**: Using a valid `refreshToken` returns a new `accessToken`.
+4. **Session Invalidation**: After logout, the refresh token is no longer valid.
 
 ---
 
-## Notes
-- Drivers and Customers use separate endpoints (`/auth/customer/*` vs `/auth/driver/*`) but share logic.
+## State Passed to Next Tests
+- `testState.customerPhone` - Customer phone number
+- `testState.customerToken` - Customer access token
+- `testState.driverPhone` - Driver phone number
+- `testState.driverToken` - Driver access token

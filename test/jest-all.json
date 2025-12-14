@@ -2,7 +2,7 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
-  "testRegex": ".e2e-spec.ts$",
+  "testRegex": ".(e2e-spec|spec).ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
@@ -15,4 +15,3 @@
   "testSequencer": "<rootDir>/setup/test-sequencer.js",
   "forceExit": true
 }
-

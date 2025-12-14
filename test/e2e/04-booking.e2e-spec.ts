@@ -182,6 +182,18 @@ describe('04 - Booking Flow (E2E)', () => {
           expect(res.body.some((b: any) => b.id === bookingId)).toBe(true);
         });
     });
+
+    it('should get upload url', () => {
+      return request(app.getHttpServer())
+        .get('/bookings/customer/upload-url')
+        .query({ filePath: 'bookings/item.jpg', type: 'image/jpeg' })
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.signedUrl).toBeDefined();
+          expect(res.body.publicUrl).toBeDefined();
+        });
+    });
   });
 
   describe('Driver Assignment & Full Flow', () => {
@@ -204,6 +216,18 @@ describe('04 - Booking Flow (E2E)', () => {
           assignedDriverId: driverId,
         },
       });
+    });
+
+    it('should receive assignment update', async () => {
+      // Driver should see the current assignment
+      return request(app.getHttpServer())
+        .get('/bookings/driver/current-assignment')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(assignmentId);
+          expect(res.body.status).toBe('OFFERED');
+        });
     });
 
     it('should accept assignment', async () => {

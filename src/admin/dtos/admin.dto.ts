@@ -1,6 +1,6 @@
 import { DriverStatus, VerificationStatus, VehicleOwner, VehicleType, VehicleBodyType, FuelType, DriverDocuments, DriverAddress } from "@prisma/client";
 import { Expose, Type } from "class-transformer";
-import { IsOptional } from "class-validator";
+import { IsOptional, IsEnum, IsNotEmpty } from "class-validator";
 
 export class VehicleOwnerResponseDto implements VehicleOwner {
   id: string;
@@ -197,18 +197,16 @@ export class AdminDriverListResponseDto {
 }
 
 export class UpdateDriverVerificationDto {
-  @Expose()
+  @IsEnum(VerificationStatus)
+  @IsNotEmpty()
   status: VerificationStatus;
 
-  @Expose()
   @IsOptional()
   licenseExpiry?: string;
 
-  @Expose()
   @IsOptional()
   fcExpiry?: string;
 
-  @Expose()
   @IsOptional()
   insuranceExpiry?: string;
 }
