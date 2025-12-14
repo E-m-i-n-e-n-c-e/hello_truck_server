@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, Inject } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { BookingInvoiceService } from './booking-invoice.service';
 import { CreateBookingRequestDto } from '../dtos/booking.dto';
@@ -6,7 +6,7 @@ import { Booking, BookingStatus } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import { AssignmentService } from '../assignment/assignment.service';
-import { RedisService } from 'src/redis/redis.service';
+import { REALTIME_BUS, RealtimeBus } from 'src/redis/interfaces/realtime-bus.interface';
 import { Response, Request } from 'express';
 import { toPackageDetailsDto, toPackageCreateData } from '../utils/package.utils';
 import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils';
@@ -38,7 +38,7 @@ export class BookingCustomerService {
     private readonly invoiceService: BookingInvoiceService,
     private readonly firebaseService: FirebaseService,
     private readonly bookingAssignmentService: AssignmentService,
-    private readonly redisService: RedisService,
+    @Inject(REALTIME_BUS) private readonly realtimeBus: RealtimeBus,
     private readonly bookingPaymentService: BookingPaymentService,
     private readonly notificationService: BookingNotificationService,
   ) {}
@@ -350,10 +350,10 @@ export class BookingCustomerService {
     // Suggest client retry interval
     response.write('retry: 10000\n\n');
 
-    // Send initial data from Redis
+    // Send initial data from cache
     try {
-      const redisKey = `driver_navigation:${driverId}`;
-      const cachedData = await this.redisService.get(redisKey);
+      const cacheKey = `driver_navigation:${driverId}`;
+      const cachedData = await this.realtimeBus.get(cacheKey);
 
       if (cachedData) {
         const navigationData = JSON.parse(cachedData);
@@ -381,12 +381,12 @@ export class BookingCustomerService {
       }
     };
 
-    await this.redisService.subscribeChannel(sseKey, handler);
+    await this.realtimeBus.subscribe(sseKey, handler);
 
     // Handle client disconnect
     request.on('close', async () => {
       clearInterval(heartbeat);
-      await this.redisService.unsubscribeChannel(sseKey, handler);
+      await this.realtimeBus.unsubscribe(sseKey, handler);
       response.end();
     });
   }

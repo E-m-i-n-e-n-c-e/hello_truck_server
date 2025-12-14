@@ -7,15 +7,14 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Inject, Logger, UseGuards } from '@nestjs/common';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { ProfileService } from './profile/profile.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { TokenService } from 'src/token/token.service';
 import { seconds, Throttle } from '@nestjs/throttler';
-import { RedisService } from 'src/redis/redis.service';
-import { BookingDriverService } from 'src/booking/services/booking-driver.service';
+import { REALTIME_BUS, RealtimeBus } from 'src/redis/interfaces/realtime-bus.interface';
 
 @WebSocketGateway({
   namespace: '/driver',
@@ -34,7 +33,7 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
   constructor(
     private profileService: ProfileService,
     private tokenService: TokenService,
-    private redisService: RedisService,
+    @Inject(REALTIME_BUS) private realtimeBus: RealtimeBus,
   ) { }
 
   afterInit(server: Server) {
@@ -147,13 +146,13 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
         sentAt: payload.sentAt || new Date().toISOString()
       };
 
-      // Store in Redis with driver ID as key
-      const redisKey = `driver_navigation:${driverId}`;
-      await this.redisService.set(redisKey, JSON.stringify(transformedData));
+      // Store navigation data with driver ID as key
+      const cacheKey = `driver_navigation:${driverId}`;
+      await this.realtimeBus.set(cacheKey, JSON.stringify(transformedData));
 
       // Publish update for SSE listeners scoped to driver
       const sseKey = `driver_navigation_updates:${driverId}`;
-      await this.redisService.publish(sseKey, JSON.stringify(transformedData));
+      await this.realtimeBus.publish(sseKey, JSON.stringify(transformedData));
 
       this.logger.log(`Driver ${driverId} navigation data stored and published`);
 
