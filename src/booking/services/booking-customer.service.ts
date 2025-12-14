@@ -12,6 +12,8 @@ import { toPackageDetailsDto, toPackageCreateData } from '../utils/package.utils
 import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils';
 import { BookingPaymentService } from './booking-payment.service';
 import { BookingNotificationService } from './booking-notification.service';
+import { ConfigService } from '@nestjs/config';
+import { randomInt } from 'crypto';
 
 @Injectable()
 export class BookingCustomerService {
@@ -41,6 +43,7 @@ export class BookingCustomerService {
     @Inject(REALTIME_BUS) private readonly realtimeBus: RealtimeBus,
     private readonly bookingPaymentService: BookingPaymentService,
     private readonly notificationService: BookingNotificationService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -52,8 +55,10 @@ export class BookingCustomerService {
   ): Promise<Booking> {
 
     // Generate OTPs
-    const pickupOtp = '1234'; // TODO: Generate random OTP
-    const dropOtp = '1234';
+    // const isTest = this.configService.get('NODE_ENV') !== 'production';
+    const isTest = this.configService.get('NODE_ENV') === 'test';
+    const pickupOtp = isTest ? '1234' : randomInt(1000, 9999).toString();
+    const dropOtp = isTest ? '1234' : randomInt(1000, 9999).toString();
 
     // Use transaction to ensure atomicity
     const booking = await this.prisma.$transaction(async (tx) => {

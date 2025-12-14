@@ -21,7 +21,9 @@ export class OtpService {
   async sendOtp(phoneNumber: string): Promise<{ success: boolean; message: string }> {
     // Generate OTP
     // const otp = randomInt(100000, 999999).toString(); // 6-digit OTP
-    const otp = '123456';
+    // const isTest = this.configService.get('NODE_ENV') !== 'production';
+    const isTest = this.configService.get('NODE_ENV') === 'test';
+    const otp = isTest ? '123456' : randomInt(100000, 999999).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
     // Create OTP data object
