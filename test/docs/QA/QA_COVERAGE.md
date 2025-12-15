@@ -208,13 +208,20 @@ PICKUP_VERIFIED → IN_TRANSIT → DROP_ARRIVED → DROP_VERIFIED → COMPLETED
 | --- | --- | --- | --- | --- |
 | 1 | Get wallet logs | `/driver/profile/wallet-logs` | GET | `200`, array |
 | 2 | Get transaction logs | `/driver/profile/transaction-logs` | GET | `200`, array |
-| 3 | Get ride summary | `/bookings/driver/ride-summary` | GET | `200` |
+| 3 | Get ride summary (default/today) | `/bookings/driver/ride-summary` | GET | `200`, returns `totalRides`, `netEarnings`, `commissionRate`, `assignments[]` |
+| 4 | Get ride summary for specific date | `/bookings/driver/ride-summary?date=YYYY-MM-DD` | GET | `200`, returns summary for date |
+| 5 | Get ride summary for future date | `/bookings/driver/ride-summary?date=<tomorrow>` | GET | `200`, `totalRides: 0`, `netEarnings: 0`, `assignments: []` |
+| 6 | Verify commission calculation | `/bookings/driver/ride-summary` | GET | `200`, validates `netEarnings < totalAmount * totalRides` |
 
 **Key Validation:**
 
 - [ ]  Completed booking creates wallet log entries
 - [ ]  Driver earnings credited after settlement
 - [ ]  Transaction linked to booking ID
+- [ ]  Ride summary returns **net earnings** after commission deduction
+- [ ]  Ride summary includes **commission rate** (e.g., 0.07 for 7%)
+- [ ]  Ride summary returns completed **assignments** with full booking details
+- [ ]  Date defaults to **today in IST timezone** (YYYY-MM-DD format)
 
 ---
 
@@ -369,10 +376,10 @@ Before any release, verify:
 | Auth | 9 | ✅ Complete |
 | Customer | 12 | ✅ Complete |
 | Driver | 17 | ✅ Complete |
-| Booking | 20 | ✅ Complete |
-| Logs | 5 | ✅ Complete |
+| Booking | 24 | ✅ Complete |
+| Logs | 9 | ✅ Complete |
 | Cancellation | 8 | ✅ Complete |
 | Realtime | 2 (E2E) + 3 (Smoke) | ✅ Complete |
 | Admin | 8 | ✅ Complete |
 | Integration | 3 | ✅ Complete |
-| **Total** | **84+** | ✅ |
+| **Total** | **92+** | ✅ |

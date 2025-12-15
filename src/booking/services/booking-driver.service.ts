@@ -93,10 +93,10 @@ export class BookingDriverService {
       );
 
       await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
-      
+
       return { walletApplied: Number(invoice.walletApplied), customerId: assignment.booking.customerId };
     });
-    
+
     // Send wallet notifications (fire-and-forget, outside transaction)
     if (walletData.walletApplied !== 0 && walletData.customerId) {
       if (walletData.walletApplied > 0) {
@@ -105,7 +105,7 @@ export class BookingDriverService {
         this.notificationService.notifyCustomerWalletDebtCleared(walletData.customerId, walletData.walletApplied);
       }
     }
-    
+
     // Send booking confirmed notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
       this.notificationService.notifyCustomerBookingConfirmed(
@@ -159,7 +159,7 @@ export class BookingDriverService {
 
       await this.bookingAssignmentService.onDriverReject(assignment.booking.id, assignment.driver.id);
     });
-    
+
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
       this.notificationService.notifyCustomerBookingStatusChange(
@@ -203,7 +203,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_ARRIVED, pickupArrivedAt: new Date() }
     });
-    
+
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
       this.notificationService.notifyCustomerPickupArrived(assignment.booking.customerId);
@@ -222,7 +222,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_ARRIVED, dropArrivedAt: new Date() }
     });
-    
+
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
       this.notificationService.notifyCustomerDropArrived(assignment.booking.customerId);
@@ -244,7 +244,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.PICKUP_VERIFIED, pickupVerifiedAt: new Date() }
     });
-    
+
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
       this.notificationService.notifyCustomerPickupVerified(assignment.booking.customerId);
@@ -266,7 +266,7 @@ export class BookingDriverService {
       },
       data: { status: BookingStatus.DROP_VERIFIED, dropVerifiedAt: new Date() }
     });
-    
+
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
       this.notificationService.notifyCustomerDropVerified(assignment.booking.customerId);
@@ -282,7 +282,7 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.PICKUP_VERIFIED },
         data: { status: BookingStatus.IN_TRANSIT }
       });
-    
+
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
       this.notificationService.notifyCustomerRideStarted(assignment.booking.customerId);
@@ -306,10 +306,10 @@ export class BookingDriverService {
       const totalAmount = Number(finalInvoice.finalAmount);
       const commissionRate = this.configService.get<number>('COMMISSION_RATE')!;
       const commission = Math.round(totalAmount * commissionRate * 100) / 100;
-      
+
       // Check payment type
       const isCashPayment = finalInvoice.paymentMethod === PaymentMethod.CASH;
-      
+
       // Get current driver wallet balance
       const driver = assignment.driver;
       const currentBalance = Number(driver.walletBalance);
@@ -356,10 +356,10 @@ export class BookingDriverService {
         where: { id: assignment.booking.id, status: BookingStatus.DROP_VERIFIED },
         data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
       });
-      
+
       return { walletChange, isCashPayment };
     });
-    
+
     // Send notification (fire-and-forget, outside transaction)
     if (walletChange !== 0) {
       this.notificationService.notifyDriverWalletChange(
@@ -423,19 +423,24 @@ export class BookingDriverService {
 
   async getRideSummary(driverId: string, date?: string): Promise<{
     totalRides: number;
-    totalEarnings: number;
+    netEarnings: number;
+    commissionRate: number;
     date: string;
+    assignments: BookingAssignment[];
   }> {
     // Parse input date or use today in IST
     const inputDate = date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD in IST
-    
+
     // Create UTC timestamps for IST day boundaries
     // When Date parses '2025-01-01T00:00:00+05:30', it automatically converts to UTC (2024-12-31T18:30:00Z)
     const startUTC = new Date(`${inputDate}T00:00:00+05:30`);
     const endUTC = new Date(`${inputDate}T23:59:59.999+05:30`);
 
+    // Get commission rate from config
+    const commissionRate = this.configService.get<number>('COMMISSION_RATE')!;
+
     // Query DB with UTC timestamps, filter FINAL invoices at DB level
-    const completedBookings = await this.prisma.bookingAssignment.findMany({
+    const completedAssignments = await this.prisma.bookingAssignment.findMany({
       where: {
         driverId,
         status: AssignmentStatus.ACCEPTED,
@@ -453,6 +458,9 @@ export class BookingDriverService {
       include: {
         booking: {
           include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
             invoices: {
               where: { type: 'FINAL' },
               select: { finalAmount: true },
@@ -460,18 +468,35 @@ export class BookingDriverService {
           },
         },
       },
+      orderBy: {
+        booking: {
+          completedAt: 'desc',
+        },
+      },
     });
 
-    // Calculate total earnings
-    const totalEarnings = completedBookings.reduce((sum, assignment) => {
+    // Calculate total earnings (gross) and net earnings (after commission)
+    let totalGrossEarnings = 0;
+    let totalNetEarnings = 0;
+
+    completedAssignments.forEach((assignment) => {
       const finalInvoice = assignment.booking.invoices[0];
-      return sum + (finalInvoice ? Number(finalInvoice.finalAmount) : 0);
-    }, 0);
+      if (finalInvoice) {
+        const grossAmount = Number(finalInvoice.finalAmount);
+        const commission = truncate2(grossAmount * commissionRate);
+        const netAmount = truncate2(grossAmount - commission);
+
+        totalGrossEarnings += grossAmount;
+        totalNetEarnings += netAmount;
+      }
+    });
 
     return {
-      totalRides: completedBookings.length,
-      totalEarnings: Math.round(totalEarnings * 100) / 100,
+      totalRides: completedAssignments.length,
+      netEarnings: truncate2(totalNetEarnings), // Driver's earnings after commission
+      commissionRate, // Platform commission rate (e.g., 0.07 for 7%)
       date: inputDate, // Return in YYYY-MM-DD format (IST date)
+      assignments: completedAssignments, // Return completed assignments with bookings
     };
   }
 }

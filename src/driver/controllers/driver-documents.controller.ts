@@ -5,7 +5,7 @@ import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { User } from 'src/token/decorators/user.decorator';
 import { DocumentsService } from '../documents/documents.service';
-import { DriverDocumentsResponseDto, ExpiryAlertsResponseDto, UpdateDriverDocumentsDto } from '../dtos/documents.dto';
+import { DriverDocumentsResponseDto, UpdateDriverDocumentsDto } from '../dtos/documents.dto';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 
 @Controller('driver/documents')
@@ -29,14 +29,6 @@ export class DriverDocumentsController {
     @Body() updateDocumentsDto: UpdateDriverDocumentsDto,
   ) {
     return this.documentsService.updateDocuments(userId, updateDocumentsDto);
-  }
-
-  @Get('expiry-alerts')
-  @Serialize(ExpiryAlertsResponseDto)
-  async getExpiryAlerts(
-    @User('userId') userId: string,
-  ): Promise<ExpiryAlertsResponseDto> {
-    return this.documentsService.getExpiryAlerts(userId);
   }
 
   @Get('upload-url')

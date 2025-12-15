@@ -118,10 +118,12 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `assignedDriver`: `DriverResponseDto | null`
     *   `createdAt`: `Date`
     *   `updatedAt`: `Date`
-*   **`RideSummaryDto`**: Driver's daily ride summary.
+*   **`RideSummaryDto`**: Driver's daily ride summary with completed assignments.
     *   `totalRides`: `number` - Number of completed rides
-    *   `totalEarnings`: `number` - Total earnings from FINAL invoices
+    *   `netEarnings`: `number` - Driver's net earnings after commission deduction
+    *   `commissionRate`: `number` - Platform commission rate (e.g., 0.07 for 7%)
     *   `date`: `string` - YYYY-MM-DD format (IST timezone)
+    *   `assignments`: `BookingAssignmentResponseDto[]` - Array of completed assignments with full booking details for the day
 *   **`CancelBookingDto`**: Booking cancellation request.
     *   `reason`: `string` - Cancellation reason
 
@@ -253,13 +255,7 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `payout`: `PayoutResponseDto | null` - Full payout details (amount, status, razorpayPayoutId, etc.)
     *   `paymentMethod`: `enum` (CASH, ONLINE, WALLET)
     *   `createdAt`: `Date`
-*   **`ExpiryAlertsResponseDto`**: Document expiry alerts for driver.
-    *   `licenseAlert?`: `string` - Alert message for license expiry (shown at 15, 30, 45 days or when expired)
-    *   `insuranceAlert?`: `string` - Alert message for insurance expiry (shown at 15, 30, 45 days or when expired)
-    *   `isLicenseExpired`: `boolean` - True if license has expired (driver cannot take bookings)
-    *   `isInsuranceExpired`: `boolean` - True if insurance has expired (driver cannot take bookings)
-    *   `licenseExpiry`: `Date | null` - Actual license expiry date (set by admin)
-    *   `insuranceExpiry`: `Date | null` - Actual insurance expiry date (set by admin)
+
 
 ### Razorpay DTOs
 *   **`CreateContactDto`**:
@@ -350,7 +346,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/bookings/driver/start` 🔒 | Starts the trip. | - | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/finish` 🔒 | Finishes the trip. | - | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/settle-cash` 🔒 | Marks cash payment as settled (driver acknowledges receiving cash). | - | `SuccessResponseDto` |
-| `GET` | `/bookings/driver/ride-summary` 🔒 | Gets daily ride summary (total rides and earnings). Defaults to today in IST timezone. | Query: `date?` (YYYY-MM-DD) | `RideSummaryDto` |
+| `GET` | `/bookings/driver/ride-summary` 🔒 | Gets daily ride summary with net earnings, commission rate, and completed assignments. Defaults to today in IST timezone. | Query: `date?` (YYYY-MM-DD) | `RideSummaryDto` |
 
 ### Booking (Payment) (`BookingPayment`)
 | Method | Path | Description | Request Body | Success Response |
@@ -402,9 +398,8 @@ Common Data Transfer Objects (DTOs) used across the API.
 ### Driver Documents (`DriverDocuments`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/driver/documents` 🔒 | Retrieves driver's documents. | - | `DriverDocumentsResponseDto` |
+| `GET` | `/driver/documents` 🔒 | Retrieves driver's documents with expiry dates. Expiry alerts are calculated client-side. | - | `DriverDocumentsResponseDto` |
 | `PUT` | `/driver/documents` 🔒 | Updates driver's documents. | `UpdateDriverDocumentsDto` | `DriverDocumentsResponseDto` |
-| `GET` | `/driver/documents/expiry-alerts` 🔒 | Gets alerts for expiring documents. | - | `ExpiryAlertsResponseDto` |
 | `GET` | `/driver/documents/upload-url` 🔒 | Gets a signed URL for document uploads. | Query: `filePath`, `type` | `UploadUrlResponseDto` |
 
 ### Driver Vehicle (`DriverVehicle`)

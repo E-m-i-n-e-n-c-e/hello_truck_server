@@ -20,7 +20,7 @@ describe('04 - Booking Flow (E2E)', () => {
   beforeAll(async () => {
     await setupTestDatabase();
     app = await createTestApp();
-    
+
     // Setup customer
     const customerPhone = `99${Date.now().toString().slice(-8)}`;
     const customerTokens = await loginAsCustomer(app, customerPhone);
@@ -60,7 +60,7 @@ describe('04 - Booking Flow (E2E)', () => {
       .get('/driver/profile')
       .set('Authorization', `Bearer ${driverToken}`)
       .expect(200);
-    
+
     driverId = driverProfile.body.id;
     testState.driverId = driverId;
 
@@ -81,7 +81,7 @@ describe('04 - Booking Flow (E2E)', () => {
     // Set driver as verified and available via direct DB update
     await prisma.driver.update({
       where: { id: driverId },
-      data: { 
+      data: {
         verificationStatus: 'VERIFIED',
         driverStatus: 'AVAILABLE',
       },
@@ -96,7 +96,7 @@ describe('04 - Booking Flow (E2E)', () => {
   describe('Estimates', () => {
     it('should calculate booking estimate', () => {
       const bookingData = createBookingRequestDto();
-      
+
       return request(app.getHttpServer())
         .post('/bookings/customer/estimate')
         .set('Authorization', `Bearer ${customerToken}`)
@@ -146,7 +146,7 @@ describe('04 - Booking Flow (E2E)', () => {
   describe('Booking Creation', () => {
     it('should create booking', async () => {
       const bookingData = createBookingRequestDto();
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
@@ -255,7 +255,7 @@ describe('04 - Booking Flow (E2E)', () => {
     it('should verify pickup', async () => {
       // Get booking OTP
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/driver/pickup/verify')
         .set('Authorization', `Bearer ${driverToken}`)
@@ -288,7 +288,7 @@ describe('04 - Booking Flow (E2E)', () => {
 
     it('should verify drop', async () => {
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/driver/drop/verify')
         .set('Authorization', `Bearer ${driverToken}`)
@@ -463,6 +463,95 @@ describe('04 - Booking Flow (E2E)', () => {
         .expect((res) => {
           expect(Array.isArray(res.body)).toBe(true);
         });
+    });
+  });
+
+  describe('Ride Summary', () => {
+    it('should get ride summary for today (default)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/bookings/driver/ride-summary')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(200);
+
+      // Should return today's date in YYYY-MM-DD format
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      expect(res.body.date).toBe(today);
+
+      // Should have 2 completed rides (cash + online)
+      expect(res.body.totalRides).toBeGreaterThanOrEqual(2);
+
+      // Should include commission rate (e.g., 0.07 for 7%)
+      expect(res.body.commissionRate).toBeDefined();
+      expect(typeof res.body.commissionRate).toBe('number');
+
+      // Should include net earnings (after commission deduction)
+      expect(res.body.netEarnings).toBeDefined();
+      expect(typeof res.body.netEarnings).toBe('number');
+      expect(res.body.netEarnings).toBeGreaterThan(0);
+
+      // Should include assignments array with full booking details
+      expect(Array.isArray(res.body.assignments)).toBe(true);
+      expect(res.body.assignments.length).toBe(res.body.totalRides);
+
+      // Verify assignment structure
+      const assignment = res.body.assignments[0];
+      expect(assignment.booking).toBeDefined();
+      expect(assignment.booking.package).toBeDefined();
+      expect(assignment.booking.pickupAddress).toBeDefined();
+      expect(assignment.booking.dropAddress).toBeDefined();
+    });
+
+    it('should get ride summary for specific date', async () => {
+      // Use today's date explicitly
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+      const res = await request(app.getHttpServer())
+        .get('/bookings/driver/ride-summary')
+        .query({ date: today })
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(200);
+
+      expect(res.body.date).toBe(today);
+      expect(res.body.totalRides).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should return empty summary for future date', async () => {
+      // Use a future date
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const futureDateStr = futureDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+      const res = await request(app.getHttpServer())
+        .get('/bookings/driver/ride-summary')
+        .query({ date: futureDateStr })
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(200);
+
+      expect(res.body.date).toBe(futureDateStr);
+      expect(res.body.totalRides).toBe(0);
+      expect(res.body.netEarnings).toBe(0);
+      expect(res.body.assignments).toEqual([]);
+    });
+
+    it('should verify commission calculation', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/bookings/driver/ride-summary')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(200);
+
+      if (res.body.totalRides > 0) {
+        const assignment = res.body.assignments[0];
+        const invoice = assignment.booking.invoices.find((inv: any) => inv.type === 'FINAL');
+
+        if (invoice) {
+          const totalAmount = Number(invoice.finalAmount);
+          const commission = totalAmount * res.body.commissionRate;
+          const expectedNetEarning = totalAmount - commission;
+
+          // Net earnings should be less than total amount (commission deducted)
+          expect(res.body.netEarnings).toBeLessThan(totalAmount * res.body.totalRides);
+        }
+      }
     });
   });
 });

@@ -6,6 +6,7 @@ import { CreateBookingAddressDto, BookingAddressResponseDto } from './booking-ad
 import { PackageDetailsDto, PackageDetailsResponseDto } from './package.dto';
 import { Expose } from 'class-transformer';
 import { InvoiceResponseDto } from './booking-invoice.dto';
+import { BookingAssignmentResponseDto } from './booking-assignment.dto';
 
 export class CreateBookingRequestDto {
   @ValidateNested()
@@ -61,6 +62,8 @@ export class BookingResponseDto {
   @Type(() => DriverResponseDto)
   assignedDriver: DriverResponseDto | null;
   @Expose()
+  acceptedAt: Date | null;
+  @Expose()
   pickupArrivedAt: Date | null;
   @Expose()
   pickupVerifiedAt: Date | null;
@@ -83,11 +86,19 @@ export class RideSummaryDto {
   totalRides: number;
 
   @Expose()
-  totalEarnings: number;
+  netEarnings: number; // Driver's net earnings after commission deduction
+
+  @Expose()
+  commissionRate: number; // Platform commission rate (e.g., 0.07 = 7%)
 
   @Expose()
   date: string; // YYYY-MM-DD format
+
+  @Expose()
+  @Type(() => BookingAssignmentResponseDto)
+  assignments: BookingAssignmentResponseDto[]; // Completed assignments with bookings for the day
 }
+
 
 export class CancelBookingDto {
   @IsString()

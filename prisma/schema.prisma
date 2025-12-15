@@ -111,7 +111,7 @@ model Driver {
   photo              String?
   contactId          String?
   fundAccountId      String?
-  payoutMethod       PayoutMethodType?   
+  payoutMethod       PayoutMethodType?
   score              Int                @default(0)
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
@@ -152,7 +152,7 @@ model DriverDocuments {
   insuranceExpiry DateTime?
   insuranceStatus VerificationStatus @default(PENDING)
   aadharUrl       String
-  panNumber       String    @unique
+  panNumber       String
   ebBillUrl       String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -185,7 +185,7 @@ model Vehicle {
   id                String          @id @default(uuid())
   driverId          String          @unique
   driver            Driver          @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  vehicleNumber     String          @unique
+  vehicleNumber     String
   vehicleType       VehicleType
 
   // Add specific model reference
@@ -364,7 +364,7 @@ model Booking {
 
   // Transactions
   transactions         Transaction[]
-  
+
   // Wallet logs
   driverWalletLogs     DriverWalletLog[]
   customerWalletLogs   CustomerWalletLog[]
@@ -410,18 +410,18 @@ model Invoice {
   id                 String        @id @default(uuid())
   bookingId          String
   booking            Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  
+
   type               InvoiceType
-  
+
   // Snapshot of pricing details at time of generation
   vehicleModelName   String
   basePrice          Decimal       @db.Decimal(10, 2)
   perKmPrice         Decimal       @db.Decimal(10, 2)
   baseKm             Int
-  
+
   distanceKm         Decimal       @db.Decimal(10, 2)
   weightInTons       Decimal       @db.Decimal(10, 2)
-  
+
   // Calculation Results
   effectiveBasePrice Decimal       @db.Decimal(10, 2)
   totalPrice         Decimal       @db.Decimal(10, 2)
@@ -432,12 +432,12 @@ model Invoice {
   paymentLinkUrl     String?
   rzpPaymentLinkId   String?       @unique
   rzpPaymentId       String?
-  
+
   // Payment status
   isPaid             Boolean       @default(false)
   paidAt             DateTime?
-  paymentMethod      PaymentMethod? 
-  
+  paymentMethod      PaymentMethod?
+
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -508,19 +508,19 @@ model DriverWalletLog {
   id            String   @id @default(uuid())
   driverId      String
   driver        Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  
+
   // Wallet change details
   beforeBalance Decimal  @db.Decimal(10, 2)
   afterBalance  Decimal  @db.Decimal(10, 2)
   amount        Decimal  @db.Decimal(10, 2)  // Change amount (+ or -)
   reason        String   // e.g., "Booking earnings", "Commission deduction"
-  
+
   // Optional reference
   bookingId     String?
   booking       Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  
+
   createdAt     DateTime @default(now())
-  
+
   @@index([driverId, createdAt])
   @@index([createdAt])
 }
@@ -529,19 +529,19 @@ model CustomerWalletLog {
   id            String    @id @default(uuid())
   customerId    String
   customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+
   // Wallet change details
   beforeBalance Decimal   @db.Decimal(10, 2)
   afterBalance  Decimal   @db.Decimal(10, 2)
   amount        Decimal   @db.Decimal(10, 2)  // Change amount (+ or -)
   reason        String    // e.g., "Applied to booking", "Refund"
-  
+
   // Optional reference
   bookingId     String?
   booking       Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  
+
   createdAt     DateTime  @default(now())
-  
+
   @@index([customerId, createdAt])
   @@index([createdAt])
 }

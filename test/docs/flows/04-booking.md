@@ -66,11 +66,28 @@ Tests the complete booking flow from estimate to completion, including both cash
 | Customer history | `GET /bookings/customer/history` | `200 OK`, array contains completed booking |
 | Driver history | `GET /bookings/driver/history` | `200 OK`, returns array of past assignments |
 
+### Ride Summary (4 tests)
+
+| Test | Endpoint | Query | Expected |
+|------|----------|-------|----------|
+| Get today's summary (default) | `GET /bookings/driver/ride-summary` | - | `200 OK`, returns `totalRides ≥ 2`, `netEarnings > 0`, `commissionRate`, `assignments[]` with full booking details, `date` = today (YYYY-MM-DD) |
+| Get summary for specific date | `GET /bookings/driver/ride-summary` | `?date=YYYY-MM-DD` | `200 OK`, returns summary for specified date |
+| Future date (no rides) | `GET /bookings/driver/ride-summary` | `?date=<tomorrow>` | `200 OK`, `totalRides: 0`, `netEarnings: 0`, `assignments: []` |
+| Verify commission calculation | `GET /bookings/driver/ride-summary` | - | Validates: `netEarnings < totalAmount * totalRides` (commission deducted) |
+
+**Key Validations:**
+- Returns **net earnings** (after platform commission deduction)
+- Includes **commission rate** (e.g., 0.07 for 7%)
+- Returns array of **completed assignments** with full booking details (package, addresses, invoices)
+- Date defaults to **today in IST timezone** (YYYY-MM-DD format)
+- Each assignment includes FINAL invoice for earnings calculation
+
+
 ---
 
 ## Status Transition Flow
 ```
-PENDING → DRIVER_ASSIGNED → CONFIRMED → PICKUP_ARRIVED → 
+PENDING → DRIVER_ASSIGNED → CONFIRMED → PICKUP_ARRIVED →
 PICKUP_VERIFIED → IN_TRANSIT → DROP_ARRIVED → DROP_VERIFIED → COMPLETED
 ```
 

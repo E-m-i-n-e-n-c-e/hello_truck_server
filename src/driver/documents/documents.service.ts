@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateDriverDocumentsDto, ExpiryAlertsResponseDto, UpdateDriverDocumentsDto } from '../dtos/documents.dto';
+import { CreateDriverDocumentsDto, UpdateDriverDocumentsDto } from '../dtos/documents.dto';
 import { DriverDocuments, Prisma } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { uploadUrlDto } from 'src/common/dtos/upload-url.dto';
@@ -95,80 +95,6 @@ export class DocumentsService {
     });
 
     return updatedDocuments;
-  }
-
-  async getExpiryAlerts(driverId: string): Promise<ExpiryAlertsResponseDto> {
-    const documents = await this.getDocuments(driverId);
-
-    if (!documents) {
-      throw new BadRequestException('Documents not found for this driver');
-    }
-
-    const alerts: ExpiryAlertsResponseDto = {
-      isLicenseExpired: false,
-      isFcExpired: false,
-      isInsuranceExpired: false,
-      licenseExpiry: documents.licenseExpiry,
-      fcExpiry: documents.fcExpiry,
-      insuranceExpiry: documents.insuranceExpiry,
-    };
-    const now = new Date();
-
-    // Check license expiry (only if expiry date is set by admin)
-    if (documents.licenseExpiry) {
-      const daysUntilLicenseExpiry = Math.ceil(
-        (documents.licenseExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (daysUntilLicenseExpiry <= 15 && daysUntilLicenseExpiry > 0) {
-        alerts.licenseAlert = `Your driving license expires in ${daysUntilLicenseExpiry} days. Please renew it soon.`;
-      } else if (daysUntilLicenseExpiry === 30) {
-        alerts.licenseAlert = 'Your driving license expires in 30 days. Please renew it.';
-      } else if (daysUntilLicenseExpiry === 45) {
-        alerts.licenseAlert = 'Your driving license expires in 45 days. Please renew it.';
-      } else if (daysUntilLicenseExpiry <= 0) {
-        alerts.licenseAlert = 'Your driving license has expired. Please renew it immediately.';
-        alerts.isLicenseExpired = true;
-      }
-    }
-
-    // Check FC expiry (only if expiry date is set by admin)
-    if (documents.fcExpiry) {
-      const daysUntilFcExpiry = Math.ceil(
-        (documents.fcExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (daysUntilFcExpiry <= 15 && daysUntilFcExpiry > 0) {
-        alerts.fcAlert = `Your fitness certificate expires in ${daysUntilFcExpiry} days. Please renew it soon.`;
-      } else if (daysUntilFcExpiry === 30) {
-        alerts.fcAlert = 'Your fitness certificate expires in 30 days. Please renew it.';
-      } else if (daysUntilFcExpiry === 45) {
-        alerts.fcAlert = 'Your fitness certificate expires in 45 days. Please renew it.';
-      } else if (daysUntilFcExpiry <= 0) {
-        alerts.fcAlert = 'Your fitness certificate has expired. Please renew it immediately.';
-        alerts.isFcExpired = true;
-      }
-    }
-
-    // Check insurance expiry (only if expiry date is set by admin)
-    if (documents.insuranceExpiry) {
-      const daysUntilInsuranceExpiry = Math.ceil(
-        (documents.insuranceExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (daysUntilInsuranceExpiry <= 15 && daysUntilInsuranceExpiry > 0) {
-        alerts.insuranceAlert = `Your insurance expires in ${daysUntilInsuranceExpiry} days. Please renew it soon.`;
-      } else if (daysUntilInsuranceExpiry === 30) {
-        alerts.insuranceAlert = 'Your insurance expires in 30 days. Please renew it.';
-      } else if (daysUntilInsuranceExpiry === 45) {
-        alerts.insuranceAlert = 'Your insurance expires in 45 days. Please renew it.';
-      } else if (daysUntilInsuranceExpiry <= 0) {
-        alerts.insuranceAlert = 'Your insurance has expired. Please renew it immediately.';
-        alerts.isInsuranceExpired = true;
-      }
-    }
-
-    return alerts;
   }
 
   async getUploadUrl(driverId: string, uploadUrlDto: uploadUrlDto): Promise<{
