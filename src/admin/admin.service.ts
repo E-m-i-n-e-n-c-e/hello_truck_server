@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { VerificationStatus } from '@prisma/client';
 import { UpdateDriverVerificationDto } from './dtos/admin.dto';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { FcmEventType } from 'src/common/types/fcm.types';
 
 @Injectable()
 export class AdminService {
@@ -11,6 +13,7 @@ export class AdminService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private firebaseService: FirebaseService,
   ) {}
 
   async login(username: string, pass: string): Promise<{ accessToken: string }> {
@@ -209,6 +212,12 @@ export class AdminService {
           },
         });
       }
+
+      await this.firebaseService.notifyAllSessions(id, 'driver', {
+        data: {
+          event: FcmEventType.DriverVerificationUpdated,
+        },
+      });
 
       return updatedDriver;
     });

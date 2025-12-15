@@ -3,6 +3,7 @@ import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
+import { FirebaseModule } from 'src/firebase/firebase.module';
 
 @Module({
   imports: [
@@ -12,8 +13,9 @@ import { JwtModule } from '@nestjs/jwt';
       secret: process.env.ADMIN_JWT_SECRET || 'admin-secret-key-change-me',
       signOptions: { expiresIn: '1d' },
     }),
+    FirebaseModule,
   ],
-  controllers: [AdminController],
+  controllers: [AdminController,],
   providers: [AdminService],
 })
 export class AdminModule {}

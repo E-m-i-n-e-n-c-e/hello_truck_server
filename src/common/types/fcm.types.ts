@@ -11,6 +11,7 @@ export enum FcmEventType {
   WalletCredit = 'WALLET_CREDIT',
   WalletDebit = 'WALLET_DEBIT',
   PayoutProcessed = 'PAYOUT_PROCESSED',
+  DriverVerificationUpdated = 'DRIVER_VERIFICATION_UPDATE',
 }
 
 // App-level typed payload for FCM

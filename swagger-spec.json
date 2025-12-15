@@ -1788,32 +1788,6 @@
         ]
       }
     },
-    "/driver/documents/expiry-alerts": {
-      "get": {
-        "operationId": "getExpiryAlerts",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExpiryAlertsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "DriverDocuments"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
     "/driver/documents/upload-url": {
       "get": {
         "operationId": "getUploadUrl",
@@ -3305,39 +3279,6 @@
             "format": "uri"
           }
         }
-      },
-      "ExpiryAlertsResponseDto": {
-        "type": "object",
-        "properties": {
-          "licenseAlert": {
-            "type": "string"
-          },
-          "insuranceAlert": {
-            "type": "string"
-          },
-          "isLicenseExpired": {
-            "type": "boolean"
-          },
-          "isInsuranceExpired": {
-            "type": "boolean"
-          },
-          "licenseExpiry": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true
-          },
-          "insuranceExpiry": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "isLicenseExpired",
-          "isInsuranceExpired",
-          "licenseExpiry",
-          "insuranceExpiry"
-        ]
       },
       "UpdateVehicleDto": {
         "type": "object",
