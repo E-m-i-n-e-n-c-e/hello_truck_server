@@ -131,6 +131,8 @@ export class DriverResponseDto {
   @Expose()
   fundAccountId: string | null;
   @Expose()
+  payoutMethod: string | null;
+  @Expose()
   phoneNumber: string;
   @Expose()
   firstName: string | null;
@@ -190,7 +192,7 @@ export class AdminDriverListResponseDto {
   @Expose()
   @Type(() => DriverResponseDto)
   data: DriverResponseDto[];
-  
+
   @Expose()
   @Type(() => MetaDto)
   meta: MetaDto;

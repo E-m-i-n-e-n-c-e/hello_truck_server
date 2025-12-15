@@ -117,13 +117,19 @@ export class ExpiryAlertsResponseDto {
   @Expose()
   licenseAlert?: string;
   @Expose()
+  fcAlert?: string;
+  @Expose()
   insuranceAlert?: string;
   @Expose()
   isLicenseExpired: boolean;
   @Expose()
+  isFcExpired: boolean;
+  @Expose()
   isInsuranceExpired: boolean;
   @Expose()
   licenseExpiry: Date | null;
+  @Expose()
+  fcExpiry: Date | null;
   @Expose()
   insuranceExpiry: Date | null;
 }
