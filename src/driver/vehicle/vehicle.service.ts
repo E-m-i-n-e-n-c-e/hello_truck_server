@@ -37,38 +37,29 @@ export class VehicleService {
       throw new BadRequestException('Vehicle already exists for this driver');
     }
 
-    // Check if vehicle number is already taken
-    const existingVehicleNumber = await tx.vehicle.findUnique({
-      where: { vehicleNumber: vehicleData.vehicleNumber },
+    // Create vehicle
+    const vehicle = await tx.vehicle.create({
+      data: {
+        ...vehicleData,
+        driverId,
+      },
+      include: {
+        owner: true,
+        vehicleModel: true,
+      },
     });
 
-    if (existingVehicleNumber) {
-      throw new BadRequestException('Vehicle number already exists');
-    }
-
-      // Create vehicle
-      const vehicle = await tx.vehicle.create({
+    // Create owner if provided
+    if (owner) {
+      await tx.vehicleOwner.create({
         data: {
-          ...vehicleData,
-          driverId,
-        },
-        include: {
-          owner: true,
-          vehicleModel: true,
+          ...owner,
+          vehicleId: vehicle.id,
         },
       });
+    }
 
-      // Create owner if provided
-      if (owner) {
-        await tx.vehicleOwner.create({
-          data: {
-            ...owner,
-            vehicleId: vehicle.id,
-          },
-        });
-      }
-
-      return vehicle;
+    return vehicle;
   }
 
   async updateVehicle(driverId: string, updateVehicleDto: UpdateVehicleDto) {
@@ -88,17 +79,6 @@ export class VehicleService {
 
     if (!vehicle) {
       throw new NotFoundException('Vehicle not found');
-    }
-
-    // Check if vehicle number is being changed and if it's already taken
-    if (updateVehicleDto.vehicleNumber && updateVehicleDto.vehicleNumber !== vehicle.vehicleNumber) {
-      const existingVehicleNumber = await this.prisma.vehicle.findUnique({
-        where: { vehicleNumber: updateVehicleDto.vehicleNumber },
-      });
-
-      if (existingVehicleNumber) {
-        throw new BadRequestException('Vehicle number already exists');
-      }
     }
 
     return await this.prisma.vehicle.update({

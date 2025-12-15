@@ -17,7 +17,7 @@ export async function createTestApp(): Promise<INestApplication> {
     // Override RealtimeBus with InMemoryBus for CI-safe testing
     .overrideProvider(REALTIME_BUS)
     .useClass(InMemoryBus)
-    
+
     // Mock RazorpayService to avoid real API calls
     .overrideProvider(RazorpayService)
     .useValue({
@@ -85,6 +85,6 @@ export async function createTestApp(): Promise<INestApplication> {
   );
 
   await app.init();
-  
+
   return app;
 }
