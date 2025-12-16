@@ -6,6 +6,7 @@ import { AssignmentService } from '../assignment/assignment.service';
 import { BookingInvoiceService } from './booking-invoice.service';
 import { BookingPaymentService } from './booking-payment.service';
 import { BookingNotificationService } from './booking-notification.service';
+import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class BookingDriverService {
     private readonly paymentService: BookingPaymentService,
     private readonly notificationService: BookingNotificationService,
     private readonly configService: ConfigService,
+    private readonly razorpayService: RazorpayService,
   ) { }
 
   async acceptBooking(driverAssignmentId: string): Promise<void> {
@@ -163,8 +165,9 @@ export class BookingDriverService {
 
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
-      this.notificationService.notifyCustomerBookingStatusChange(
+      this.notificationService.notifyBookingStatusChange(
         assignment.booking.customerId,
+        'customer'
       );
     }
   }
@@ -388,14 +391,11 @@ export class BookingDriverService {
       throw new BadRequestException('Payment already received');
     }
 
-    // Use payment service to handle cash payment processing
-    await this.prisma.$transaction(async (tx) => {
-      await this.paymentService.processCashPayment(
-        finalInvoice,
-        assignment.booking,
-        tx,
-      );
-    });
+    // Process cash payment (handles transaction, notifications, and payment link cancellation)
+    await this.paymentService.processCashPayment(
+      finalInvoice,
+      assignment.booking,
+    );
   }
 
   async getAssignmentHistory(driverId: string) {

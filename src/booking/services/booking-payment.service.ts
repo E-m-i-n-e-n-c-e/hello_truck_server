@@ -3,10 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { RazorpayXService } from 'src/razorpay/razorpayx.service';
-import { Booking, BookingStatus, Customer, Driver, Invoice, InvoiceType, PaymentMethod, Prisma, RefundIntent, TransactionCategory, TransactionType } from '@prisma/client';
+import { Booking, Invoice, PaymentMethod, Prisma, TransactionCategory, TransactionType } from '@prisma/client';
 import { BookingNotificationService } from './booking-notification.service';
-import { BookingRefundService } from './booking-refund.service';
-import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
 export class BookingPaymentService {
@@ -104,41 +102,58 @@ export class BookingPaymentService {
   /**
    * Process cash payment for a booking
    * Marks invoice as paid with CASH payment method and creates transaction
+   * Sends notifications and cancels payment link
    */
   async processCashPayment(
     finalInvoice: Invoice,
     booking: Booking,
-    tx: Prisma.TransactionClient,
   ): Promise<void> {
-    // Mark invoice as paid with cash
-    await tx.invoice.update({
-      where: { id: finalInvoice.id },
-      data: {
-        isPaid: true,
-        paymentMethod: PaymentMethod.CASH,
-        paidAt: new Date(),
-      },
+    await this.prisma.$transaction(async (tx) => {
+      // Mark invoice as paid with cash
+      await tx.invoice.update({
+        where: { id: finalInvoice.id },
+        data: {
+          isPaid: true,
+          paymentMethod: PaymentMethod.CASH,
+          paidAt: new Date(),
+        },
+      });
+
+      // Create transaction record
+      await tx.transaction.create({
+        data: {
+          amount: finalInvoice.finalAmount,
+          bookingId: booking.id,
+          customerId: booking.customerId,
+          description: `Cash payment for booking #${booking.bookingNumber}`,
+          type: TransactionType.DEBIT, // Customer pays = DEBIT (money OUT)
+          category: TransactionCategory.BOOKING_PAYMENT,
+          paymentMethod: PaymentMethod.CASH,
+        },
+      });
     });
 
-    // Create transaction record
-    await tx.transaction.create({
-      data: {
-        amount: finalInvoice.finalAmount,
-        bookingId: booking.id,
-        customerId: booking.customerId,
-        description: `Cash payment for booking #${booking.bookingNumber}`,
-        type: TransactionType.DEBIT, // Customer pays = DEBIT (money OUT)
-        category: TransactionCategory.BOOKING_PAYMENT,
-        paymentMethod: PaymentMethod.CASH,
-      },
-    });
+    // Send notifications (fire-and-forget, outside transaction)
+    if (booking.customerId) {
+      this.notificationService.notifyCustomerPaymentSuccess(
+        booking.customerId,
+        Number(finalInvoice.finalAmount),
+        Number(booking.bookingNumber),
+      );
+    }
 
-    // Cancel payment link if exists (use setImmediate to avoid blocking)
+    if (booking.assignedDriverId) {
+      this.notificationService.notifyDriverPaymentReceived(
+        booking.assignedDriverId,
+        booking.id,
+        Number(finalInvoice.finalAmount),
+      );
+    }
+
+    // Cancel payment link if exists (fire-and-forget, outside transaction)
     if (finalInvoice.rzpPaymentLinkId) {
-      setImmediate(() => {
-        this.razorpayService.cancelPaymentLink(finalInvoice.rzpPaymentLinkId!).catch((error) => {
-          this.logger.error(`Failed to cancel payment link ${finalInvoice.rzpPaymentLinkId}: ${error.message}`);
-        });
+      this.razorpayService.cancelPaymentLink(finalInvoice.rzpPaymentLinkId).catch((error) => {
+        this.logger.error(`Failed to cancel payment link ${finalInvoice.rzpPaymentLinkId}: ${error.message}`);
       });
     }
   }

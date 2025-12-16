@@ -395,6 +395,32 @@
         ]
       }
     },
+    "/bookings/customer/cancellation-config": {
+      "get": {
+        "operationId": "getCancellationConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationConfigResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BookingCustomer"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/bookings/customer/cancel/{id}": {
       "post": {
         "operationId": "cancelBooking",
@@ -1306,7 +1332,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1322,6 +1358,35 @@
     "/customer/profile/transaction-logs": {
       "get": {
         "operationId": "getTransactionLogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "CustomerProfile"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/profile/pending-refunds": {
+      "get": {
+        "operationId": "getPendingRefunds",
         "parameters": [],
         "responses": {
           "200": {
@@ -2505,6 +2570,25 @@
           "signedUrl",
           "publicUrl",
           "token"
+        ]
+      },
+      "CancellationConfigResponseDto": {
+        "type": "object",
+        "properties": {
+          "minChargePercent": {
+            "type": "number"
+          },
+          "maxChargePercent": {
+            "type": "number"
+          },
+          "incrementPerMinute": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "minChargePercent",
+          "maxChargePercent",
+          "incrementPerMinute"
         ]
       },
       "CancelBookingDto": {

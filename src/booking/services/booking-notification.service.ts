@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { FcmEventType } from 'src/common/types/fcm.types';
+import { UserType } from 'src/common/types/user-session.types';
 
 /**
  * Service for handling all booking-related notifications
@@ -25,14 +26,6 @@ export class BookingNotificationService {
         title: 'Booking Confirmed',
         body: `Your booking has been confirmed. Your driver ${driverName} is on the way to pick up your parcel.`,
       },
-      data: {
-        event: FcmEventType.BookingStatusChange,
-      },
-    });
-  }
-
-  notifyCustomerBookingStatusChange(customerId: string): void {
-    this.firebaseService.notifyAllSessions(customerId, 'customer', {
       data: {
         event: FcmEventType.BookingStatusChange,
       },
@@ -106,7 +99,7 @@ export class BookingNotificationService {
         body: `₹${amount.toFixed(2)} wallet balance applied to your booking`,
       },
       data: {
-        event: FcmEventType.WalletDebit,
+        event: FcmEventType.WalletChange,
         amount: amount.toString(),
       },
     });
@@ -119,7 +112,7 @@ export class BookingNotificationService {
         body: `₹${Math.abs(amount).toFixed(2)} debt added to booking payment`,
       },
       data: {
-        event: FcmEventType.WalletCredit, // Debt cleared = wallet credit
+        event: FcmEventType.WalletChange, // Debt cleared = wallet credit
         amount: Math.abs(amount).toString(),
       },
     });
@@ -142,15 +135,15 @@ export class BookingNotificationService {
     });
   }
 
-  notifyCustomerWalletCredited(customerId: string, amount: number): void {
+  notifyCustomerRefundProcessed(customerId: string, bookingNumber: bigint): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
-        title: 'Wallet Credited! 💰',
-        body: `₹${amount.toFixed(2)} refund added to your wallet`,
+        title: 'Refund Processed',
+        body: `Refund processed for Booking #${bookingNumber}`,
       },
       data: {
-        event: FcmEventType.WalletCredit,
-        amount: amount.toString(),
+        event: FcmEventType.RefundProcessed,
+        bookingNumber: bookingNumber.toString(),
       },
     });
   }
@@ -174,7 +167,7 @@ export class BookingNotificationService {
         body: `₹${amount.toFixed(2)} cancellation charge deducted from your wallet`,
       },
       data: {
-        event: FcmEventType.WalletDebit,
+        event: FcmEventType.WalletChange,
         amount: amount.toString(),
       },
     });
@@ -197,7 +190,7 @@ export class BookingNotificationService {
           : `₹${amount.toFixed(2)} earnings credited to your wallet`,
       },
       data: {
-        event: isCashPayment ? FcmEventType.WalletDebit : FcmEventType.WalletCredit,
+        event: FcmEventType.WalletChange,
       },
     });
   }
@@ -214,12 +207,29 @@ export class BookingNotificationService {
     });
   }
 
+  notifyDriverCompensation(driverId: string, amount: number): void {
+    this.firebaseService.notifyAllSessions(driverId, 'driver', {
+      notification: {
+        title: 'Compensation Received 💰',
+        body: `₹${amount.toFixed(2)} cancellation compensation has been credited to your wallet`,
+      },
+      data: {
+        event: FcmEventType.WalletChange,
+        amount: amount.toString(),
+      },
+    });
+  }
+
   notifyDriverPaymentReceived(
     driverId: string,
     bookingId: string,
     amount: number,
   ): void {
     this.firebaseService.notifyAllSessions(driverId, 'driver', {
+      notification: {
+        title: 'Payment Received! ✅',
+        body: `₹${amount.toFixed(2)} payment received for Booking #${bookingId}`,
+      },
       data: {
         event: FcmEventType.PaymentSuccess,
         bookingId,
@@ -240,4 +250,31 @@ export class BookingNotificationService {
       },
     });
   }
+
+  // Standalone events. Only use when none of the above apply and the assosciated entity changes
+  notifyBookingStatusChange(userId: string, userType: UserType): void {
+    this.firebaseService.notifyAllSessions(userId, userType, {
+      data: {
+        event: FcmEventType.BookingStatusChange,
+      },
+    });
+  }
+
+  notifyTransactionChange(userId: string, userType: UserType): void {
+    this.firebaseService.notifyAllSessions(userId, userType, {
+      data: {
+        event: FcmEventType.TransactionChange,
+      },
+    });
+  }
+
+  notifyWalletChange(userId: string, userType: UserType): void {
+    this.firebaseService.notifyAllSessions(userId, userType, {
+      data: {
+        event: FcmEventType.WalletChange,
+      },
+    });
+  }
 }
+
+

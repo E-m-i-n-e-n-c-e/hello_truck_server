@@ -103,6 +103,7 @@ export class BookingRefundService {
       }
 
       // Then update DB
+      let driverCompensation = 0;
       await this.prisma.$transaction(async (tx) => {
         // Handle PAID invoice: Credit wallet with refund
         if (Number(intent.walletRefundAmount) > 0 && intent.booking.customer) {
@@ -112,6 +113,7 @@ export class BookingRefundService {
             Number(intent.walletRefundAmount),
             `Refund for cancelled Booking #${intent.booking.bookingNumber}`,
             tx,
+            intentId,
           );
         }
 
@@ -124,12 +126,13 @@ export class BookingRefundService {
             chargeAmount,
             `Cancellation charge for Booking #${intent.booking.bookingNumber}`,
             tx,
+            intentId,
           );
         }
 
         // Process driver compensation if there's a cancellation charge and driver was assigned
         if (Number(intent.cancellationCharge) > 0 && intent.booking.assignedDriver) {
-          await this.compensateDriver(
+          driverCompensation = await this.compensateDriver(
             intent.booking.assignedDriver,
             intent.booking,
             Number(intent.cancellationCharge),
@@ -148,6 +151,7 @@ export class BookingRefundService {
               type: TransactionType.CREDIT, // Customer receives refund = CREDIT (money IN)
               category: TransactionCategory.BOOKING_REFUND,
               description: `Refund for cancelled booking #${intent.booking.bookingNumber}`,
+              refundIntentId: intentId,
             },
           });
         }
@@ -169,9 +173,9 @@ export class BookingRefundService {
       if (intent.wasPaid) {
         // Notify about refund for paid invoices
         if (Number(intent.walletRefundAmount) > 0) {
-          this.notificationService.notifyCustomerWalletCredited(
+          this.notificationService.notifyCustomerRefundProcessed(
             intent.customerId,
-            Number(intent.walletRefundAmount),
+            intent.booking.bookingNumber,
           );
         }
       } else if (Number(intent.cancellationCharge) > 0) {
@@ -179,6 +183,14 @@ export class BookingRefundService {
         this.notificationService.notifyCustomerCancellationCharge(
           intent.customerId,
           Number(intent.cancellationCharge),
+        );
+      }
+
+      // Notify driver about compensation if applicable
+      if (driverCompensation > 0 && intent.booking.assignedDriver) {
+        this.notificationService.notifyDriverCompensation(
+          intent.booking.assignedDriver.id,
+          driverCompensation,
         );
       }
 
@@ -274,6 +286,7 @@ export class BookingRefundService {
     amount: number,
     reason: string,
     tx: Prisma.TransactionClient,
+    refundIntentId: string,
   ): Promise<void> {
     if (amount <= 0) return;
 
@@ -293,6 +306,7 @@ export class BookingRefundService {
         amount: truncate2(amount),
         reason,
         bookingId: booking.id,
+        refundIntentId,
       },
     });
 
@@ -307,8 +321,8 @@ export class BookingRefundService {
     booking: Booking,
     cancellationCharge: number,
     tx: Prisma.TransactionClient,
-  ): Promise<void> {
-    if (cancellationCharge <= 0) return;
+  ): Promise<number> {
+    if (cancellationCharge <= 0) return 0;
 
     const driverWalletBefore = Number(driver.walletBalance);
 
@@ -335,6 +349,7 @@ export class BookingRefundService {
     });
 
     this.logger.log(`Compensated driver ${driver.id} with ₹${compensation} for cancellation`);
+    return compensation;
   }
 
   /**

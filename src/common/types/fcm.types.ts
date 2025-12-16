@@ -1,17 +1,14 @@
 // Typed FCM event kinds used by clients to route behaviors
 export enum FcmEventType {
   DriverAssignmentOffered = 'DRIVER_ASSIGNMENT_OFFERED',
-  DriverAssignmentTimeout = 'DRIVER_ASSIGNMENT_TIMEOUT',
-  AssignmentEscalated = 'ASSIGNMENT_ESCALATED',
-  NoDriverAvailable = 'NO_DRIVER_AVAILABLE',
   BookingStatusChange = 'BOOKING_STATUS_CHANGE',
   PaymentSuccess = 'PAYMENT_SUCCESS',
-  PaymentFailed = 'PAYMENT_FAILED',
   RideCancelled = 'RIDE_CANCELLED',
-  WalletCredit = 'WALLET_CREDIT',
-  WalletDebit = 'WALLET_DEBIT',
+  WalletChange = 'WALLET_CHANGE',
+  TransactionChange = 'TRANSACTION_CHANGE',
   PayoutProcessed = 'PAYOUT_PROCESSED',
   DriverVerificationUpdated = 'DRIVER_VERIFICATION_UPDATE',
+  RefundProcessed = 'REFUND_PROCESSED',
 }
 
 // App-level typed payload for FCM

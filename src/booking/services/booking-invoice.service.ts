@@ -112,6 +112,8 @@ export class BookingInvoiceService {
       });
     }
 
+    // Customer is notified of the wallet log in createBooking function in the drivers accept function
+
     // Create FINAL invoice FIRST (so we have invoice.id for payment link reference_id)
     const invoice = await tx.invoice.create({
       data: {
