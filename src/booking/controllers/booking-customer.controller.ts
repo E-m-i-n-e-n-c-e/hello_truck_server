@@ -6,7 +6,7 @@ import { Roles } from 'src/token/decorators/roles.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingCustomerService } from '../services/booking-customer.service';
 import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-invoice.dto';
-import { CreateBookingRequestDto, BookingResponseDto, CancelBookingDto } from '../dtos/booking.dto';
+import { CreateBookingRequestDto, BookingResponseDto, CancelBookingDto, CancellationConfigResponseDto } from '../dtos/booking.dto';
 import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
@@ -60,6 +60,12 @@ export class BookingCustomerController {
     @Query() uploadUrlDto: uploadUrlDto,
   ) {
     return this.bookingCustomerService.getUploadUrl(userId, uploadUrlDto);
+  }
+
+  @Get('cancellation-config')
+  @Serialize(CancellationConfigResponseDto)
+  async getCancellationConfig() {
+    return this.bookingCustomerService.getCancellationConfig();
   }
 
   @Post('cancel/:id')

@@ -126,6 +126,10 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `assignments`: `BookingAssignmentResponseDto[]` - Array of completed assignments with full booking details for the day
 *   **`CancelBookingDto`**: Booking cancellation request.
     *   `reason`: `string` - Cancellation reason
+*   **`CancellationConfigResponseDto`**: Configuration for cancellation charges.
+    *   `minChargePercent`: `number` - Minimum charge percentage (e.g., 0.1 for 10%)
+    *   `maxChargePercent`: `number` - Maximum charge percentage (e.g., 0.5 for 50%)
+    *   `incrementPerMinute`: `number` - Charge increase per minute after acceptance (e.g., 0.01 for 1%)
 
 ### Profile & Address DTOs
 *   **`CreateProfileDto` / `UpdateProfileDto`**: For customer profile creation/updates.
@@ -327,6 +331,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/bookings/customer` 🔒 | Creates a new booking. System automatically selects the ideal (cheapest suitable) vehicle model. Creates ESTIMATE invoice with wallet applied. | `CreateBookingRequestDto` | `BookingResponseDto` |
 | `GET` | `/bookings/customer/active` 🔒 | Lists customer's active bookings with invoices. | - | `BookingResponseDto[]` |
 | `GET` | `/bookings/customer/history` 🔒 | Lists customer's past bookings with invoices. | - | `BookingResponseDto[]` |
+| `GET` | `/bookings/customer/cancellation-config` 🔒 | Gets configuration for calculating cancellation charges client-side. | - | `CancellationConfigResponseDto` |
 | `POST` | `/bookings/customer/cancel/{bookingId}` 🔒 | Cancels a booking with refund based on status. | `CancelBookingDto` | `SuccessResponseDto` |
 | `GET` | `/bookings/customer/upload-url` 🔒 | Gets a signed URL for file uploads. | Query: `filePath`, `type` | `UploadUrlResponseDto` |
 | `GET` | `/bookings/customer/driver-navigation/{bookingId}` 🔒 | SSE endpoint for real-time driver location updates. | - | Server-Sent Events stream |

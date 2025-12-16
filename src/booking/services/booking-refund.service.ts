@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { BookingNotificationService } from './booking-notification.service';
@@ -16,6 +17,7 @@ export class BookingRefundService {
     private readonly prisma: PrismaService,
     private readonly razorpayService: RazorpayService,
     private readonly notificationService: BookingNotificationService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -28,7 +30,7 @@ export class BookingRefundService {
     tx: Prisma.TransactionClient,
   ): Promise<RefundIntent> {
     const { walletRefund, razorpayRefund, cancellationCharge } =
-      this.calculateRefundAmounts(booking.status, finalInvoice);
+      this.calculateRefundAmounts(booking.status, finalInvoice, booking.acceptedAt);
 
     // Determine status:
     // - PENDING if there's a refund to process OR cancellation charge to deduct
@@ -166,11 +168,10 @@ export class BookingRefundService {
       // Notify customer
       if (intent.wasPaid) {
         // Notify about refund for paid invoices
-        const totalRefund = truncate2(Number(intent.walletRefundAmount) + Number(intent.razorpayRefundAmount));
-        if (totalRefund > 0) {
+        if (Number(intent.walletRefundAmount) > 0) {
           this.notificationService.notifyCustomerWalletCredited(
             intent.customerId,
-            totalRefund,
+            Number(intent.walletRefundAmount),
           );
         }
       } else if (Number(intent.cancellationCharge) > 0) {
@@ -205,11 +206,13 @@ export class BookingRefundService {
   }
 
   /**
-   * Calculate refund amounts based on booking status
+   * Calculate refund amounts based on booking status and time elapsed
+   * Cancellation charge increases with time for CONFIRMED/PICKUP_ARRIVED
    */
   calculateRefundAmounts(
     status: BookingStatus,
     invoice: Invoice,
+    acceptedAt?: Date | null,
   ): {
     walletRefund: number;
     razorpayRefund: number;
@@ -222,19 +225,34 @@ export class BookingRefundService {
     // Full refund for PENDING and DRIVER_ASSIGNED
     if (status === BookingStatus.PENDING || status === BookingStatus.DRIVER_ASSIGNED) {
       return {
-        walletRefund: walletApplied,
-        razorpayRefund: finalAmount,
+        walletRefund: truncate2(walletApplied),
+        razorpayRefund: truncate2(finalAmount),
         cancellationCharge: 0,
       };
     }
 
     // Partial refund for CONFIRMED and PICKUP_ARRIVED
     if (status === BookingStatus.CONFIRMED || status === BookingStatus.PICKUP_ARRIVED) {
-      const refundPercentage = 0.5; // 50% refund
+      const minCharge = this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') || 0.1;
+      const maxCharge = this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') || 0.5;
+      const incrementPerMinute = this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_MINUTE') || 0.01;
+
+      let refundPercentage = minCharge;
+
+      if (acceptedAt) {
+        const minutesElapsed = Math.floor((Date.now() - new Date(acceptedAt).getTime()) / (1000 * 60));
+        refundPercentage = Math.min(
+          maxCharge,
+          minCharge + (minutesElapsed * incrementPerMinute)
+        );
+      } else {
+        refundPercentage = minCharge;
+      }
+
       return {
-        walletRefund: walletApplied * refundPercentage,
-        razorpayRefund: finalAmount * refundPercentage,
-        cancellationCharge: totalPaid * (1 - refundPercentage),
+        walletRefund: truncate2(walletApplied * refundPercentage),
+        razorpayRefund: truncate2(finalAmount * refundPercentage),
+        cancellationCharge: truncate2(totalPaid * (1 - refundPercentage)),
       };
     }
 
@@ -242,7 +260,7 @@ export class BookingRefundService {
     return {
       walletRefund: 0,
       razorpayRefund: 0,
-      cancellationCharge: totalPaid,
+      cancellationCharge: truncate2(totalPaid),
     };
   }
 
@@ -293,7 +311,11 @@ export class BookingRefundService {
     if (cancellationCharge <= 0) return;
 
     const driverWalletBefore = Number(driver.walletBalance);
-    const compensation = truncate2(cancellationCharge);
+
+    // Deduct platform commission from cancellation charge
+    const commissionRate = this.configService.get<number>('COMMISSION_RATE') || 0.07;
+    const compensation = truncate2(cancellationCharge * (1 - commissionRate));
+
     const newBalance = truncate2(driverWalletBefore + compensation);
 
     await tx.driver.update({

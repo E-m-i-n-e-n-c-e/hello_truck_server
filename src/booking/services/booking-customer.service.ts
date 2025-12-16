@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Logger, Inject } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { BookingInvoiceService } from './booking-invoice.service';
-import { CreateBookingRequestDto } from '../dtos/booking.dto';
+import { CancellationConfigResponseDto, CreateBookingRequestDto } from '../dtos/booking.dto';
 import { Booking, BookingStatus, Customer, Driver, Invoice } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
@@ -376,6 +376,14 @@ export class BookingCustomerService {
     }
 
     this.bookingAssignmentService.onBookingCancelled(bookingId);
+  }
+
+  async getCancellationConfig(): Promise<CancellationConfigResponseDto> {
+    return {
+      minChargePercent: this.configService.get('CANCELLATION_MIN_CHARGE_PERCENT') || 0.1,
+      maxChargePercent: this.configService.get('CANCELLATION_MAX_CHARGE_PERCENT') || 0.5,
+      incrementPerMinute: this.configService.get('CANCELLATION_INCREMENT_PER_MINUTE') || 0.01,
+    };
   }
 
   async getUploadUrl(userId: string, uploadUrlDto: uploadUrlDto): Promise<UploadUrlResponseDto> {

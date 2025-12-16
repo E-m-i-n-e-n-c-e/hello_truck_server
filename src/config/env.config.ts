@@ -1,6 +1,6 @@
 /**
  * Environment Configuration with Zod
- * 
+ *
  * This module provides type-safe access to environment variables with validation.
  * The app will fail fast on startup if required variables are missing.
  */
@@ -47,7 +47,11 @@ const envSchema = z.object({
 
   // Business Logic
   COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.07),
-  REFUND_PERCENTAGE: z.coerce.number().min(0).max(1).default(0.5), // 50% refund for CONFIRMED/PICKUP_ARRIVED
+
+  // Cancellation Charge (time-based)
+  CANCELLATION_MIN_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.1), // 10% minimum
+  CANCELLATION_MAX_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.7), // 70% maximum
+  CANCELLATION_CHARGE_INCREMENT_PER_MINUTE: z.coerce.number().min(0).max(1).default(0.05), // 5% per minute
 });
 
 // Export the inferred type

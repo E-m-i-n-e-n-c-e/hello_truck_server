@@ -104,3 +104,14 @@ export class CancelBookingDto {
   @IsString()
   reason: string;
 }
+
+export class CancellationConfigResponseDto {
+  @Expose()
+  minChargePercent: number;
+
+  @Expose()
+  maxChargePercent: number;
+
+  @Expose()
+  incrementPerMinute: number;
+}
