@@ -405,7 +405,7 @@ describe('04 - Booking Flow (E2E)', () => {
           payment_link: {
             entity: {
               id: invoice?.rzpPaymentLinkId || 'plink_unknown',
-              reference_id: onlineBookingId,
+              reference_id: invoice?.id || 'inv_unknown', // Use invoice ID as reference
             },
           },
           payment: {

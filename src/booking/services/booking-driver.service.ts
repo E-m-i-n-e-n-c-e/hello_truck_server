@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver, PaymentMethod } from '@prisma/client';
@@ -10,6 +10,7 @@ import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
 export class BookingDriverService {
+  private readonly logger = new Logger(BookingDriverService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -92,10 +93,10 @@ export class BookingDriverService {
         tx
       );
 
-      await this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
-
       return { walletApplied: Number(invoice.walletApplied), customerId: assignment.booking.customerId };
     });
+
+    this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
 
     // Send wallet notifications (fire-and-forget, outside transaction)
     if (walletData.walletApplied !== 0 && walletData.customerId) {

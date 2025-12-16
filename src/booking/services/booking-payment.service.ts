@@ -2,8 +2,10 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
-import { Booking, BookingStatus, Customer, Driver, Invoice, InvoiceType, PaymentMethod, Prisma, TransactionCategory, TransactionType } from '@prisma/client';
+import { RazorpayXService } from 'src/razorpay/razorpayx.service';
+import { Booking, BookingStatus, Customer, Driver, Invoice, InvoiceType, PaymentMethod, Prisma, RefundIntent, TransactionCategory, TransactionType } from '@prisma/client';
 import { BookingNotificationService } from './booking-notification.service';
+import { BookingRefundService } from './booking-refund.service';
 import { truncate2 } from '../utils/general.utils';
 
 @Injectable()
@@ -13,8 +15,8 @@ export class BookingPaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly razorpayService: RazorpayService,
+    private readonly razorpayxService: RazorpayXService,
     private readonly notificationService: BookingNotificationService,
-    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -22,19 +24,16 @@ export class BookingPaymentService {
    * Mark invoice as paid, create transaction, send FCM notifications
    */
   async handlePaymentSuccess(
-    bookingId: string,
+    invoiceId: string,
     rzpPaymentId: string,
     rzpPaymentLinkId: string,
   ): Promise<void> {
-    this.logger.log(`Processing payment success for booking: ${bookingId}`);
+    this.logger.log(`Processing payment success for invoice: ${invoiceId}`);
 
     // Find FINAL invoice by bookingId (from reference_id)
     const invoice = await this.prisma.invoice.findUnique({
-      where: { 
-        bookingId_type: {
-          bookingId,
-          type: InvoiceType.FINAL,
-        },
+      where: {
+        id: invoiceId,
       },
       include: {
         booking: {
@@ -47,7 +46,7 @@ export class BookingPaymentService {
     });
 
     if (!invoice) {
-      throw new NotFoundException(`FINAL invoice not found for booking: ${bookingId}`);
+      throw new NotFoundException(`Invoice not found for id: ${invoiceId}`);
     }
 
     if (invoice.isPaid) {
@@ -75,7 +74,7 @@ export class BookingPaymentService {
           bookingId: invoice.bookingId,
           paymentMethod: PaymentMethod.ONLINE,
           amount: invoice.finalAmount,
-          type: TransactionType.CREDIT,
+          type: TransactionType.DEBIT, // Customer pays = DEBIT (money OUT)
           category: TransactionCategory.BOOKING_PAYMENT,
           description: `Payment for Booking #${invoice.booking.bookingNumber}`,
         },
@@ -83,7 +82,7 @@ export class BookingPaymentService {
     });
 
     this.logger.log(`Payment processed successfully for booking ${invoice.bookingId}`);
-    
+
     // Send notifications (fire-and-forget, outside transaction)
     if (invoice.booking.customerId) {
       this.notificationService.notifyCustomerPaymentSuccess(
@@ -100,64 +99,6 @@ export class BookingPaymentService {
         Number(invoice.finalAmount),
       );
     }
-  }
-
-  /**
-   * Process refund for a cancelled booking (utility method)
-   * Should be called within a transaction by BookingCustomerService
-   */
-  async processRefund(
-    customerId: string,
-    booking: Booking & { customer: Customer; assignedDriver: Driver | null; },
-    finalInvoice: Invoice,
-    reason: string | undefined,
-    tx: Prisma.TransactionClient,
-  ): Promise<{ walletRefund: number; razorpayRefund: number; driverCompensation: number; driverId: string | null }> {
-    // Calculate refund amounts based on booking status
-    const { walletRefund, razorpayRefund, cancellationCharge } = this.calculateRefundAmounts(
-      booking.status,
-      finalInvoice,
-    );
-
-    // Handle customer wallet refund or charge
-    await this.handleCustomerWalletRefund(
-      customerId,
-      booking,
-      finalInvoice,
-      walletRefund,
-      razorpayRefund,
-      cancellationCharge,
-      tx,
-    );
-    
-    // Process driver compensation
-    let driverCompensation: number = 0;
-    let driverId: string | null = null;
-    if(cancellationCharge > 0 && booking.assignedDriver) {
-      const driverCompensationData = await this.processDriverCompensation(
-        booking,
-        booking.assignedDriver,
-        cancellationCharge,
-        tx,
-      );
-      driverCompensation = driverCompensationData.driverCompensation;
-      driverId = driverCompensationData.driverId;
-    }
-    // Process Razorpay refund if applicable
-    await this.processRazorpayRefund(
-      customerId,
-      booking,
-      finalInvoice,
-      razorpayRefund,
-      reason,
-      tx,
-    );
-    
-    // Return appropriate wallet refund value
-    // For unpaid invoices with cancellation, return negative value to indicate debit
-    const finalWalletRefund = finalInvoice.isPaid ? walletRefund : (cancellationCharge > 0 ? -cancellationCharge : 0);
-    
-    return { walletRefund: finalWalletRefund, razorpayRefund, driverCompensation, driverId };
   }
 
   /**
@@ -186,221 +127,100 @@ export class BookingPaymentService {
         bookingId: booking.id,
         customerId: booking.customerId,
         description: `Cash payment for booking #${booking.bookingNumber}`,
-        type: TransactionType.CREDIT,
+        type: TransactionType.DEBIT, // Customer pays = DEBIT (money OUT)
         category: TransactionCategory.BOOKING_PAYMENT,
         paymentMethod: PaymentMethod.CASH,
       },
     });
-  }
 
-  /**
-   * Calculate refund amounts based on booking status
-   */
-  private calculateRefundAmounts(
-    status: BookingStatus,
-    invoice: Invoice,
-  ): {
-    walletRefund: number;
-    razorpayRefund: number;
-    cancellationCharge: number;
-  } {
-    const walletApplied = Number(invoice.walletApplied);
-    const finalAmount = Number(invoice.finalAmount);
-    const totalPaid = walletApplied + finalAmount;
-
-    // Full refund for PENDING and DRIVER_ASSIGNED
-    if (status === BookingStatus.PENDING || status === BookingStatus.DRIVER_ASSIGNED) {
-      return {
-        walletRefund: walletApplied,
-        razorpayRefund: finalAmount,
-        cancellationCharge: 0,
-      };
-    }
-
-    // Partial refund for CONFIRMED and PICKUP_ARRIVED
-    if (status === BookingStatus.CONFIRMED || status === BookingStatus.PICKUP_ARRIVED) {
-      const refundPercentage = this.configService.get<number>('REFUND_PERCENTAGE') ?? 0.5;
-      return {
-        walletRefund: walletApplied * refundPercentage,
-        razorpayRefund: finalAmount * refundPercentage,
-        cancellationCharge: totalPaid * (1 - refundPercentage),
-      };
-    }
-
-    // No refund for other statuses
-    return {
-      walletRefund: 0,
-      razorpayRefund: 0,
-      cancellationCharge: totalPaid,
-    };
-  }
-
-  /**
-   * Handle customer wallet refund or charge for cancellation
-   */
-  private async handleCustomerWalletRefund(
-    customerId: string,
-    booking: Booking & { customer: Customer },
-    finalInvoice: Invoice,
-    walletRefund: number,
-    razorpayRefund: number,
-    cancellationCharge: number,
-    tx: Prisma.TransactionClient,
-  ): Promise<void> {
-    const customerWalletBefore = Number(booking.customer?.walletBalance);
-
-    if (finalInvoice.isPaid) {
-      // For cash payments, refund everything to wallet (can't refund via Razorpay)
-      // For online payments, only refund the wallet portion (Razorpay refund handled separately)
-      const isCashPayment = finalInvoice.paymentMethod === PaymentMethod.CASH;
-      const totalWalletRefund = isCashPayment ? walletRefund + razorpayRefund : walletRefund;
-
-      if (totalWalletRefund > 0) {
-        const newWalletBalance = truncate2(customerWalletBefore + totalWalletRefund);
-
-        await tx.customer.update({
-          where: { id: customerId },
-          data: { walletBalance: newWalletBalance },
+    // Cancel payment link if exists (use setImmediate to avoid blocking)
+    if (finalInvoice.rzpPaymentLinkId) {
+      setImmediate(() => {
+        this.razorpayService.cancelPaymentLink(finalInvoice.rzpPaymentLinkId!).catch((error) => {
+          this.logger.error(`Failed to cancel payment link ${finalInvoice.rzpPaymentLinkId}: ${error.message}`);
         });
-
-        await tx.customerWalletLog.create({
-          data: {
-            customerId,
-            beforeBalance: customerWalletBefore,
-            afterBalance: newWalletBalance,
-            amount: totalWalletRefund,
-            reason: isCashPayment
-              ? `Cash refund for cancelled Booking #${booking.bookingNumber}`
-              : `Refund for cancelled Booking #${booking.bookingNumber}`,
-            bookingId: booking.id,
-          },
-        });
-      }
-    } else {
-      // Handle unpaid invoice - charge cancellation fee to wallet if applicable
-      if (cancellationCharge > 0) {
-        const chargeAmount = truncate2(-cancellationCharge);
-        const newWalletBalance = truncate2(customerWalletBefore + chargeAmount);
-        
-        await tx.customer.update({
-          where: { id: customerId },
-          data: { walletBalance: newWalletBalance },
-        });
-        
-        await tx.customerWalletLog.create({
-          data: {
-            customerId,
-            beforeBalance: customerWalletBefore,
-            afterBalance: newWalletBalance,
-            amount: chargeAmount,
-            reason: `Cancellation charge for Booking #${booking.bookingNumber}`,
-            bookingId: booking.id,
-          },
-        });
-      }
+      });
     }
   }
 
   /**
-   * Process Razorpay refund if applicable
+   * Process payout for a single driver
+   * Called by PayoutService cron job
    */
-  private async processRazorpayRefund(
-    customerId: string,
-    booking: Booking,
-    finalInvoice: Invoice,
-    razorpayRefund: number,
-    reason: string | undefined,
-    tx: Prisma.TransactionClient,
-  ): Promise<void> {
-    if (
-      razorpayRefund > 0 &&
-      finalInvoice.isPaid &&
-      finalInvoice.paymentMethod === PaymentMethod.ONLINE &&
-      finalInvoice.rzpPaymentId
-    ) {
-      try {
-        // Safe Retry: Check if refund already exists on Razorpay side
-        // This handles case where API call succeeded but DB transaction failed/rolled back
-        const existingRefunds = await this.razorpayService.fetchRefunds(finalInvoice.rzpPaymentId);
-        const matchedRefund = existingRefunds.find(r => 
-          r.amount === razorpayRefund && 
-          r.notes?.bookingId === booking.id
-        );
+  async processPayout(driver: {
+    id: string;
+    walletBalance: any;
+    fundAccountId: string | null;
+    payoutMethod: string | null;
+  }): Promise<void> {
+    const payoutAmount = Number(driver.walletBalance);
 
-        if (matchedRefund) {
-          this.logger.warn(`Refund already exists on Razorpay (ID: ${matchedRefund.refundId}). Reconciling DB.`);
-          
-          await tx.transaction.create({
-            data: {
-              customerId,
-              bookingId: booking.id,
-              paymentMethod: PaymentMethod.ONLINE,
-              amount: razorpayRefund,
-              type: TransactionType.DEBIT,
-              category: TransactionCategory.BOOKING_REFUND,
-              description: `Refund for cancelled Booking #${booking.bookingNumber}`,
-            },
-          });
-          return;
-        }
+    this.logger.log(`Processing payout for driver ${driver.id}: ₹${payoutAmount}`);
 
-        await this.razorpayService.createRefund({
-          paymentId: finalInvoice.rzpPaymentId,
-          amount: razorpayRefund,
-          notes: {
-            bookingId: booking.id,
-            reason: reason || 'Booking cancelled',
-          },
-        });
+    const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const referenceId = `payout-${driver.id}-${todayStr}`;
 
-        await tx.transaction.create({
-          data: {
-            customerId,
-            bookingId: booking.id,
-            paymentMethod: PaymentMethod.ONLINE,
-            amount: razorpayRefund,
-            type: TransactionType.DEBIT,
-            category: TransactionCategory.BOOKING_REFUND,
-            description: `Refund for cancelled Booking #${booking.bookingNumber}`,
-          },
-        });
-      } catch (error) {
-        this.logger.error(`Failed to process Razorpay refund: ${error.message}`);
-        throw new BadRequestException('Failed to process refund');
-      }
-    }
-  }
+    // Select payout mode based on driver's registered payout method
+    // BANK_ACCOUNT → IMPS (instant bank transfer)
+    // VPA → UPI (instant UPI transfer)
+    const payoutMode = driver.payoutMethod === 'VPA' ? 'UPI' : 'IMPS';
 
-  /**
-   * Process driver compensation for cancellation
-   */
-  private async processDriverCompensation(
-    booking: Booking,
-    assignedDriver: Driver,
-    cancellationCharge: number,
-    tx: Prisma.TransactionClient,
-  ): Promise<{ driverCompensation: number; driverId: string }> {
-    
-    const driverCompensation = truncate2(cancellationCharge);
-    const driverWalletBefore = Number(assignedDriver.walletBalance);
-    const newDriverWalletBalance = truncate2(driverWalletBefore + driverCompensation);
-      
-    await tx.driver.update({
-      where: { id: assignedDriver.id },
-      data: { walletBalance: newDriverWalletBalance },
+    // Create payout via RazorpayX (MONEY MOVEMENT FIRST - before DB logging)
+    const payout = await this.razorpayxService.createPayout({
+      fundAccountId: driver.fundAccountId!,
+      amount: payoutAmount,
+      currency: 'INR',
+      mode: payoutMode,
+      purpose: 'payout',
+      referenceId,
     });
-      
-    await tx.driverWalletLog.create({
-      data: {
-        driverId: assignedDriver.id,
-        beforeBalance: driverWalletBefore,
-        afterBalance: newDriverWalletBalance,
-        amount: driverCompensation,
-        reason: `Cancellation compensation for Booking #${booking.bookingNumber}`,
-        bookingId: booking.id,
-      },
+
+    // Now log in DB (after money movement initiated)
+    await this.prisma.$transaction(async (tx) => {
+      // Deduct from driver wallet
+      await tx.driver.update({
+        where: { id: driver.id },
+        data: { walletBalance: 0 },
+      });
+
+      // Log payout
+      await tx.driverWalletLog.create({
+        data: {
+          driverId: driver.id,
+          beforeBalance: payoutAmount,
+          afterBalance: 0,
+          amount: -payoutAmount,
+          reason: 'Daily payout to bank account',
+        },
+      });
+
+      // Create transaction record
+      await tx.transaction.create({
+        data: {
+          driverId: driver.id,
+          paymentMethod: PaymentMethod.ONLINE,
+          amount: payoutAmount,
+          type: TransactionType.CREDIT, // Driver receives payout = CREDIT (money IN)
+          category: TransactionCategory.DRIVER_PAYOUT,
+          description: `Daily payout - ₹${payoutAmount.toFixed(2)}`,
+        },
+      });
+
+      // Create payout record
+      await tx.payout.create({
+        data: {
+          driverId: driver.id,
+          amount: payoutAmount,
+          razorpayPayoutId: payout.razorpayPayoutId,
+          status: 'PROCESSING',
+          processedAt: new Date(),
+        },
+      });
     });
-  
-    return { driverCompensation, driverId: assignedDriver.id };
+
+    this.logger.log(`✓ Processed payout for driver ${driver.id}: ₹${payoutAmount}`);
+
+    // Send notification (fire-and-forget, outside transaction)
+    this.notificationService.notifyDriverPayoutProcessed(driver.id, payoutAmount);
   }
 }

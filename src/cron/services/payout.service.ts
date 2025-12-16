@@ -1,23 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RazorpayXService } from '../../razorpay/razorpayx.service';
-import { FirebaseService } from '../../firebase/firebase.service';
-import { FcmEventType } from '../../common/types/fcm.types';
-import { PaymentMethod } from '@prisma/client';
+import { BookingPaymentService } from '../../booking/services/booking-payment.service';
 
 @Injectable()
 export class PayoutService {
   private readonly logger = new Logger(PayoutService.name);
-  
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly razorpayxService: RazorpayXService,
-    private readonly firebaseService: FirebaseService,
+    private readonly bookingPaymentService: BookingPaymentService,
   ) {}
 
   async processDailyPayouts() {
     this.logger.log('Starting daily payout processing');
-    
+
     // Get all drivers with positive wallet balance
     const drivers = await this.prisma.driver.findMany({
       where: {
@@ -26,91 +22,25 @@ export class PayoutService {
         payoutMethod: { not: null },
       },
     });
-    
+
     this.logger.log(`Found ${drivers.length} drivers eligible for payout`);
-    
+
+    let successCount = 0;
+    let failureCount = 0;
+
     for (const driver of drivers) {
-      // Wallet balance already has commission deducted (net amount)
-      const payoutAmount = Number(driver.walletBalance);
-      
-      this.logger.log(`Processing payout for driver ${driver.id}: ₹${payoutAmount}`);
-      
-      const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const referenceId = `payout-${driver.id}-${todayStr}`;
-
-      // Select payout mode based on driver's registered payout method
-      // BANK_ACCOUNT → IMPS (instant bank transfer)
-      // VPA → UPI (instant UPI transfer)
-      const payoutMode = driver.payoutMethod === 'VPA' ? 'UPI' : 'IMPS';
-
-      // Create payout via RazorpayX
-      const payout = await this.razorpayxService.createPayout({
-        fundAccountId: driver.fundAccountId!,
-        amount: payoutAmount,
-        currency: 'INR',
-        mode: payoutMode,
-        purpose: 'payout',
-        referenceId,
-      });
-      
-      await this.prisma.$transaction(async (tx) => {
-        // Deduct from driver wallet
-        await tx.driver.update({
-          where: { id: driver.id },
-          data: { walletBalance: 0 },
-        });
-        
-        // Log payout
-        await tx.driverWalletLog.create({
-          data: {
-            driverId: driver.id,
-            beforeBalance: payoutAmount,
-            afterBalance: 0,
-            amount: -payoutAmount,
-            reason: 'Daily payout to bank account',
-          },
-        });
-        
-        // Create transaction record
-        await tx.transaction.create({
-          data: {
-            driverId: driver.id,
-            paymentMethod: PaymentMethod.ONLINE,
-            amount: payoutAmount,
-            type: 'DEBIT',
-            category: 'DRIVER_PAYOUT',
-            description: `Daily payout - ₹${payoutAmount.toFixed(2)}`,
-          },
-        });
-        
-        // Create payout record
-        await tx.payout.create({
-          data: {
-            driverId: driver.id,
-            amount: payoutAmount,
-            razorpayPayoutId: payout.razorpayPayoutId,
-            status: 'PROCESSING',
-            processedAt: new Date(),
-          },
-        });
-      });
-      
-      this.logger.log(`Processed payout for driver ${driver.id}: ₹${payoutAmount}`);
-      
-      // Send FCM notification (fire-and-forget, outside transaction)
-      this.firebaseService.notifyAllSessions(driver.id, 'driver', {
-        notification: {
-          title: 'Payout Processed! 💰',
-          body: `₹${payoutAmount.toFixed(2)} has been sent to your account`,
-        },
-        data: {
-          event: FcmEventType.PayoutProcessed,
-          amount: payoutAmount.toString(),
-          payoutId: payout.razorpayPayoutId,
-        },
-      });
+      try {
+        await this.bookingPaymentService.processPayout(driver);
+        successCount++;
+      } catch (error) {
+        // Log error but continue to next driver
+        this.logger.error(`✗ Failed to process payout for driver ${driver.id}: ${error.message}`);
+        this.logger.error(error.stack);
+        failureCount++;
+        // Continue to next driver instead of throwing
+      }
     }
-    
-    this.logger.log('Daily payout processing completed');
+
+    this.logger.log(`Daily payout processing completed: ${successCount} succeeded, ${failureCount} failed`);
   }
 }

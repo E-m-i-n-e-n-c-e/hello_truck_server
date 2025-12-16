@@ -162,6 +162,27 @@ export class RazorpayService {
   }
 
   /**
+   * Cancels a Razorpay payment link to prevent further payments.
+   * @param paymentLinkId The Razorpay payment link ID to cancel
+   * @returns Promise<void>
+   */
+  async cancelPaymentLink(paymentLinkId: string): Promise<void> {
+    try {
+      this.logger.log(`Cancelling Razorpay payment link: ${paymentLinkId}`);
+
+      await this.axiosInstance.post(`/payment_links/${paymentLinkId}/cancel`);
+
+      this.logger.log(`Successfully cancelled payment link: ${paymentLinkId}`);
+    } catch (error) {
+      if (error.response) {
+        this.logger.error(`Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+      }
+      this.logger.error(`Failed to cancel payment link: ${error.message}`);
+      // Don't throw - cancellation failure shouldn't break the main flow
+    }
+  }
+
+  /**
    * Verifies the signature of a Razorpay webhook to ensure authenticity.
    * Uses HMAC SHA256 to validate the webhook signature against the payload.
    * @param payload The raw webhook payload as a string

@@ -24,7 +24,7 @@ export class BookingPaymentController {
     // Verify webhook signature
     const rawBody = JSON.stringify(body);
     const isValid = this.razorpayService.verifyWebhookSignature(rawBody, signature);
-    
+
     if (!isValid) {
       this.logger.warn('Invalid webhook signature');
       throw new UnauthorizedException('Invalid webhook signature');
@@ -48,18 +48,18 @@ export class BookingPaymentController {
     if (event === 'payment_link.paid') {
       const paymentLinkEntity = payload.payment_link.entity;
       const paymentEntity = payload.payment.entity;
-      
-      // Extract reference_id (our bookingId)
-      const bookingId = paymentLinkEntity.reference_id;
+
+      // Extract reference_id (now it's the invoice ID)
+      const invoiceId = paymentLinkEntity.reference_id;
       const rzpPaymentId = paymentEntity.id;
       const rzpPaymentLinkId = paymentLinkEntity.id;
-      
-      if (!bookingId) {
-        this.logger.error('No reference_id (bookingId) found in payment link webhook');
+
+      if (!invoiceId) {
+        this.logger.error('No reference_id (invoiceId) found in payment link webhook');
         return { status: 'error', message: 'No reference_id' };
       }
-      
-      await this.bookingPaymentService.handlePaymentSuccess(bookingId, rzpPaymentId, rzpPaymentLinkId);
+
+      await this.bookingPaymentService.handlePaymentSuccess(invoiceId, rzpPaymentId, rzpPaymentLinkId);
     }
 
     return { status: 'ok' };

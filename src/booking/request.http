@@ -1,5 +1,5 @@
-@base_url = http://localhost:3000
-# @base_url = https://hello-truck-server.fly.dev
+# @base_url = http://localhost:3000
+@base_url = https://hello-truck-server1.fly.dev
 
 ### Create Booking (Customer)
 POST {{base_url}}/bookings/customer
@@ -7,7 +7,7 @@ Authorization: Bearer 6300045929
 Content-Type: application/json
 
 {
-  "pickupAddress": {
+  "dropAddress": {
     "contactName": "Raj Doe",
     "contactPhone": "6300045929",
     "noteToDriver": "Please call me when you arrive",
@@ -15,7 +15,7 @@ Content-Type: application/json
     "latitude": 9.7560312,
     "longitude": 76.6479833
   },
-  "dropAddress": {
+  "pickupAddress": {
     "contactName": "Akhil Doe",
     "contactPhone": "6300045929",
     "noteToDriver": "Please call me when you arrive",

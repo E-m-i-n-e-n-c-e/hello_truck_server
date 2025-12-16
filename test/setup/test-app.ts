@@ -28,6 +28,7 @@ export async function createTestApp(): Promise<INestApplication> {
           paymentLinkUrl: `https://rzp.io/${uniqueId}`,
         });
       }),
+      cancelPaymentLink: jest.fn().mockResolvedValue(undefined),
       createRefund: jest.fn().mockResolvedValue({
         refundId: 'rfnd_test123',
         paymentId: 'pay_test123',

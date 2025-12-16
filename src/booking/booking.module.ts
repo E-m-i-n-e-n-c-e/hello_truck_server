@@ -9,6 +9,7 @@ import { BookingCustomerService } from './services/booking-customer.service';
 import { BookingDriverService } from './services/booking-driver.service';
 import { BookingInvoiceService } from './services/booking-invoice.service';
 import { BookingPaymentService } from './services/booking-payment.service';
+import { BookingRefundService } from './services/booking-refund.service';
 import { BookingNotificationService } from './services/booking-notification.service';
 import { RedisModule } from 'src/redis/redis.module';
 import { AssignmentModule } from './assignment/assignment.module';
@@ -17,7 +18,7 @@ import { RazorpayModule } from 'src/razorpay/razorpay.module';
 @Module({
   imports: [PricingModule, TokenModule, FirebaseModule, RedisModule, AssignmentModule, RazorpayModule],
   controllers: [BookingCustomerController, BookingDriverController, BookingPaymentController],
-  providers: [BookingCustomerService, BookingDriverService, BookingInvoiceService, BookingPaymentService, BookingNotificationService],
-  exports: [BookingCustomerService, BookingDriverService],
+  providers: [BookingCustomerService, BookingDriverService, BookingInvoiceService, BookingPaymentService, BookingRefundService, BookingNotificationService],
+  exports: [BookingCustomerService, BookingDriverService, BookingPaymentService, BookingRefundService, BookingNotificationService],
 })
 export class BookingModule {}

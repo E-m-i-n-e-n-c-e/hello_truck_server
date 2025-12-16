@@ -82,6 +82,12 @@ export class RazorpayController {
     return { refunds };
   }
 
+  @Post('cancel-payment-link')
+  async cancelPaymentLink(@Body() body: { paymentLinkId: string }) {
+    await this.razorpayService.cancelPaymentLink(body.paymentLinkId);
+    return { success: true };
+  }
+
   // ============ RazorpayX Payout Operations ============
 
   @Post('payout/create')

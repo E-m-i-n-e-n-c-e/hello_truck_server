@@ -11,9 +11,11 @@ import { Response, Request } from 'express';
 import { toPackageDetailsDto, toPackageCreateData } from '../utils/package.utils';
 import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils';
 import { BookingPaymentService } from './booking-payment.service';
+import { BookingRefundService } from './booking-refund.service';
 import { BookingNotificationService } from './booking-notification.service';
 import { ConfigService } from '@nestjs/config';
 import { randomInt } from 'crypto';
+import { RazorpayService } from 'src/razorpay/razorpay.service';
 
 @Injectable()
 export class BookingCustomerService {
@@ -42,8 +44,10 @@ export class BookingCustomerService {
     private readonly bookingAssignmentService: AssignmentService,
     @Inject(REALTIME_BUS) private readonly realtimeBus: RealtimeBus,
     private readonly bookingPaymentService: BookingPaymentService,
+    private readonly bookingRefundService: BookingRefundService,
     private readonly notificationService: BookingNotificationService,
     private readonly configService: ConfigService,
+    private readonly razorpayService: RazorpayService,
   ) {}
 
   /**
@@ -55,8 +59,8 @@ export class BookingCustomerService {
   ): Promise<Booking> {
 
     // Generate OTPs
-    // const isTest = this.configService.get('NODE_ENV') !== 'production';
-    const isTest = this.configService.get('NODE_ENV') === 'test';
+    const isTest = this.configService.get('NODE_ENV') !== 'production';
+    // const isTest = this.configService.get('NODE_ENV') === 'test';
     const pickupOtp = isTest ? '1234' : randomInt(1000, 9999).toString();
     const dropOtp = isTest ? '1234' : randomInt(1000, 9999).toString();
 
@@ -105,7 +109,7 @@ export class BookingCustomerService {
       return createdBooking;
     });
 
-    await this.bookingAssignmentService.onBookingCreated(booking.id);
+    this.bookingAssignmentService.onBookingCreated(booking.id);
 
     return booking;
   }
@@ -201,7 +205,7 @@ export class BookingCustomerService {
    * Cancel a booking with refund processing
    */
   async cancelBooking(
-    userId: string, 
+    userId: string,
     bookingId: string,
     reason: string,
   ): Promise<void> {
@@ -241,7 +245,7 @@ export class BookingCustomerService {
     }
 
     const finalInvoice = booking.invoices[0];
-    
+
     // If no final invoice exists (PENDING or DRIVER_ASSIGNED booking), just cancel without refund processing
     if (!finalInvoice || !booking.assignedDriver) {
       await this.cancelUnconfirmedBooking(bookingId, userId, reason, booking);
@@ -306,7 +310,7 @@ export class BookingCustomerService {
 
   /**
    * Cancel a confirmed booking (with final invoice)
-   * This involves refund processing, driver compensation, and financial transaction logging.
+   * Creates refund intent and processes asynchronously
    */
   private async cancelConfirmedBooking(
     bookingId: string,
@@ -317,8 +321,8 @@ export class BookingCustomerService {
   ): Promise<void> {
     const logger = new Logger('BookingCustomerService');
 
-    // Process cancellation and refunds in transaction (for bookings with FINAL invoice)
-    const { walletRefund, driverCompensation, driverId } = await this.prisma.$transaction(async (tx) => {
+    // Create refund intent in transaction (FAST, <50ms)
+    const { refundIntentId } = await this.prisma.$transaction(async (tx) => {
       // Update booking status
       await tx.booking.update({
         where: { id: bookingId },
@@ -329,16 +333,10 @@ export class BookingCustomerService {
         },
       });
 
-      // Process refunds using payment service utility
-      const refundAmounts = await this.bookingPaymentService.processRefund(
-        userId,
-        {
-          ...booking,
-          assignedDriver: booking.assignedDriver,
-          customer: booking.customer!,
-        },
+      // Create refund intent for async processing
+      const refundIntent = await this.bookingRefundService.createRefundIntent(
+        booking,
         finalInvoice,
-        reason,
         tx,
       );
 
@@ -354,32 +352,30 @@ export class BookingCustomerService {
           data: { driverStatus: 'AVAILABLE' },
         });
       }
-      
-      return refundAmounts;
+
+      return { refundIntentId: refundIntent.id };
     });
 
-    // Send notifications (fire-and-forget, outside transaction)
+    // Cancel payment link (use setImmediate to avoid blocking)
+    if (finalInvoice.rzpPaymentLinkId && !finalInvoice.isPaid ) {
+      this.razorpayService.cancelPaymentLink(finalInvoice.rzpPaymentLinkId!).catch(err => {
+        logger.error(`Async payment link cancel failed for ${finalInvoice.rzpPaymentLinkId}: ${err.message}`);
+      });
+    }
+
+    // Trigger async refund processing (fire-and-forget)
+    this.bookingRefundService.processRefundIntent(refundIntentId).catch(err => {
+      logger.error(`Async refund trigger failed for ${refundIntentId}: ${err.message}`);
+    });
+
+    // Send notifications
     this.notificationService.notifyCustomerBookingCancelled(userId);
-    
-    // Notify about wallet refund or charge
-    if (walletRefund > 0) {
-      this.notificationService.notifyCustomerWalletCredited(userId, walletRefund);
-    } else if (walletRefund < 0) {
-      // Wallet was debited for cancellation charge
-      this.notificationService.notifyCustomerWalletDebtCleared(userId, walletRefund);
+
+    if (booking.assignedDriverId) {
+      this.notificationService.notifyDriverRideCancelled(booking.assignedDriverId);
     }
 
-    // Notify driver about cancellation and compensation
-    if (driverId) {
-      this.notificationService.notifyDriverRideCancelled(driverId);
-      
-      // Notify driver about compensation if applicable
-      if (driverCompensation > 0) {
-        this.notificationService.notifyDriverWalletChange(driverId, driverCompensation, false);
-      }
-    }
-
-    await this.bookingAssignmentService.onBookingCancelled(bookingId);
+    this.bookingAssignmentService.onBookingCancelled(bookingId);
   }
 
   async getUploadUrl(userId: string, uploadUrlDto: uploadUrlDto): Promise<UploadUrlResponseDto> {

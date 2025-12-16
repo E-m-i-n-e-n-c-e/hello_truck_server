@@ -6,6 +6,7 @@ import { DriverCleanupService } from './services/driver-cleanup.service';
 import { BookingCleanupService } from './services/booking-cleanup.service';
 import { LogCleanupService } from './services/log-cleanup.service';
 import { PayoutService } from './services/payout.service';
+import { RefundCronService } from './services/refund-cron.service';
 import { RedisService } from '../redis/redis.service';
 import { Logger } from '@nestjs/common';
 
@@ -19,6 +20,7 @@ export class CronService {
     private bookingCleanup: BookingCleanupService,
     private logCleanup: LogCleanupService,
     private payoutService: PayoutService,
+    private refundCronService: RefundCronService,
     private redisService: RedisService,
   ) {}
 
@@ -60,10 +62,10 @@ export class CronService {
     this.logger.log('[CRON] Daily cleanup jobs completed.');
   }
 
-  // Hourly job - mark expired bookings
+  // Hourly job - mark expired bookings + process refunds
   @Cron('0 * * * *')
   async runHourlyJobs() {
-    const lockKey = 'lock:hourly-booking-expiry';
+    const lockKey = 'lock:hourly-jobs';
     const acquired = await this.redisService.tryLock(lockKey, 600); // 10 minutes
 
     if (!acquired) {
@@ -71,10 +73,11 @@ export class CronService {
       return;
     }
 
-    this.logger.log('[CRON] Running hourly cleanup jobs...');
+    this.logger.log('[CRON] Running hourly jobs...');
 
     await this.bookingCleanup.markExpiredBookings();
+    await this.refundCronService.processPendingRefunds();
 
-    this.logger.log('[CRON] Hourly cleanup jobs completed.');
+    this.logger.log('[CRON] Hourly jobs completed.');
   }
 }

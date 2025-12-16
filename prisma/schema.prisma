@@ -28,6 +28,7 @@ model Customer {
   bookings    Booking[]
   transactions Transaction[]
   walletLogs   CustomerWalletLog[]
+  refundIntents RefundIntent[]
 
   @@index([isActive])
 }
@@ -369,6 +370,9 @@ model Booking {
   driverWalletLogs     DriverWalletLog[]
   customerWalletLogs   CustomerWalletLog[]
 
+  // Refund intents
+  refundIntents        RefundIntent[]
+
   // Timestamps
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
@@ -546,6 +550,37 @@ model CustomerWalletLog {
   @@index([createdAt])
 }
 
+model RefundIntent {
+  id                   String        @id @default(uuid())
+  bookingId            String        @unique
+  booking              Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customerId           String
+  customer             Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // Refund breakdown
+  walletRefundAmount   Decimal       @db.Decimal(10,2)
+  razorpayRefundAmount Decimal       @db.Decimal(10,2)
+  cancellationCharge   Decimal       @db.Decimal(10,2)
+  wasPaid              Boolean       // Track if invoice was paid at cancellation time
+
+  // Razorpay metadata
+  rzpPaymentId         String?
+  rzpRefundId          String?
+
+  // Status tracking
+  status               RefundStatus  @default(PENDING)
+  failureReason        String?
+  retryCount           Int           @default(0)
+  maxRetries           Int           @default(3)
+
+  // Timestamps
+  createdAt            DateTime      @default(now())
+  processedAt          DateTime?
+
+  @@index([status])
+  @@index([bookingId])
+}
+
 model WebhookLog {
   id               String   @id @default(uuid())
   event            String   // e.g., "payment_link.paid"
@@ -672,4 +707,12 @@ enum PaymentMethod {
 enum PayoutMethodType {
   BANK_ACCOUNT
   VPA
+}
+
+enum RefundStatus {
+  PENDING           // Created, waiting for processing
+  PROCESSING        // Razorpay call in progress
+  COMPLETED         // Fully processed
+  FAILED            // Failed after max retries
+  NOT_REQUIRED      // No refund needed
 }

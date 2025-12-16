@@ -1,7 +1,8 @@
 
 # Check server url https://hello-truck-server.fly.dev/
+@base_url = https://hello-truck-server1.fly.dev
 
-POST http://localhost:3000/auth/driver/send-otp
+POST {{base_url}}/auth/driver/send-otp
 Content-Type: application/json
 
 {
@@ -9,7 +10,7 @@ Content-Type: application/json
 }
 
 ### Verify OTP
-POST http://localhost:3000/auth/driver/verify-otp
+POST {{base_url}}/auth/driver/verify-otp
 Content-Type: application/json
 
 {
@@ -18,12 +19,12 @@ Content-Type: application/json
 }
 
 ### Get Profile
-GET http://localhost:3000/driver/profile?includeVehicle=true
+GET {{base_url}}/driver/profile?includeVehicle=true
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImNmYjJlNmIxLTQyYWEtNGEyNi04MmJmLWM1YzM4MGM3NjFhZiIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOmZhbHNlLCJzZXNzaW9uSWQiOiI4NWNlNDEzYy1jOGIxLTQzNWEtOTgzMi03OGVhZGFiMGVlODUiLCJpYXQiOjE3NjU2NDUwMzEsImV4cCI6MTc2NTY0NTkzMX0.SuOlxO52rdlbGViC6qaWLMSBoNiZh-MfySPNvmjA5o0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImRkOTZmMTk0LTliZjktNDQxMy1hMDdkLWFlMmQ5NjcwNDI2NCIsImlhdCI6MTc2NTgyNzQ5MywiZXhwIjoxNzY1ODI4MzkzfQ.csPlZSqZYSvWuaDS1Pf5aKQrugN4u_netNG0MULUIuo
 
 ### Get Wallet Logs
-GET http://localhost:3000/driver/profile/wallet-logs
+GET {{base_url}}/driver/profile/wallet-logs
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImNmYjJlNmIxLTQyYWEtNGEyNi04MmJmLWM1YzM4MGM3NjFhZiIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOmZhbHNlLCJzZXNzaW9uSWQiOiI4NWNlNDEzYy1jOGIxLTQzNWEtOTgzMi03OGVhZGFiMGVlODUiLCJpYXQiOjE3NjU2NDUwMzEsImV4cCI6MTc2NTY0NTkzMX0.SuOlxO52rdlbGViC6qaWLMSBoNiZh-MfySPNvmjA5o0
 
@@ -46,4 +47,4 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRya
 ### Get Address
 GET http://localhost:3000/driver/address
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6IjA5NjVkZGY0LTdkNzYtNGQ5My04N2M3LTQ2OWQ1ZGRmYTk3MiIsImlhdCI6MTc2NTc4OTAyNSwiZXhwIjoxNzY1Nzg5OTI1fQ.e5R9ILX5oB63Ph6H0HF-0kfZMPHTLYBIGxyC4fr1xV0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImRkZDRjMTdkLTUxMzMtNDU4NS04Nzk3LTA5ODdhYWIzNWM1ZCIsImlhdCI6MTc2NTgwNjc3MSwiZXhwIjoxNzY1ODA3NjcxfQ.TYdMVTEP13_ZYkXxZqVaOTweSzlvAB5JNcP3gG0Y5iY

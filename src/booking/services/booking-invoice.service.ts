@@ -32,11 +32,11 @@ export class BookingInvoiceService {
 
     // Support both positive (credits) and negative (debt) balances
     const walletApplied = walletBalance !== 0
-      ? (walletBalance > 0 
+      ? (walletBalance > 0
           ? Math.min(walletBalance, idealVehicle.estimatedCost)
           : walletBalance)
       : 0;
-    
+
     const finalAmount = truncate2(idealVehicle.estimatedCost - walletApplied);
 
     return tx.invoice.create({
@@ -82,29 +82,29 @@ export class BookingInvoiceService {
     const walletBalance = Number(customer.walletBalance);
     let walletApplied = 0;
     let finalAmount = pricing.totalPrice;
-    
+
     if (walletBalance !== 0) {
       // For positive: apply credit (reduce payment)
       // For negative: apply debt (increase payment)
-      walletApplied = walletBalance > 0 
-        ? Math.min(walletBalance, pricing.totalPrice) 
+      walletApplied = walletBalance > 0
+        ? Math.min(walletBalance, pricing.totalPrice)
         : walletBalance;
-      
+
       finalAmount = truncate2(pricing.totalPrice - walletApplied);
       const newBalance = truncate2(walletBalance - walletApplied);
-      
+
       await tx.customer.update({
         where: { id: customer.id },
         data: { walletBalance: newBalance },
       });
-      
+
       await tx.customerWalletLog.create({
         data: {
           customerId: customer.id,
           beforeBalance: walletBalance,
           afterBalance: newBalance,
           amount: -walletApplied,
-          reason: walletApplied > 0 
+          reason: walletApplied > 0
             ? `Applied to Booking #${booking.bookingNumber}`
             : `Debt added to Booking #${booking.bookingNumber}`,
           bookingId: booking.id,
@@ -112,25 +112,7 @@ export class BookingInvoiceService {
       });
     }
 
-    // Generate payment link only if finalAmount > 0
-    let paymentLinkUrl: string | undefined;
-    let rzpPaymentLinkId: string | undefined;
-
-    if (finalAmount > 0) {
-      const { paymentLinkUrl: linkUrl, paymentLinkId } = await this.razorpayService.createPaymentLink({
-        amount: finalAmount,
-        description: `Booking #${booking.bookingNumber} Payment`,
-        customerName: customer.firstName || customer.phoneNumber,
-        customerContact: customer.phoneNumber,
-        customerEmail: customer.email ?? undefined,
-        referenceId: booking.id,
-      });
-
-      paymentLinkUrl = linkUrl;
-      rzpPaymentLinkId = paymentLinkId;
-    }
-
-    // Create FINAL invoice
+    // Create FINAL invoice FIRST (so we have invoice.id for payment link reference_id)
     const invoice = await tx.invoice.create({
       data: {
         bookingId: booking.id,
@@ -146,15 +128,30 @@ export class BookingInvoiceService {
         totalPrice: pricing.totalPrice,
         walletApplied,
         finalAmount,
-        paymentLinkUrl: paymentLinkUrl || undefined,
-        rzpPaymentLinkId: rzpPaymentLinkId || undefined,
+        // Payment link fields will be updated below if needed
       },
     });
 
-    await tx.customer.update({
-      where: { id: customer.id },
-      data: { walletBalance: walletBalance - walletApplied },
-    });
+    // Generate payment link AFTER invoice creation (use invoice.id as reference_id)
+    if (finalAmount > 0) {
+      const { paymentLinkUrl, paymentLinkId } = await this.razorpayService.createPaymentLink({
+        amount: finalAmount,
+        description: `Booking #${booking.bookingNumber} Payment`,
+        customerName: customer.firstName || customer.phoneNumber,
+        customerContact: customer.phoneNumber,
+        customerEmail: customer.email ?? undefined,
+        referenceId: invoice.id, // Use invoice ID
+      });
+
+      // Update invoice with payment link details
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: {
+          paymentLinkUrl,
+          rzpPaymentLinkId: paymentLinkId,
+        },
+      });
+    }
 
     return invoice;
   }
@@ -181,7 +178,7 @@ export class BookingInvoiceService {
   }
 
   calculateTotalWeightInTons(packageDetails: {approximateWeight: number | Decimal, weightUnit: WeightUnit}): number {
-    return this.convertToKg(Number(packageDetails.approximateWeight), packageDetails.weightUnit) / 1000;    
+    return this.convertToKg(Number(packageDetails.approximateWeight), packageDetails.weightUnit) / 1000;
   }
 
   /**

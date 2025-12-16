@@ -119,7 +119,7 @@ export class BookingNotificationService {
         body: `₹${Math.abs(amount).toFixed(2)} debt added to booking payment`,
       },
       data: {
-        event: FcmEventType.WalletDebit,
+        event: FcmEventType.WalletCredit, // Debt cleared = wallet credit
         amount: Math.abs(amount).toString(),
       },
     });
@@ -167,6 +167,19 @@ export class BookingNotificationService {
     });
   }
 
+  notifyCustomerCancellationCharge(customerId: string, amount: number): void {
+    this.firebaseService.notifyAllSessions(customerId, 'customer', {
+      notification: {
+        title: 'Cancellation Charge Applied',
+        body: `₹${amount.toFixed(2)} cancellation charge deducted from your wallet`,
+      },
+      data: {
+        event: FcmEventType.WalletDebit,
+        amount: amount.toString(),
+      },
+    });
+  }
+
   // ============================================
   // Driver Notifications
   // ============================================
@@ -210,6 +223,19 @@ export class BookingNotificationService {
       data: {
         event: FcmEventType.PaymentSuccess,
         bookingId,
+        amount: amount.toString(),
+      },
+    });
+  }
+
+  notifyDriverPayoutProcessed(driverId: string, amount: number): void {
+    this.firebaseService.notifyAllSessions(driverId, 'driver', {
+      notification: {
+        title: 'Payout Processed! 💰',
+        body: `₹${amount.toFixed(2)} has been sent to your account`,
+      },
+      data: {
+        event: FcmEventType.PayoutProcessed,
         amount: amount.toString(),
       },
     });
