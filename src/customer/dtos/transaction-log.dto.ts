@@ -3,6 +3,32 @@ import { TransactionType, TransactionCategory, Transaction, $Enums, PaymentMetho
 import { BookingResponseDto } from 'src/booking/dtos/booking.dto';
 import { ValidateNested } from 'class-validator';
 
+export class RefundIntentResponseDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  status: string;
+
+  @Expose()
+  walletRefundAmount: number;
+
+  @Expose()
+  razorpayRefundAmount: number;
+
+  @Expose()
+  cancellationCharge: number;
+
+  @Expose()
+  rzpRefundId: string | null;
+
+  @Expose()
+  createdAt: Date;
+
+  @Expose()
+  processedAt: Date | null;
+}
+
 export class CustomerTransactionLogResponseDto {
   @Expose()
   id: string;
@@ -35,6 +61,13 @@ export class CustomerTransactionLogResponseDto {
 
   @Expose()
   payoutId: string | null;
+
+  @Expose()
+  refundIntentId: string | null;
+
+  @Expose()
+  @Type(() => RefundIntentResponseDto)
+  refundIntent: RefundIntentResponseDto | null;
 
   @Expose()
   paymentMethod: PaymentMethod;

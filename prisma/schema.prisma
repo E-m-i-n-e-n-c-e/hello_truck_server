@@ -472,6 +472,8 @@ model Transaction {
   booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   payoutId String?
   payout Payout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  refundIntentId String?
+  refundIntent RefundIntent? @relation(fields: [refundIntentId], references: [id], onDelete: SetNull)
 
   // Metadata
   metadata Json? // For storing additional context
@@ -543,6 +545,8 @@ model CustomerWalletLog {
   // Optional reference
   bookingId     String?
   booking       Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  refundIntentId String?
+  refundIntent  RefundIntent? @relation(fields: [refundIntentId], references: [id], onDelete: SetNull)
 
   createdAt     DateTime  @default(now())
 
@@ -572,6 +576,10 @@ model RefundIntent {
   failureReason        String?
   retryCount           Int           @default(0)
   maxRetries           Int           @default(3)
+
+  // Transactions
+  transactions         Transaction[]
+  customerWalletLogs  CustomerWalletLog[]
 
   // Timestamps
   createdAt            DateTime      @default(now())

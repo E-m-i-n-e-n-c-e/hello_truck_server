@@ -11,6 +11,7 @@ import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
 import { CustomerWalletLogResponseDto } from '../dtos/wallet-log.dto';
 import { CustomerTransactionLogResponseDto } from '../dtos/transaction-log.dto';
+import { PendingRefundResponseDto } from '../dtos/pending-refund.dto';
 
 @Controller('customer/profile')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -64,5 +65,11 @@ export class CustomerProfileController {
   @Serialize(CustomerTransactionLogResponseDto)
   async getTransactionLogs(@User('userId') userId: string) {
     return this.profileService.getTransactionLogs(userId);
+  }
+
+  @Get('pending-refunds')
+  @Serialize(PendingRefundResponseDto)
+  async getPendingRefunds(@User('userId') userId: string) {
+    return this.profileService.getPendingRefunds(userId);
   }
 }

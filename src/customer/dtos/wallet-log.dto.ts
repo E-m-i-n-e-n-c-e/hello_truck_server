@@ -1,4 +1,5 @@
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+import { RefundIntentResponseDto } from './transaction-log.dto';
 
 export class CustomerWalletLogResponseDto {
   @Expose()
@@ -18,6 +19,13 @@ export class CustomerWalletLogResponseDto {
 
   @Expose()
   bookingId: string | null;
+
+  @Expose()
+  refundIntentId: string | null;
+
+  @Expose()
+  @Type(() => RefundIntentResponseDto)
+  refundIntent: RefundIntentResponseDto | null;
 
   @Expose()
   createdAt: Date;

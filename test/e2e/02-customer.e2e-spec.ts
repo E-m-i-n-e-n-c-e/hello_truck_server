@@ -15,7 +15,7 @@ describe('02 - Customer Profile (E2E)', () => {
   beforeAll(async () => {
     await setupTestDatabase();
     app = await createTestApp();
-    
+
     // Login as customer (creates Customer with phoneNumber only)
     const customerPhone = `99${Date.now().toString().slice(-8)}`;
     const tokens = await loginAsCustomer(app, customerPhone);
@@ -178,7 +178,7 @@ describe('02 - Customer Profile (E2E)', () => {
         .get('/customer/gst')
         .set('Authorization', `Bearer ${customerToken}`)
         .expect(200);
-      
+
       expect(listRes.body.length).toBeGreaterThan(0);
       testState.gstId = listRes.body[0].id;
     });

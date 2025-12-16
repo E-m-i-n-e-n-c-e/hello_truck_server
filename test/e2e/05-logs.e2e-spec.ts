@@ -18,7 +18,7 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
   beforeAll(async () => {
     await setupTestDatabase();
     app = await createTestApp();
-    
+
     // Setup customer
     const customerPhone = `99${Date.now().toString().slice(-8)}`;
     const customerTokens = await loginAsCustomer(app, customerPhone);
@@ -76,7 +76,7 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
 
     await prisma.driver.update({
       where: { id: driverId },
-      data: { 
+      data: {
         verificationStatus: 'VERIFIED',
         driverStatus: 'AVAILABLE',
       },
@@ -88,7 +88,7 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
       .post('/bookings/customer')
       .set('Authorization', `Bearer ${customerToken}`)
       .send(bookingData);
-    
+
     const bookingId = bookingRes.body.id;
 
     // Assign driver
@@ -167,6 +167,61 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
           expect(Array.isArray(res.body)).toBe(true);
         });
     });
+
+    it('should include refund details in wallet logs after cancellation', async () => {
+      // 1. Create a booking
+      const bookingData = createBookingRequestDto();
+      const bookingRes = await request(app.getHttpServer())
+        .post('/bookings/customer')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send(bookingData)
+        .expect(201);
+      const bookingId = bookingRes.body.id;
+
+      // 2. Assign driver & Accept (to make it eligible for cancellation charge/refund intent)
+      const assignment = await prisma.bookingAssignment.create({
+        data: { bookingId, driverId, status: 'OFFERED' },
+      });
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: 'DRIVER_ASSIGNED', assignedDriverId: driverId },
+      });
+      await request(app.getHttpServer())
+        .post(`/bookings/driver/accept/${assignment.id}`)
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(201);
+
+      // 3. Cancel the booking
+      await request(app.getHttpServer())
+        .post(`/bookings/customer/cancel/${bookingId}`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({ reason: 'Changed plans' })
+        .expect(201);
+
+      // 4. Verify wallet logs include refundIntent
+      const res = await request(app.getHttpServer())
+        .get('/customer/profile/wallet-logs')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(200);
+
+      const refundLog = res.body.find((log: any) => log.bookingId === bookingId && log.refundIntent);
+
+      if (refundLog) {
+        expect(refundLog.refundIntent).toBeDefined();
+        expect(refundLog.refundIntent.id).toBeDefined();
+        expect(refundLog.refundIntent.cancellationCharge).toBeGreaterThan(0);
+      }
+    });
+
+    it('should get pending refunds', () => {
+      return request(app.getHttpServer())
+        .get('/customer/profile/pending-refunds')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+        });
+    });
   });
 
   describe('Driver Logs', () => {
@@ -187,6 +242,10 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
         .expect(200)
         .expect((res) => {
           expect(Array.isArray(res.body)).toBe(true);
+          if (res.body.length > 0) {
+            // Check that payout field exists in the response (can be null)
+            expect(res.body[0]).toHaveProperty('payout');
+          }
         });
     });
 

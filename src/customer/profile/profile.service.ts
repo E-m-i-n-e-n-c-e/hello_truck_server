@@ -93,6 +93,9 @@ export class ProfileService {
   async getWalletLogs(userId: string) {
     const logs = await this.prisma.customerWalletLog.findMany({
       where: { customerId: userId },
+      include: {
+        refundIntent: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -113,11 +116,34 @@ export class ProfileService {
           },
         },
         payout: true,
+        refundIntent: true,
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
 
     return transactions;
+  }
+
+  async getPendingRefunds(userId: string) {
+    const refunds = await this.prisma.refundIntent.findMany({
+      where: {
+        customerId: userId,
+        status: { in: ['PENDING', 'FAILED'] },
+      },
+      include: {
+        booking: {
+          include: {
+            pickupAddress: true,
+            dropAddress: true,
+            package: true,
+            invoices: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return refunds;
   }
 }
