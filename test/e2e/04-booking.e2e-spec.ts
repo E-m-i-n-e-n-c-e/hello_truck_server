@@ -398,14 +398,15 @@ describe('04 - Booking Flow (E2E)', () => {
         where: { bookingId: onlineBookingId, type: 'FINAL' },
       });
 
+      expect(invoice?.rzpPaymentLinkId).toBeDefined();
+
       // Simulate Razorpay webhook for online payment
       const webhookPayload = {
         event: 'payment_link.paid',
         payload: {
           payment_link: {
             entity: {
-              id: invoice?.rzpPaymentLinkId || 'plink_unknown',
-              reference_id: invoice?.id || 'inv_unknown', // Use invoice ID as reference
+              id: invoice?.rzpPaymentLinkId || 'plink_test123',
             },
           },
           payment: {

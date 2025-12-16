@@ -215,7 +215,7 @@ export class AdminService {
 
       await this.firebaseService.notifyAllSessions(id, 'driver', {
         data: {
-          event: FcmEventType.DriverVerificationUpdated,
+          event: FcmEventType.DriverVerificationUpdate,
         },
       });
 

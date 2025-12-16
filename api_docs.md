@@ -166,7 +166,20 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `amount`: `number` - Transaction amount (+ for credit, - for debit)
     *   `reason`: `string` - Description of transaction
     *   `bookingId`: `string | null` - Related booking if applicable
+    *   `refundIntentId`: `string | null` - Related refund intent if applicable
+    *   `refundIntent`: `RefundIntentResponseDto | null` - Full refund intent details
     *   `createdAt`: `Date`
+*   **`PendingRefundResponseDto`**: Pending or failed refund details.
+    *   `id`: `string`
+    *   `status`: `string` - PENDING or FAILED
+    *   `walletRefundAmount`: `number`
+    *   `razorpayRefundAmount`: `number`
+    *   `cancellationCharge`: `number`
+    *   `rzpRefundId`: `string | null`
+    *   `booking`: `BookingResponseDto`
+    *   `createdAt`: `Date`
+    *   `processedAt`: `Date | null`
+    *   `failureReason`: `string | null`
 *   **`CustomerTransactionLogResponseDto`**: Customer transaction ledger entry with full booking details.
     *   `id`: `string`
     *   `customerId`: `string | null`
@@ -367,6 +380,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `PUT` | `/customer/profile/fcm-token` 🔒 | Adds or updates a Firebase Cloud Messaging token. | `UsertFcmTokenDto` | `SuccessResponseDto` |
 | `GET` | `/customer/profile/wallet-logs` 🔒 | Retrieves customer's wallet transaction history (latest 50). | - | `CustomerWalletLogResponseDto[]` |
 | `GET` | `/customer/profile/transaction-logs` 🔒 | Retrieves customer's transaction ledger (latest 50). | - | `CustomerTransactionLogResponseDto[]` |
+| `GET` | `/customer/profile/pending-refunds` 🔒 | Retrieves customer's pending or failed refunds. | - | `PendingRefundResponseDto[]` |
 
 ### Customer Address (`CustomerAddress`)
 | Method | Path | Description | Request Body | Success Response |

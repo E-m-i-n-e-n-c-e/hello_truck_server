@@ -7,7 +7,7 @@ export enum FcmEventType {
   WalletChange = 'WALLET_CHANGE',
   TransactionChange = 'TRANSACTION_CHANGE',
   PayoutProcessed = 'PAYOUT_PROCESSED',
-  DriverVerificationUpdated = 'DRIVER_VERIFICATION_UPDATE',
+  DriverVerificationUpdate = 'DRIVER_VERIFICATION_UPDATE',
   RefundProcessed = 'REFUND_PROCESSED',
 }
 

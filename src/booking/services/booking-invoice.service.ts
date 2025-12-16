@@ -1,5 +1,5 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { Booking, BookingAddress, Customer, Invoice, InvoiceType, Package, Prisma, ProductType, VehicleModel, WeightUnit } from '@prisma/client';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Booking, BookingAddress, Customer, Invoice, InvoiceType, Package, PaymentMethod, Prisma, ProductType, VehicleModel, WeightUnit } from '@prisma/client';
 import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-invoice.dto';
 import { PricingService } from '../pricing/pricing.service';
 import { PackageDetailsDto } from '../dtos/package.dto';
@@ -9,9 +9,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { truncate2 } from '../utils/general.utils';
+import { PaymentLinkResponse } from 'src/razorpay/types/razorpay-payment-link.types';
 
 @Injectable()
 export class BookingInvoiceService {
+  private readonly logger = new Logger(BookingInvoiceService.name);
+
   constructor(
     private readonly pricingService: PricingService,
     private readonly prisma: PrismaService,
@@ -112,9 +115,7 @@ export class BookingInvoiceService {
       });
     }
 
-    // Customer is notified of the wallet log in createBooking function in the drivers accept function
-
-    // Create FINAL invoice FIRST (so we have invoice.id for payment link reference_id)
+    // Create FINAL invoice (payment link will be created asynchronously AFTER transaction commits)
     const invoice = await tx.invoice.create({
       data: {
         bookingId: booking.id,
@@ -130,32 +131,61 @@ export class BookingInvoiceService {
         totalPrice: pricing.totalPrice,
         walletApplied,
         finalAmount,
-        // Payment link fields will be updated below if needed
+        // paymentLinkUrl and rzpPaymentLinkId are NULL
+        // They will be populated by createPaymentLinkForInvoice() after transaction commits
       },
     });
 
-    // Generate payment link AFTER invoice creation (use invoice.id as reference_id)
-    if (finalAmount > 0) {
-      const { paymentLinkUrl, paymentLinkId } = await this.razorpayService.createPaymentLink({
-        amount: finalAmount,
-        description: `Booking #${booking.bookingNumber} Payment`,
-        customerName: customer.firstName || customer.phoneNumber,
-        customerContact: customer.phoneNumber,
-        customerEmail: customer.email ?? undefined,
-        referenceId: invoice.id, // Use invoice ID
-      });
+    return invoice;
+  }
 
-      // Update invoice with payment link details
-      await tx.invoice.update({
-        where: { id: invoice.id },
-        data: {
-          paymentLinkUrl,
-          rzpPaymentLinkId: paymentLinkId,
-        },
-      });
+  /**
+   * Create payment link for an invoice (called AFTER transaction commits)
+   * Updates invoice with payment link details in a separate transaction
+   *
+   * @returns Payment link details or null if not needed/failed
+   */
+  async createPaymentLinkForInvoice(
+    invoice: Invoice,
+    booking: Booking & { customer: Customer }
+  ): Promise<PaymentLinkResponse | null> {
+    // Skip if already paid or no payment needed
+    if (invoice.isPaid || Number(invoice.finalAmount) <= 0) {
+      this.logger.log(`Skipping payment link creation for invoice ${invoice.id}: isPaid=${invoice.isPaid}, finalAmount=${invoice.finalAmount}`);
+      return null;
     }
 
-    return invoice;
+    // Check if payment link already exists (idempotency)
+    if (invoice.rzpPaymentLinkId && invoice.paymentLinkUrl) {
+      this.logger.log(`Payment link already exists for invoice ${invoice.id}`);
+      return {
+        paymentLinkUrl: invoice.paymentLinkUrl,
+        paymentLinkId: invoice.rzpPaymentLinkId,
+      };
+    }
+
+    // Create payment link via Razorpay
+    const customerName = (booking.customer.firstName ?? '') + ' ' + (booking.customer.lastName ?? '');
+    const { paymentLinkUrl, paymentLinkId } = await this.razorpayService.createPaymentLink({
+      amount: Number(invoice.finalAmount),
+      description: `Booking #${booking.bookingNumber} Payment`,
+      customerName,
+      customerContact: booking.customer.phoneNumber,
+      customerEmail: booking.customer.email ?? undefined,
+    });
+
+    // Update invoice with payment link details in a separate transaction
+    await this.prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        paymentLinkUrl,
+        rzpPaymentLinkId: paymentLinkId,
+      },
+    });
+
+    this.logger.log(`✓ Payment link created for invoice ${invoice.id}: ${paymentLinkId}`);
+
+    return { paymentLinkUrl, paymentLinkId };
   }
 
   async calculateEstimate(

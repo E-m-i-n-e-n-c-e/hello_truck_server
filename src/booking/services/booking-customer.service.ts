@@ -59,8 +59,8 @@ export class BookingCustomerService {
   ): Promise<Booking> {
 
     // Generate OTPs
-    const isTest = this.configService.get('NODE_ENV') !== 'production';
-    // const isTest = this.configService.get('NODE_ENV') === 'test';
+    // const isTest = this.configService.get('NODE_ENV') !== 'production';
+    const isTest = this.configService.get('NODE_ENV') === 'test';
     const pickupOtp = isTest ? '1234' : randomInt(1000, 9999).toString();
     const dropOtp = isTest ? '1234' : randomInt(1000, 9999).toString();
 
@@ -384,6 +384,67 @@ export class BookingCustomerService {
       maxChargePercent: this.configService.get('CANCELLATION_MAX_CHARGE_PERCENT') || 0.5,
       incrementPerMinute: this.configService.get('CANCELLATION_INCREMENT_PER_MINUTE') || 0.01,
     };
+  }
+
+  /**
+   * Get or create payment link for a booking
+   * Client-side retry endpoint for when async payment link creation fails
+   */
+  async generatePaymentLink(
+    userId: string,
+    bookingId: string,
+  ): Promise<{ paymentLinkUrl: string }> {
+    // Get booking with invoice
+    const booking = await this.prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        customerId: userId,
+      },
+      include: {
+        customer: true,
+        invoices: {
+          where: { type: 'FINAL' },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (!booking.customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const invoice = booking.invoices[0];
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    if (invoice.isPaid) {
+      throw new BadRequestException('Invoice already paid');
+    }
+
+    if (Number(invoice.finalAmount) <= 0) {
+      throw new BadRequestException('No payment required');
+    }
+
+    // If payment link already exists, return it
+    if (invoice.paymentLinkUrl && invoice.rzpPaymentLinkId) {
+      return { paymentLinkUrl: invoice.paymentLinkUrl };
+    }
+
+    // Create payment link
+    const result = await this.invoiceService.createPaymentLinkForInvoice(
+      invoice,
+      { ...booking, customer: booking.customer }
+    );
+
+    if (!result) {
+      throw new BadRequestException('Failed to generate payment link. Please try again.');
+    }
+
+    return { paymentLinkUrl: result.paymentLinkUrl };
   }
 
   async getUploadUrl(userId: string, uploadUrlDto: uploadUrlDto): Promise<UploadUrlResponseDto> {

@@ -19,19 +19,18 @@ export class BookingPaymentService {
 
   /**
    * Handle webhook from Razorpay when payment succeeds
-   * Mark invoice as paid, create transaction, send FCM notifications
+   * Uses payment link ID as source of truth to find the invoice
    */
   async handlePaymentSuccess(
-    invoiceId: string,
-    rzpPaymentId: string,
     rzpPaymentLinkId: string,
+    rzpPaymentId: string,
   ): Promise<void> {
-    this.logger.log(`Processing payment success for invoice: ${invoiceId}`);
+    this.logger.log(`Processing payment success for payment link: ${rzpPaymentLinkId}`);
 
-    // Find FINAL invoice by bookingId (from reference_id)
+    // Find invoice by payment link ID (source of truth)
     const invoice = await this.prisma.invoice.findUnique({
       where: {
-        id: invoiceId,
+        rzpPaymentLinkId: rzpPaymentLinkId,
       },
       include: {
         booking: {
@@ -44,7 +43,7 @@ export class BookingPaymentService {
     });
 
     if (!invoice) {
-      throw new NotFoundException(`Invoice not found for id: ${invoiceId}`);
+      throw new NotFoundException(`Invoice not found for payment link: ${rzpPaymentLinkId}`);
     }
 
     if (invoice.isPaid) {

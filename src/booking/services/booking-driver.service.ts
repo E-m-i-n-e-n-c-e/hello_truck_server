@@ -95,7 +95,12 @@ export class BookingDriverService {
         tx
       );
 
-      return { walletApplied: Number(invoice.walletApplied), customerId: assignment.booking.customerId };
+      return {
+        invoice,
+        walletApplied: Number(invoice.walletApplied),
+        customerId: assignment.booking.customerId,
+        booking: assignment.booking,
+      };
     });
 
     this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
@@ -116,6 +121,15 @@ export class BookingDriverService {
         assignment.driver.firstName,
         assignment.driver.lastName,
       );
+    }
+
+    if (Number(walletData.invoice.finalAmount) > 0 && !walletData.invoice.isPaid) {
+      this.invoiceService.createPaymentLinkForInvoice(
+        walletData.invoice,
+        { ...walletData.booking, customer: assignment.booking.customer! }
+      ).catch(error => {
+        this.logger.error(`Async payment link creation failed for invoice ${walletData.invoice.id}: ${error.message}`);
+      });
     }
   }
 

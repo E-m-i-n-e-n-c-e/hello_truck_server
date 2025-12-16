@@ -9,7 +9,7 @@ export interface CreatePaymentLinkParams {
   customerName: string;
   customerContact: string;
   customerEmail?: string;
-  referenceId: string;
+  referenceId?: string;
 }
 
 export interface PaymentLinkResponse {

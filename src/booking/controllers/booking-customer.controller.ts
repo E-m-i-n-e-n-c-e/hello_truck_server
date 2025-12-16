@@ -82,6 +82,14 @@ export class BookingCustomerController {
     return { message: 'Booking cancelled successfully' };
   }
 
+  @Get('payment-link/:bookingId')
+  async generatePaymentLink(
+    @User('userId') userId: string,
+    @Param('bookingId') bookingId: string,
+  ) {
+    return this.bookingCustomerService.generatePaymentLink(userId, bookingId);
+  }
+
   @Get('driver-navigation/:bookingId')
   async getDriverNavigationUpdates(
     @User('userId') userId: string,
