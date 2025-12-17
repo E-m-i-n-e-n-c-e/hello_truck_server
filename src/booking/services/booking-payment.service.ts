@@ -204,7 +204,7 @@ export class BookingPaymentService {
           beforeBalance: payoutAmount,
           afterBalance: 0,
           amount: -payoutAmount,
-          reason: 'Daily payout to bank account',
+          reason: 'Payout to bank account',
         },
       });
 
@@ -216,7 +216,7 @@ export class BookingPaymentService {
           amount: payoutAmount,
           type: TransactionType.CREDIT, // Driver receives payout = CREDIT (money IN)
           category: TransactionCategory.DRIVER_PAYOUT,
-          description: `Daily payout - ₹${payoutAmount.toFixed(2)}`,
+          description: `Daily payout`,
         },
       });
 

@@ -344,13 +344,13 @@ export class BookingDriverService {
         // Cash payment: Driver received cash, owes commission to platform (DEBIT)
         walletChange = truncate2(-commission);
         newBalance = truncate2(currentBalance - commission);
-        walletLogReason = `Commission for cash payment - Booking #${assignment.booking.bookingNumber} (${commissionRate * 100}%)`;
+        walletLogReason = `Commission for cash payment - Booking #${assignment.booking.bookingNumber}`;
       } else {
         // Online payment: Driver gets net earnings (CREDIT)
         const driverEarnings = truncate2(totalAmount - commission);
         walletChange = driverEarnings;
         newBalance = truncate2(currentBalance + driverEarnings);
-        walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber} (${commissionRate * 100}% commission deducted)`;
+        walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber}`;
       }
 
       // Update driver status and wallet
