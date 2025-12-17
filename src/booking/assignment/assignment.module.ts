@@ -9,12 +9,13 @@ import { AssignmentWorker } from './assignment.worker';
 import { RedisService } from 'src/redis/redis.service';
 import { BookingInvoiceService } from '../services/booking-invoice.service';
 import { PricingService } from '../pricing/pricing.service';
+import { BookingNotificationService } from '../services/booking-notification.service';
 
 @Module({
   imports: [
     PrismaModule,
-    FirebaseModule,
     RedisModule,
+    FirebaseModule,
     RazorpayModule,
     BullModule.forRootAsync({
       inject: [RedisService],
@@ -30,7 +31,7 @@ import { PricingService } from '../pricing/pricing.service';
     }),
     BullModule.registerQueue({ name: 'booking-assignment' }),
   ],
-  providers: [AssignmentService, AssignmentWorker, BookingInvoiceService, PricingService],
+  providers: [AssignmentService, AssignmentWorker, BookingInvoiceService, PricingService, BookingNotificationService],
   exports: [AssignmentService],
 })
 export class AssignmentModule {}

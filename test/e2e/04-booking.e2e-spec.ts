@@ -252,6 +252,14 @@ describe('04 - Booking Flow (E2E)', () => {
       expect(booking?.status).toBe('PICKUP_ARRIVED');
     });
 
+    // Settle cash payment BEFORE verifying pickup - verifyPickup requires payment to be completed
+    it('should settle cash payment', async () => {
+      return request(app.getHttpServer())
+        .post('/bookings/driver/settle-cash')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(201);
+    });
+
     it('should verify pickup', async () => {
       // Get booking OTP
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
@@ -297,14 +305,6 @@ describe('04 - Booking Flow (E2E)', () => {
 
       const updatedBooking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(updatedBooking?.status).toBe('DROP_VERIFIED');
-    });
-
-    // Settle cash payment BEFORE finishing - finishRide requires payment to be completed
-    it('should settle cash payment', async () => {
-      return request(app.getHttpServer())
-        .post('/bookings/driver/settle-cash')
-        .set('Authorization', `Bearer ${driverToken}`)
-        .expect(201);
     });
 
     it('should finish booking', async () => {
@@ -366,30 +366,6 @@ describe('04 - Booking Flow (E2E)', () => {
         .post('/bookings/driver/pickup/arrived')
         .set('Authorization', `Bearer ${driverToken}`)
         .expect(201);
-
-      const bookingForPickup = await prisma.booking.findUnique({ where: { id: onlineBookingId } });
-      await request(app.getHttpServer())
-        .post('/bookings/driver/pickup/verify')
-        .set('Authorization', `Bearer ${driverToken}`)
-        .send({ otp: bookingForPickup?.pickupOtp })
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .post('/bookings/driver/start')
-        .set('Authorization', `Bearer ${driverToken}`)
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .post('/bookings/driver/drop/arrived')
-        .set('Authorization', `Bearer ${driverToken}`)
-        .expect(201);
-
-      const bookingForDrop = await prisma.booking.findUnique({ where: { id: onlineBookingId } });
-      await request(app.getHttpServer())
-        .post('/bookings/driver/drop/verify')
-        .set('Authorization', `Bearer ${driverToken}`)
-        .send({ otp: bookingForDrop?.dropOtp })
-        .expect(201);
     });
 
     it('should process Razorpay webhook for online payment', async () => {
@@ -431,6 +407,37 @@ describe('04 - Booking Flow (E2E)', () => {
       });
       expect(updatedInvoice?.isPaid).toBe(true);
       expect(updatedInvoice?.paymentMethod).toBe('ONLINE');
+    });
+
+    it('should verify pickup after payment', async () => {
+      const bookingForPickup = await prisma.booking.findUnique({ where: { id: onlineBookingId } });
+      await request(app.getHttpServer())
+        .post('/bookings/driver/pickup/verify')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .send({ otp: bookingForPickup?.pickupOtp })
+        .expect(201);
+    });
+
+    it('should complete ride flow after online payment', async () => {
+      // Start ride
+      await request(app.getHttpServer())
+        .post('/bookings/driver/start')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(201);
+
+      // Arrive at drop
+      await request(app.getHttpServer())
+        .post('/bookings/driver/drop/arrived')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(201);
+
+      // Verify drop
+      const bookingForDrop = await prisma.booking.findUnique({ where: { id: onlineBookingId } });
+      await request(app.getHttpServer())
+        .post('/bookings/driver/drop/verify')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .send({ otp: bookingForDrop?.dropOtp })
+        .expect(201);
     });
 
     it('should finish booking after online payment', async () => {

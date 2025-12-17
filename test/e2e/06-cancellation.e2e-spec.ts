@@ -17,7 +17,7 @@ describe('06 - Cancellation Flow (E2E)', () => {
   beforeAll(async () => {
     await setupTestDatabase();
     app = await createTestApp();
-    
+
     // Setup customer
     const customerPhone = `99${Date.now().toString().slice(-8)}`;
     const customerTokens = await loginAsCustomer(app, customerPhone);
@@ -72,7 +72,7 @@ describe('06 - Cancellation Flow (E2E)', () => {
 
     await prisma.driver.update({
       where: { id: driverId },
-      data: { 
+      data: {
         verificationStatus: 'VERIFIED',
         driverStatus: 'AVAILABLE',
       },
@@ -93,7 +93,7 @@ describe('06 - Cancellation Flow (E2E)', () => {
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
         .send(bookingData);
-      
+
       bookingId = res.body.id;
       expect(bookingId).toBeDefined();
     });
@@ -125,12 +125,12 @@ describe('06 - Cancellation Flow (E2E)', () => {
 
       const bookingData = createBookingRequestDto();
       bookingData.pickupAddress.formattedAddress = '150 Driver Assigned Cancel St';
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
         .send(bookingData);
-      
+
       bookingId = res.body.id;
       expect(bookingId).toBeDefined();
 
@@ -147,7 +147,7 @@ describe('06 - Cancellation Flow (E2E)', () => {
         where: { id: bookingId },
         data: { status: 'DRIVER_ASSIGNED', assignedDriverId: driverId },
       });
-      
+
       // Update driver status to RIDE_OFFERED (as real assignment service would)
       await prisma.driver.update({
         where: { id: driverId },
@@ -171,7 +171,7 @@ describe('06 - Cancellation Flow (E2E)', () => {
       // Verify driver is released
       const driver = await prisma.driver.findUnique({ where: { id: driverId } });
       expect(driver?.driverStatus).toBe('AVAILABLE');
-      
+
       // Verify assignment is auto-rejected
       const assignment = await prisma.bookingAssignment.findFirst({
         where: { bookingId, driverId },
@@ -192,12 +192,12 @@ describe('06 - Cancellation Flow (E2E)', () => {
 
       const bookingData = createBookingRequestDto();
       bookingData.pickupAddress.formattedAddress = '200 Cancel Test St';
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
         .send(bookingData);
-      
+
       bookingId = res.body.id;
       expect(bookingId).toBeDefined();
 
@@ -248,12 +248,12 @@ describe('06 - Cancellation Flow (E2E)', () => {
 
       const bookingData = createBookingRequestDto();
       bookingData.pickupAddress.formattedAddress = '300 No Cancel St';
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
         .send(bookingData);
-      
+
       bookingId = res.body.id;
       expect(bookingId).toBeDefined();
 
@@ -283,6 +283,12 @@ describe('06 - Cancellation Flow (E2E)', () => {
 
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.status).toBe('PICKUP_ARRIVED');
+
+      // Settle cash payment before verifying pickup
+      await request(app.getHttpServer())
+        .post('/bookings/driver/settle-cash')
+        .set('Authorization', `Bearer ${driverToken}`)
+        .expect(201);
 
       await request(app.getHttpServer())
         .post('/bookings/driver/pickup/verify')
@@ -316,12 +322,12 @@ describe('06 - Cancellation Flow (E2E)', () => {
 
       const bookingData = createBookingRequestDto();
       bookingData.pickupAddress.formattedAddress = '350 Pickup Arrived Cancel St';
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
         .send(bookingData);
-      
+
       bookingId = res.body.id;
       expect(bookingId).toBeDefined();
 
@@ -378,12 +384,12 @@ describe('06 - Cancellation Flow (E2E)', () => {
     beforeAll(async () => {
       const bookingData = createBookingRequestDto();
       bookingData.pickupAddress.formattedAddress = '400 Idempotent Cancel St';
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
         .send(bookingData);
-      
+
       bookingId = res.body.id;
       expect(bookingId).toBeDefined();
 
@@ -424,12 +430,12 @@ describe('06 - Cancellation Flow (E2E)', () => {
       // Create booking with original customer
       const bookingData = createBookingRequestDto();
       bookingData.pickupAddress.formattedAddress = '500 Auth Check St';
-      
+
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
         .set('Authorization', `Bearer ${customerToken}`)
         .send(bookingData);
-      
+
       bookingId = res.body.id;
       expect(bookingId).toBeDefined();
     });
@@ -446,7 +452,7 @@ describe('06 - Cancellation Flow (E2E)', () => {
 
     it('should reject cancellation of non-existent booking', async () => {
       const fakeBookingId = '00000000-0000-0000-0000-000000000000';
-      
+
       await request(app.getHttpServer())
         .post(`/bookings/customer/cancel/${fakeBookingId}`)
         .set('Authorization', `Bearer ${customerToken}`)

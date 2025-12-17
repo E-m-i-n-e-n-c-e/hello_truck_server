@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { FcmEventType } from 'src/common/types/fcm.types';
 import { UserType } from 'src/common/types/user-session.types';
+import { BookingStatus } from '@prisma/client';
 
 /**
  * Service for handling all booking-related notifications
@@ -15,6 +16,7 @@ export class BookingNotificationService {
   // Customer Notifications
   // ============================================
 
+  // Changes booking status to CONFIRMED
   notifyCustomerBookingConfirmed(
     customerId: string,
     driverFirstName: string | null,
@@ -28,10 +30,12 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.CONFIRMED,
       },
     });
   }
 
+  // Changes booking status to PICKUP_ARRIVED
   notifyCustomerPickupArrived(customerId: string): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -40,10 +44,12 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.PICKUP_ARRIVED,
       },
     });
   }
 
+  // Changes booking status to PICKUP_VERIFIED
   notifyCustomerPickupVerified(customerId: string): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -52,10 +58,12 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.PICKUP_VERIFIED,
       },
     });
   }
 
+  // Changes booking status to DROP_ARRIVED
   notifyCustomerDropArrived(customerId: string): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -64,10 +72,12 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.DROP_ARRIVED,
       },
     });
   }
 
+  // Changes booking status to DROP_VERIFIED
   notifyCustomerDropVerified(customerId: string): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -76,10 +86,26 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.DROP_VERIFIED,
       },
     });
   }
 
+  // Changes booking status to COMPLETED
+  notifyCustomerRideCompleted(customerId: string): void {
+    this.firebaseService.notifyAllSessions(customerId, 'customer', {
+      notification: {
+        title: 'Ride Completed',
+        body: 'Your driver has completed the ride. Thank you for using Hello Truck.',
+      },
+      data: {
+        event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.COMPLETED,
+      },
+    });
+  }
+
+  // Changes booking status to IN_TRANSIT
   notifyCustomerRideStarted(customerId: string): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -88,10 +114,12 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.IN_TRANSIT,
       },
     });
   }
 
+  // Changes wallet logs and customer wallet balance
   notifyCustomerWalletApplied(customerId: string, amount: number): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -105,6 +133,7 @@ export class BookingNotificationService {
     });
   }
 
+  // Changes wallet logs and customer wallet balance
   notifyCustomerWalletDebtCleared(customerId: string, amount: number): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -118,6 +147,7 @@ export class BookingNotificationService {
     });
   }
 
+  // Changes booking status to COMPLETED
   notifyCustomerPaymentSuccess(
     customerId: string,
     amount: number,
@@ -130,24 +160,11 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.PaymentSuccess,
-        amount: amount.toString(),
       },
     });
   }
 
-  notifyCustomerRefundProcessed(customerId: string, bookingNumber: bigint): void {
-    this.firebaseService.notifyAllSessions(customerId, 'customer', {
-      notification: {
-        title: 'Refund Processed',
-        body: `Refund processed for Booking #${bookingNumber}`,
-      },
-      data: {
-        event: FcmEventType.RefundProcessed,
-        bookingNumber: bookingNumber.toString(),
-      },
-    });
-  }
-
+  // Changes booking status to CANCELLED. Creates refund intent
   notifyCustomerBookingCancelled(customerId: string): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -156,10 +173,25 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.CANCELLED,
       },
     });
   }
 
+  // May update refund intent, transaction, and wallet balance/wallet logs
+  notifyCustomerRefundProcessed(customerId: string, bookingNumber: bigint): void {
+    this.firebaseService.notifyAllSessions(customerId, 'customer', {
+      notification: {
+        title: 'Refund Processed',
+        body: `Refund processed for Booking #${bookingNumber}`,
+      },
+      data: {
+        event: FcmEventType.RefundProcessed,
+      },
+    });
+  }
+
+  // Changes wallet logs and customer wallet balance
   notifyCustomerCancellationCharge(customerId: string, amount: number): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
@@ -168,7 +200,6 @@ export class BookingNotificationService {
       },
       data: {
         event: FcmEventType.WalletChange,
-        amount: amount.toString(),
       },
     });
   }
@@ -177,6 +208,7 @@ export class BookingNotificationService {
   // Driver Notifications
   // ============================================
 
+  // Changes wallet logs and driver wallet balance
   notifyDriverWalletChange(
     driverId: string,
     amount: number,
@@ -195,6 +227,25 @@ export class BookingNotificationService {
     });
   }
 
+  // Changes current assignment, driver status
+  notifyDriverAssignmentOffered(driverId: string, bookingId: string): void {
+    this.firebaseService.notifyAllSessions(driverId, 'driver', {
+      notification: {
+        title: 'New Ride Offer',
+        body: 'You have been offered a ride',
+      },
+      data: { event: FcmEventType.DriverAssignmentOffered, bookingId },
+    });
+  }
+
+  // Changes current assignment, driver status
+  notifyDriverAssigmentTimeout(driverId: string, bookingId: string): void {
+    this.firebaseService.notifyAllSessions(driverId, 'driver', {
+      data: { event: FcmEventType.DriverAssignmentTimeout, bookingId },
+    });
+  }
+
+  // Changes current assignment, driver status
   notifyDriverRideCancelled(driverId: string): void {
     this.firebaseService.notifyAllSessions(driverId, 'driver', {
       notification: {
@@ -207,6 +258,7 @@ export class BookingNotificationService {
     });
   }
 
+  // Changes wallet logs and driver wallet balance
   notifyDriverCompensation(driverId: string, amount: number): void {
     this.firebaseService.notifyAllSessions(driverId, 'driver', {
       notification: {
@@ -220,6 +272,7 @@ export class BookingNotificationService {
     });
   }
 
+  // Changes booking status to COMPLETED
   notifyDriverPaymentReceived(
     driverId: string,
     bookingId: string,
@@ -238,6 +291,7 @@ export class BookingNotificationService {
     });
   }
 
+  // Changes driver wallet/logs, transaction, payouts
   notifyDriverPayoutProcessed(driverId: string, amount: number): void {
     this.firebaseService.notifyAllSessions(driverId, 'driver', {
       notification: {
@@ -252,22 +306,18 @@ export class BookingNotificationService {
   }
 
   // Standalone events. Only use when none of the above apply and the assosciated entity changes
-  notifyBookingStatusChange(userId: string, userType: UserType): void {
+
+  // Changes booking status
+  notifyBookingStatusChange(userId: string, userType: UserType, newStatus: BookingStatus): void {
     this.firebaseService.notifyAllSessions(userId, userType, {
       data: {
         event: FcmEventType.BookingStatusChange,
+        newStatus: newStatus,
       },
     });
   }
 
-  notifyTransactionChange(userId: string, userType: UserType): void {
-    this.firebaseService.notifyAllSessions(userId, userType, {
-      data: {
-        event: FcmEventType.TransactionChange,
-      },
-    });
-  }
-
+  // Changes wallet/walletLogs
   notifyWalletChange(userId: string, userType: UserType): void {
     this.firebaseService.notifyAllSessions(userId, userType, {
       data: {

@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, Booking, BookingStatus, AssignmentStatus, DriverStatus, VerificationStatus, Address, BookingAssignment, Package } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { FirebaseService } from 'src/firebase/firebase.service';
-import { FcmEventType } from 'src/common/types/fcm.types';
 import { RedisService } from 'src/redis/redis.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { BookingInvoiceService } from '../services/booking-invoice.service';
+import { BookingNotificationService } from '../services/booking-notification.service';
 
 type AssignJobData = { bookingId: string; attempt: number };
 type TimeoutJobData = { bookingId: string; driverId: string };
@@ -26,9 +25,9 @@ export class AssignmentService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly firebase: FirebaseService,
     private readonly redisService: RedisService,
     private readonly bookingInvoiceService: BookingInvoiceService,
+    private readonly bookingNotificationService: BookingNotificationService,
     @InjectQueue('booking-assignment') private readonly assignmentQueue: Queue,
   ) {}
 
@@ -114,13 +113,7 @@ export class AssignmentService {
       await this.redisService.del(lockKey);
       if(assignedDriverId) {
         this.logger.log(`[tryToAssignDriver] Notifying driver ${assignedDriverId} of assignment for booking ${bookingId}.`);
-        await this.firebase.notifyAllSessions(assignedDriverId, 'driver', {
-          notification: {
-            title: 'New Ride Offer',
-            body: 'You have been offered a ride',
-          },
-          data: { event: FcmEventType.DriverAssignmentOffered, bookingId },
-        });
+        await this.bookingNotificationService.notifyDriverAssignmentOffered(assignedDriverId, bookingId);
       }
     }
   }
@@ -150,6 +143,7 @@ export class AssignmentService {
 
     const attempt = await this.getAttempt(bookingId);
     this.logger.log(`[timeoutDriver] Re-queuing assignment for booking ${bookingId} at attempt ${attempt}.`);
+    this.bookingNotificationService.notifyDriverAssigmentTimeout(driverId, bookingId);
     await this.addAssignJob({ bookingId, attempt: attempt });
   }
 

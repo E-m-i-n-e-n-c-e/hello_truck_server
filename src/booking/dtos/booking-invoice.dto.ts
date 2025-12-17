@@ -107,10 +107,22 @@ export class InvoiceResponseDto {
   finalAmount: number;
 
   @Expose()
-  paymentLinkUrl: string;
+  paymentLinkUrl: string | null;
 
   @Expose()
-  rzpOrderId: string;
+  rzpPaymentLinkId: string | null;
+
+  @Expose()
+  rzpPaymentId: string | null;
+
+  @Expose()
+  isPaid: boolean;
+
+  @Expose()
+  paidAt: Date | null;
+
+  @Expose()
+  paymentMethod: string | null;
 
   @Expose()
   createdAt: Date;

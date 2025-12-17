@@ -1,6 +1,5 @@
 import { IsOptional, ValidateNested, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
-import { IsEnum } from 'class-validator';
+import { Type, Exclude } from 'class-transformer';
 import { $Enums, Driver, VehicleType } from '@prisma/client';
 import { CreateBookingAddressDto, BookingAddressResponseDto } from './booking-address.dto';
 import { PackageDetailsDto, PackageDetailsResponseDto } from './package.dto';
@@ -49,6 +48,10 @@ export class BookingResponseDto {
   @Type(() => BookingAddressResponseDto)
   dropAddress: BookingAddressResponseDto;
   @Expose()
+  pickupOtp: string | null;
+  @Expose()
+  dropOtp: string | null;
+  @Expose()
   @Type(() => PackageDetailsResponseDto)
   package: PackageDetailsResponseDto;
   @Expose()
@@ -74,12 +77,29 @@ export class BookingResponseDto {
   @Expose()
   completedAt: Date | null;
   @Expose()
+  cancelledAt: Date | null;
+  @Expose()
+  cancellationReason: string | null;
+  @Expose()
   createdAt: Date;
   @Expose()
   updatedAt: Date;
   @Expose()
   scheduledAt: Date | null;
 }
+
+/**
+ * Driver-specific booking DTO that excludes OTP fields for security
+ * Drivers should not see pickup/drop OTPs in the booking response
+ */
+export class DriverBookingResponseDto extends BookingResponseDto {
+  @Exclude()
+  declare pickupOtp: string | null;
+
+  @Exclude()
+  declare dropOtp: string | null;
+}
+
 
 export class RideSummaryDto {
   @Expose()

@@ -181,7 +181,8 @@ export class BookingDriverService {
     if (assignment.booking.customerId) {
       this.notificationService.notifyBookingStatusChange(
         assignment.booking.customerId,
-        'customer'
+        'customer',
+        BookingStatus.PENDING
       );
     }
   }
@@ -255,6 +256,10 @@ export class BookingDriverService {
     if (assignment.booking.pickupOtp !== pickupOtp) {
       throw new BadRequestException('Invalid OTP');
     }
+    const finalInvoice = assignment.booking.invoices.find(invoice => invoice.type === 'FINAL');
+    if (!finalInvoice || !finalInvoice.isPaid || !finalInvoice.paymentMethod ) {
+      throw new BadRequestException('Booking payment must be completed before verifying pickup');
+    }
     await this.prisma.booking.update({
       where: {
         id: assignment.booking.id,
@@ -308,7 +313,7 @@ export class BookingDriverService {
   }
 
   async finishRide(driverId: string): Promise<void> {
-    const { walletChange, isCashPayment } = await this.prisma.$transaction(async (tx) => {
+    const { walletChange, isCashPayment, customerId } = await this.prisma.$transaction(async (tx) => {
       const assignment = await this.getDriverAssignment(driverId, tx);
       if (!assignment) {
         throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
@@ -375,16 +380,21 @@ export class BookingDriverService {
         data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
       });
 
-      return { walletChange, isCashPayment };
+      return { walletChange, isCashPayment, customerId: assignment.booking.customerId };
     });
 
-    // Send notification (fire-and-forget, outside transaction)
+    // Send notifications (fire-and-forget, outside transaction)
     if (walletChange !== 0) {
       this.notificationService.notifyDriverWalletChange(
         driverId,
         walletChange,
         isCashPayment,
       );
+    }
+
+    // Notify customer that ride is completed
+    if (customerId) {
+      this.notificationService.notifyCustomerRideCompleted(customerId);
     }
   }
 

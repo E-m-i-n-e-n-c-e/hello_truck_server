@@ -104,42 +104,50 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
     // Accept and complete booking
     await request(app.getHttpServer())
       .post(`/bookings/driver/accept/${assignment.id}`)
-      .set('Authorization', `Bearer ${driverToken}`);
+      .set('Authorization', `Bearer ${driverToken}`)
+      .expect(201);
 
     await request(app.getHttpServer())
       .post('/bookings/driver/pickup/arrived')
-      .set('Authorization', `Bearer ${driverToken}`);
+      .set('Authorization', `Bearer ${driverToken}`)
+      .expect(201);
 
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+
+    // Settle cash BEFORE verifying pickup (payment required)
+    await request(app.getHttpServer())
+      .post('/bookings/driver/settle-cash')
+      .set('Authorization', `Bearer ${driverToken}`)
+      .expect(201);
 
     await request(app.getHttpServer())
       .post('/bookings/driver/pickup/verify')
       .set('Authorization', `Bearer ${driverToken}`)
-      .send({ otp: booking?.pickupOtp });
+      .send({ otp: booking?.pickupOtp })
+      .expect(201);
 
     await request(app.getHttpServer())
       .post('/bookings/driver/start')
-      .set('Authorization', `Bearer ${driverToken}`);
+      .set('Authorization', `Bearer ${driverToken}`)
+      .expect(201);
 
     await request(app.getHttpServer())
       .post('/bookings/driver/drop/arrived')
-      .set('Authorization', `Bearer ${driverToken}`);
+      .set('Authorization', `Bearer ${driverToken}`)
+      .expect(201);
 
     const bookingForDrop = await prisma.booking.findUnique({ where: { id: bookingId } });
 
     await request(app.getHttpServer())
       .post('/bookings/driver/drop/verify')
       .set('Authorization', `Bearer ${driverToken}`)
-      .send({ otp: bookingForDrop?.dropOtp });
-
-    // Settle cash BEFORE finishing
-    await request(app.getHttpServer())
-      .post('/bookings/driver/settle-cash')
-      .set('Authorization', `Bearer ${driverToken}`);
+      .send({ otp: bookingForDrop?.dropOtp })
+      .expect(201);
 
     await request(app.getHttpServer())
       .post('/bookings/driver/finish')
-      .set('Authorization', `Bearer ${driverToken}`);
+      .set('Authorization', `Bearer ${driverToken}`)
+      .expect(201);
   });
 
   afterAll(async () => {

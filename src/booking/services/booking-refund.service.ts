@@ -59,23 +59,6 @@ export class BookingRefundService {
    * Handles BOTH wallet credit AND Razorpay refund
    */
   async processRefundIntent(intentId: string): Promise<void> {
-    const intent = await this.prisma.refundIntent.findUnique({
-      where: { id: intentId },
-      include: {
-        booking: {
-          include: {
-            customer: true,
-            assignedDriver: true,
-          }
-        }
-      },
-    });
-
-    if (!intent || intent.status !== 'PENDING') {
-      this.logger.log(`Skipping refund intent ${intentId}: status=${intent?.status}`);
-      return;
-    }
-
     // Atomic claim: Mark as PROCESSING only if still PENDING (prevents race condition)
     const claimed = await this.prisma.refundIntent.updateMany({
       where: {
@@ -89,6 +72,19 @@ export class BookingRefundService {
       this.logger.log(`Refund intent ${intentId} already claimed by another instance`);
       return;
     }
+
+    // Fetch intent with booking data after claiming
+    const intent = await this.prisma.refundIntent.findUniqueOrThrow({
+      where: { id: intentId },
+      include: {
+        booking: {
+          include: {
+            customer: true,
+            assignedDriver: true,
+          }
+        }
+      },
+    });
 
     try {
       // Execute Razorpay refund FIRST (money movement)
@@ -105,36 +101,42 @@ export class BookingRefundService {
       // Then update DB
       let driverCompensation = 0;
       await this.prisma.$transaction(async (tx) => {
+        // Fetch fresh booking data inside transaction to avoid stale data
+        const booking = await tx.booking.findUniqueOrThrow({
+          where: { id: intent.bookingId },
+          include: { customer: true, assignedDriver: true },
+        });
+
         // Handle PAID invoice: Credit wallet with refund
-        if (Number(intent.walletRefundAmount) > 0 && intent.booking.customer) {
+        if (Number(intent.walletRefundAmount) > 0 && booking.customer) {
           await this.updateCustomerWallet(
             intent.customerId,
-            intent.booking as Booking & { customer: Customer },
+            booking as Booking & { customer: Customer },
             Number(intent.walletRefundAmount),
-            `Refund for cancelled Booking #${intent.booking.bookingNumber}`,
+            `Refund for cancelled Booking #${booking.bookingNumber}`,
             tx,
             intentId,
           );
         }
 
         // Handle UNPAID invoice: Deduct cancellation charge from wallet
-        if (!intent.wasPaid && Number(intent.cancellationCharge) > 0 && intent.booking.customer) {
+        if (!intent.wasPaid && Number(intent.cancellationCharge) > 0 && booking.customer) {
           const chargeAmount = -Number(intent.cancellationCharge); // Negative for debit
           await this.updateCustomerWallet(
             intent.customerId,
-            intent.booking as Booking & { customer: Customer },
+            booking as Booking & { customer: Customer },
             chargeAmount,
-            `Cancellation charge for Booking #${intent.booking.bookingNumber}`,
+            `Cancellation charge for Booking #${booking.bookingNumber}`,
             tx,
             intentId,
           );
         }
 
         // Process driver compensation if there's a cancellation charge and driver was assigned
-        if (Number(intent.cancellationCharge) > 0 && intent.booking.assignedDriver) {
+        if (Number(intent.cancellationCharge) > 0 && booking.assignedDriver) {
           driverCompensation = await this.compensateDriver(
-            intent.booking.assignedDriver,
-            intent.booking,
+            booking.assignedDriver,
+            booking,
             Number(intent.cancellationCharge),
             tx,
           );
@@ -150,7 +152,7 @@ export class BookingRefundService {
               amount: intent.razorpayRefundAmount,
               type: TransactionType.CREDIT, // Customer receives refund = CREDIT (money IN)
               category: TransactionCategory.BOOKING_REFUND,
-              description: `Refund for cancelled booking #${intent.booking.bookingNumber}`,
+              description: `Refund for cancelled booking #${booking.bookingNumber}`,
               refundIntentId: intentId,
             },
           });
@@ -171,8 +173,8 @@ export class BookingRefundService {
 
       // Notify customer
       if (intent.wasPaid) {
-        // Notify about refund for paid invoices
-        if (Number(intent.walletRefundAmount) > 0) {
+        // Notify about refund for paid invoices (wallet or Razorpay)
+        if (Number(intent.walletRefundAmount) > 0 || Number(intent.razorpayRefundAmount) > 0) {
           this.notificationService.notifyCustomerRefundProcessed(
             intent.customerId,
             intent.booking.bookingNumber,
@@ -195,25 +197,29 @@ export class BookingRefundService {
       }
 
     } catch (error) {
-      // Retry logic with exponential backoff
+      this.logger.error(`✗ Refund FAILED: ${intentId} ${error.message}`);
+      // Retry logic
       const newRetryCount = intent.retryCount + 1;
 
-      await this.prisma.refundIntent.update({
-        where: { id: intentId },
-        data: {
-          status: newRetryCount >= intent.maxRetries ? 'FAILED' : 'PENDING',
-          failureReason: error.message,
-          retryCount: newRetryCount,
-        },
-      });
+      try {
+        // Try to update refund intent status for retry
+        await this.prisma.refundIntent.update({
+          where: { id: intentId },
+          data: {
+            status: newRetryCount >= intent.maxRetries ? 'FAILED' : 'PENDING',
+            failureReason: error.message,
+            retryCount: newRetryCount,
+          },
+        });
 
-      if (newRetryCount >= intent.maxRetries) {
-        this.logger.error(`✗ Refund FAILED after max retries: ${intentId}`);
-      } else {
-        this.logger.warn(`Refund retry ${newRetryCount}/${intent.maxRetries} for ${intentId}`);
+        if (newRetryCount >= intent.maxRetries) {
+          this.logger.error(`✗ Refund FAILED after max retries: ${intentId}`);
+        } else {
+          this.logger.warn(`Refund retry ${newRetryCount}/${intent.maxRetries} for ${intentId}`);
+        }
+      } catch (updateError) {
+        this.logger.error(`Failed to update refund intent ${intentId} retry status: ${updateError.message}`);
       }
-
-      throw error;
     }
   }
 
@@ -278,7 +284,7 @@ export class BookingRefundService {
 
   /**
    * Update customer wallet (credit or debit)
-   * Positive amount = credit, Negative amount = debit
+   * Positive amount = credit (refund), Negative amount = debit (cancellation charge)
    */
   private async updateCustomerWallet(
     customerId: string,
@@ -288,7 +294,7 @@ export class BookingRefundService {
     tx: Prisma.TransactionClient,
     refundIntentId: string,
   ): Promise<void> {
-    if (amount <= 0) return;
+    if (amount === 0) return;
 
     const walletBefore = Number(booking.customer.walletBalance);
     const newBalance = truncate2(walletBefore + amount);
@@ -310,7 +316,8 @@ export class BookingRefundService {
       },
     });
 
-    this.logger.log(`Credited ₹${amount} to customer ${customerId} wallet`);
+    const action = amount > 0 ? 'Credited' : 'Debited';
+    this.logger.log(`${action} ₹${Math.abs(amount)} ${amount > 0 ? 'to' : 'from'} customer ${customerId} wallet`);
   }
 
   /**
