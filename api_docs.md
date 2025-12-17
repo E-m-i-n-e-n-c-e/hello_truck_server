@@ -103,8 +103,11 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `walletApplied`: `number`
     *   `finalAmount`: `number` - Amount customer needs to pay
     *   `paymentLinkUrl`: `string | null` - Only in FINAL invoice
-    *   `rzpOrderId`: `string | null`
-    *   `rzpPaymentId`: `string | null`
+    *   `rzpPaymentLinkId`: `string | null` - Razorpay payment link ID
+    *   `rzpPaymentId`: `string | null` - Razorpay payment ID (set after payment)
+    *   `isPaid`: `boolean` - Payment status
+    *   `paidAt`: `Date | null` - Payment timestamp
+    *   `paymentMethod`: `string | null` - ONLINE or CASH
     *   `createdAt`: `Date`
     *   `updatedAt`: `Date`
 *   **`BookingResponseDto`**: Complete booking details with invoices.
@@ -113,9 +116,13 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `status`: `enum` (PENDING, DRIVER_ASSIGNED, CONFIRMED, etc.)
     *   `pickupAddress`: `BookingAddressResponseDto`
     *   `dropAddress`: `BookingAddressResponseDto`
+    *   `pickupOtp`: `string | null` - OTP for pickup verification (customers only, hidden from drivers)
+    *   `dropOtp`: `string | null` - OTP for drop verification (customers only, hidden from drivers)
     *   `package`: `PackageDetailsResponseDto`
     *   `invoices`: `InvoiceResponseDto[]` - ESTIMATE and/or FINAL invoices
     *   `assignedDriver`: `DriverResponseDto | null`
+    *   `cancelledAt`: `Date | null`
+    *   `cancellationReason`: `string | null`
     *   `createdAt`: `Date`
     *   `updatedAt`: `Date`
 *   **`RideSummaryDto`**: Driver's daily ride summary with completed assignments.
