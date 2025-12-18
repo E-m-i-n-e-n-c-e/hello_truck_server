@@ -1,13 +1,26 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver, PaymentMethod } from '@prisma/client';
+import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver, PaymentMethod, Package, Address, Customer } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { BookingInvoiceService } from './booking-invoice.service';
 import { BookingPaymentService } from './booking-payment.service';
 import { BookingNotificationService } from './booking-notification.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { truncate2 } from '../utils/general.utils';
+
+type BookingWithRelations = Booking & {
+  package: Package;
+  pickupAddress: Address;
+  dropAddress: Address;
+  customer: Customer | null;
+  invoices: Invoice[];
+}
+
+type AssignmentWithRelations = BookingAssignment & {
+  driver: Driver;
+  booking: BookingWithRelations;
+}
 
 @Injectable()
 export class BookingDriverService {
@@ -187,7 +200,7 @@ export class BookingDriverService {
     }
   }
 
-  async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<BookingAssignment & { driver: Driver; booking: Booking & { invoices: Invoice[] } } | null> {
+  async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<AssignmentWithRelations | null> {
     return tx.bookingAssignment.findFirst({
       where: {
         driverId,
@@ -203,6 +216,10 @@ export class BookingDriverService {
         driver: true,
         booking: {
           include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+            customer: true,
             invoices: true,
           },
         },
