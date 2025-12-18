@@ -338,8 +338,8 @@ model Booking {
   dropAddress          BookingAddress      @relation("DropAddress", fields: [dropAddressId], references: [id])
 
   // OTPs
-  pickupOtp            String?
-  dropOtp              String?
+  pickupOtp            String
+  dropOtp              String
 
   // Invoices (Pricing & Payment)
   invoices             Invoice[]
@@ -605,7 +605,6 @@ enum VerificationStatus {
 }
 
 enum VehicleType {
-  TWO_WHEELER
   THREE_WHEELER
   FOUR_WHEELER
 }

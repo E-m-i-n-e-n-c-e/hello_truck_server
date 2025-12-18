@@ -48,9 +48,9 @@ export class BookingResponseDto {
   @Type(() => BookingAddressResponseDto)
   dropAddress: BookingAddressResponseDto;
   @Expose()
-  pickupOtp: string | null;
+  pickupOtp: string;
   @Expose()
-  dropOtp: string | null;
+  dropOtp: string;
   @Expose()
   @Type(() => PackageDetailsResponseDto)
   package: PackageDetailsResponseDto;
@@ -59,8 +59,6 @@ export class BookingResponseDto {
   invoices: InvoiceResponseDto[];
   @Expose()
   status: $Enums.BookingStatus;
-  @Expose()
-  assignedDriverId: string | null;
   @Expose()
   @Type(() => DriverResponseDto)
   assignedDriver: DriverResponseDto | null;
@@ -94,10 +92,10 @@ export class BookingResponseDto {
  */
 export class DriverBookingResponseDto extends BookingResponseDto {
   @Exclude()
-  declare pickupOtp: string | null;
+  declare pickupOtp: string;
 
   @Exclude()
-  declare dropOtp: string | null;
+  declare dropOtp: string;
 }
 
 
