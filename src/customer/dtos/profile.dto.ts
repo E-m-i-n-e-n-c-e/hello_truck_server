@@ -47,7 +47,6 @@ export class UpdateProfileDto implements Partial<Customer> {
 }
 
 export class GetProfileResponseDto implements Customer {
-  walletBalance: Decimal;
   id: string;
   isActive: boolean;
 
@@ -63,6 +62,8 @@ export class GetProfileResponseDto implements Customer {
   referralCode: string | null;
   @Expose()
   phoneNumber: string;
+  @Expose()
+  walletBalance: Decimal;
   @Expose()
   createdAt: Date;
   @Expose()

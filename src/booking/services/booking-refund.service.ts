@@ -107,9 +107,9 @@ export class BookingRefundService {
           include: { customer: true, assignedDriver: true },
         });
 
-        // Handle PAID invoice: Credit wallet with refund
-        if (Number(intent.walletRefundAmount) > 0 && booking.customer) {
-          await this.updateCustomerWallet(
+        // Credit wallet refund (can be negative if customer had debt)
+        if (Number(intent.walletRefundAmount) !== 0 && booking.customer) {
+          const newBalance = await this.updateCustomerWallet(
             intent.customerId,
             booking as Booking & { customer: Customer },
             Number(intent.walletRefundAmount),
@@ -117,6 +117,8 @@ export class BookingRefundService {
             tx,
             intentId,
           );
+          // Update booking object with new balance for next operation
+          booking.customer.walletBalance = new Decimal(newBalance);
         }
 
         // Handle UNPAID invoice: Deduct cancellation charge from wallet
@@ -236,15 +238,16 @@ export class BookingRefundService {
     razorpayRefund: number;
     cancellationCharge: number;
   } {
+    const totalPrice = Number(invoice.totalPrice);
     const walletApplied = Number(invoice.walletApplied);
-    const finalAmount = Number(invoice.finalAmount);
-    const totalPaid = walletApplied + finalAmount;
+    const totalPayable = Number(invoice.finalAmount);
+    const isPaid = invoice.isPaid;
 
     // Full refund for PENDING and DRIVER_ASSIGNED
     if (status === BookingStatus.PENDING || status === BookingStatus.DRIVER_ASSIGNED) {
       return {
         walletRefund: truncate2(walletApplied),
-        razorpayRefund: truncate2(finalAmount),
+        razorpayRefund: truncate2(totalPayable),
         cancellationCharge: 0,
       };
     }
@@ -268,17 +271,17 @@ export class BookingRefundService {
       }
 
       return {
-        walletRefund: truncate2(walletApplied * refundPercentage),
-        razorpayRefund: truncate2(finalAmount * refundPercentage),
-        cancellationCharge: truncate2(totalPaid * (1 - refundPercentage)),
+        walletRefund: isPaid ? truncate2(walletApplied * refundPercentage) : truncate2(walletApplied),
+        razorpayRefund: isPaid ? truncate2(totalPayable * refundPercentage) : 0,
+        cancellationCharge: truncate2(totalPrice * (1 - refundPercentage)),
       };
     }
 
     // No refund for other statuses
     return {
-      walletRefund: 0,
+      walletRefund: isPaid ? 0 : truncate2(walletApplied),
       razorpayRefund: 0,
-      cancellationCharge: truncate2(totalPaid),
+      cancellationCharge: truncate2(totalPrice),
     };
   }
 
