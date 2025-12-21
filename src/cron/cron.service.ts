@@ -58,6 +58,7 @@ export class CronService {
     await this.driverCleanup.resetDriverAvailability();
     await this.bookingCleanup.cleanupOldBookings();
     await this.logCleanup.cleanupOldLogs();
+    await this.refundCronService.cleanupOldRefundIntents();
 
     this.logger.log('[CRON] Daily cleanup jobs completed.');
   }

@@ -5,6 +5,7 @@ import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { RazorpayXService } from 'src/razorpay/razorpayx.service';
 import { Booking, Invoice, PaymentMethod, Prisma, TransactionCategory, TransactionType } from '@prisma/client';
 import { BookingNotificationService } from './booking-notification.service';
+import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
 
 @Injectable()
 export class BookingPaymentService {
@@ -167,7 +168,8 @@ export class BookingPaymentService {
     fundAccountId: string | null;
     payoutMethod: string | null;
   }): Promise<void> {
-    const payoutAmount = Number(driver.walletBalance);
+    const walletBalanceDecimal = toDecimal(driver.walletBalance);
+    const payoutAmount = toNumber(truncateDecimal(walletBalanceDecimal));
 
     this.logger.log(`Processing payout for driver ${driver.id}: ₹${payoutAmount}`);
 

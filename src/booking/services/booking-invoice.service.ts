@@ -8,7 +8,7 @@ import * as geolib from 'geolib';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
-import { truncate2 } from '../utils/general.utils';
+import { truncateDecimal, toDecimal, toNumber, minDecimal } from '../utils/decimal.utils';
 import { PaymentLinkResponse } from 'src/razorpay/types/razorpay-payment-link.types';
 
 @Injectable()
@@ -34,13 +34,19 @@ export class BookingInvoiceService {
     const idealVehicle = estimate.topVehicles[0];
 
     // Support both positive (credits) and negative (debt) balances
-    const walletApplied = walletBalance !== 0
-      ? (walletBalance > 0
-          ? Math.min(walletBalance, idealVehicle.estimatedCost)
-          : walletBalance)
-      : 0;
+    const walletBalanceDecimal = toDecimal(walletBalance);
+    const estimatedCostDecimal = toDecimal(idealVehicle.estimatedCost);
 
-    const finalAmount = truncate2(idealVehicle.estimatedCost - walletApplied);
+    let walletApplied: Decimal;
+    if (walletBalanceDecimal.isZero()) {
+      walletApplied = new Decimal(0);
+    } else if (walletBalanceDecimal.greaterThan(0)) {
+      walletApplied = minDecimal(walletBalanceDecimal, estimatedCostDecimal);
+    } else {
+      walletApplied = walletBalanceDecimal; // Apply full debt
+    }
+
+    const finalAmount = truncateDecimal(estimatedCostDecimal.minus(walletApplied));
 
     return tx.invoice.create({
       data: {
@@ -54,8 +60,8 @@ export class BookingInvoiceService {
         weightInTons: idealVehicle.breakdown.weightInTons,
         effectiveBasePrice: idealVehicle.breakdown.effectiveBasePrice,
         totalPrice: idealVehicle.estimatedCost,
-        walletApplied,
-        finalAmount,
+        walletApplied: toNumber(walletApplied),
+        finalAmount: toNumber(finalAmount),
       },
     });
   }
@@ -82,32 +88,34 @@ export class BookingInvoiceService {
     );
 
     // Support both positive (credits) and negative (debt) balances
-    const walletBalance = Number(customer.walletBalance);
-    let walletApplied = 0;
-    let finalAmount = pricing.totalPrice;
+    const walletBalanceDecimal = toDecimal(customer.walletBalance);
+    const totalPriceDecimal = toDecimal(pricing.totalPrice);
 
-    if (walletBalance !== 0) {
+    let walletApplied: Decimal = new Decimal(0);
+    let finalAmount = totalPriceDecimal;
+
+    if (!walletBalanceDecimal.isZero()) {
       // For positive: apply credit (reduce payment)
       // For negative: apply debt (increase payment)
-      walletApplied = walletBalance > 0
-        ? Math.min(walletBalance, pricing.totalPrice)
-        : walletBalance;
+      walletApplied = walletBalanceDecimal.greaterThan(0)
+        ? minDecimal(walletBalanceDecimal, totalPriceDecimal)
+        : walletBalanceDecimal;
 
-      finalAmount = truncate2(pricing.totalPrice - walletApplied);
-      const newBalance = truncate2(walletBalance - walletApplied);
+      finalAmount = truncateDecimal(totalPriceDecimal.minus(walletApplied));
+      const newBalance = truncateDecimal(walletBalanceDecimal.minus(walletApplied));
 
       await tx.customer.update({
         where: { id: customer.id },
-        data: { walletBalance: newBalance },
+        data: { walletBalance: toNumber(newBalance) },
       });
 
       await tx.customerWalletLog.create({
         data: {
           customerId: customer.id,
-          beforeBalance: walletBalance,
-          afterBalance: newBalance,
-          amount: -walletApplied,
-          reason: walletApplied > 0
+          beforeBalance: toNumber(walletBalanceDecimal),
+          afterBalance: toNumber(newBalance),
+          amount: toNumber(walletApplied.negated()),
+          reason: walletApplied.greaterThan(0)
             ? `Applied to Booking #${booking.bookingNumber}`
             : `Debt added to Booking #${booking.bookingNumber}`,
           bookingId: booking.id,
@@ -120,7 +128,7 @@ export class BookingInvoiceService {
       data: {
         bookingId: booking.id,
         type: InvoiceType.FINAL,
-        isPaid: finalAmount <= 0,
+        isPaid: finalAmount.lessThanOrEqualTo(0),
         vehicleModelName: vehicleModel.name,
         basePrice: vehicleModel.baseFare,
         perKmPrice: vehicleModel.perKm,
@@ -129,8 +137,8 @@ export class BookingInvoiceService {
         weightInTons,
         effectiveBasePrice: pricing.effectiveBasePrice,
         totalPrice: pricing.totalPrice,
-        walletApplied,
-        finalAmount,
+        walletApplied: toNumber(walletApplied),
+        finalAmount: toNumber(finalAmount),
         // paymentLinkUrl and rzpPaymentLinkId are NULL
         // They will be populated by createPaymentLinkForInvoice() after transaction commits
       },

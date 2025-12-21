@@ -565,6 +565,7 @@ model RefundIntent {
   walletRefundAmount   Decimal       @db.Decimal(10,2)
   razorpayRefundAmount Decimal       @db.Decimal(10,2)
   cancellationCharge   Decimal       @db.Decimal(10,2)
+  refundFactor         Decimal?       @db.Decimal(10,2)
   wasPaid              Boolean       // Track if invoice was paid at cancellation time
 
   // Razorpay metadata

@@ -48,4 +48,25 @@ export class RefundCronService {
 
     this.logger.log(`Refund processing complete: ${successCount} succeeded, ${failureCount} failed`);
   }
+
+  /**
+   * Clean up old refund intents (older than 1 month)
+   * Called by daily cron job
+   */
+  async cleanupOldRefundIntents(): Promise<void> {
+    this.logger.log('Cleaning up old refund intents...');
+
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const result = await this.prisma.refundIntent.deleteMany({
+      where: {
+        createdAt: {
+          lt: oneMonthAgo,
+        },
+      },
+    });
+
+    this.logger.log(`Deleted ${result.count} old refund intents`);
+  }
 }

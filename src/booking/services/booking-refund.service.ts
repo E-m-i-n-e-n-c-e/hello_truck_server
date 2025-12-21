@@ -4,7 +4,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { BookingNotificationService } from './booking-notification.service';
 import { Booking, BookingStatus, Customer, Invoice, PaymentMethod, Prisma, RefundIntent, TransactionCategory, TransactionType } from '@prisma/client';
-import { truncate2 } from '../utils/general.utils';
+import { Decimal } from '@prisma/client/runtime/library';
+import { truncateDecimal, toDecimal, toNumber } from '../utils/decimal.utils';
 
 /**
  * Service for handling all refund operations
@@ -29,25 +30,26 @@ export class BookingRefundService {
     finalInvoice: Invoice,
     tx: Prisma.TransactionClient,
   ): Promise<RefundIntent> {
-    const { walletRefund, razorpayRefund, cancellationCharge } =
+    const { walletRefund, razorpayRefund, cancellationCharge, refundFactor } =
       this.calculateRefundAmounts(booking.status, finalInvoice, booking.acceptedAt);
 
     // Determine status:
     // - PENDING if there's a refund to process OR cancellation charge to deduct
     // - NOT_REQUIRED if no refund and no cancellation charge
     const hasPendingAction =
-      walletRefund > 0 ||
-      razorpayRefund > 0 ||
-      (!finalInvoice.isPaid && cancellationCharge > 0);
+      walletRefund.greaterThan(0) ||
+      razorpayRefund.greaterThan(0) ||
+      (!finalInvoice.isPaid && cancellationCharge.greaterThan(0));
 
     return tx.refundIntent.create({
       data: {
         bookingId: booking.id,
         customerId: booking.customerId!,
-        walletRefundAmount: walletRefund,
-        razorpayRefundAmount: razorpayRefund,
-        cancellationCharge,
-        wasPaid: finalInvoice.isPaid, // Store payment status
+        walletRefundAmount: toNumber(walletRefund),
+        razorpayRefundAmount: toNumber(razorpayRefund),
+        cancellationCharge: toNumber(cancellationCharge),
+        refundFactor: refundFactor ? toNumber(refundFactor) : null,
+        wasPaid: finalInvoice.isPaid,
         rzpPaymentId: finalInvoice.rzpPaymentId ?? undefined,
         status: hasPendingAction ? 'PENDING' : 'NOT_REQUIRED',
       }
@@ -234,54 +236,58 @@ export class BookingRefundService {
     invoice: Invoice,
     acceptedAt?: Date | null,
   ): {
-    walletRefund: number;
-    razorpayRefund: number;
-    cancellationCharge: number;
+    walletRefund: Decimal;
+    razorpayRefund: Decimal;
+    cancellationCharge: Decimal;
+    refundFactor: Decimal | null;
   } {
-    const totalPrice = Number(invoice.totalPrice);
-    const walletApplied = Number(invoice.walletApplied);
-    const totalPayable = Number(invoice.finalAmount);
+    const totalPrice = toDecimal(invoice.totalPrice);
+    const walletApplied = toDecimal(invoice.walletApplied);
+    const totalPayable = toDecimal(invoice.finalAmount);
     const isPaid = invoice.isPaid;
 
     // Full refund for PENDING and DRIVER_ASSIGNED
     if (status === BookingStatus.PENDING || status === BookingStatus.DRIVER_ASSIGNED) {
       return {
-        walletRefund: truncate2(walletApplied),
-        razorpayRefund: truncate2(totalPayable),
-        cancellationCharge: 0,
+        walletRefund: truncateDecimal(walletApplied),
+        razorpayRefund: truncateDecimal(totalPayable),
+        cancellationCharge: new Decimal(0),
+        refundFactor: null,
       };
     }
 
     // Partial refund for CONFIRMED and PICKUP_ARRIVED
     if (status === BookingStatus.CONFIRMED || status === BookingStatus.PICKUP_ARRIVED) {
-      const minCharge = this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') || 0.1;
-      const maxCharge = this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') || 0.5;
-      const incrementPerMinute = this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_MINUTE') || 0.01;
+      const minCharge = new Decimal(this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') || 0.1);
+      const maxCharge = new Decimal(this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') || 0.5);
+      const incrementPerMinute = new Decimal(this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_MINUTE') || 0.01);
 
       let refundPercentage = minCharge;
 
       if (acceptedAt) {
         const minutesElapsed = Math.floor((Date.now() - new Date(acceptedAt).getTime()) / (1000 * 60));
-        refundPercentage = Math.min(
-          maxCharge,
-          minCharge + (minutesElapsed * incrementPerMinute)
-        );
-      } else {
-        refundPercentage = minCharge;
+        const increment = incrementPerMinute.mul(minutesElapsed);
+        refundPercentage = Decimal.min(maxCharge, minCharge.plus(increment));
       }
 
+      const chargePercentage = new Decimal(1).minus(refundPercentage);
+
       return {
-        walletRefund: isPaid ? truncate2(walletApplied * refundPercentage) : truncate2(walletApplied),
-        razorpayRefund: isPaid ? truncate2(totalPayable * refundPercentage) : 0,
-        cancellationCharge: truncate2(totalPrice * (1 - refundPercentage)),
+        walletRefund: isPaid
+          ? truncateDecimal(walletApplied.mul(refundPercentage))
+          : truncateDecimal(walletApplied.abs()),
+        razorpayRefund: isPaid ? truncateDecimal(totalPayable.mul(refundPercentage)) : new Decimal(0),
+        cancellationCharge: truncateDecimal(totalPrice.mul(chargePercentage)),
+        refundFactor: refundPercentage,
       };
     }
 
     // No refund for other statuses
     return {
-      walletRefund: isPaid ? 0 : truncate2(walletApplied),
-      razorpayRefund: 0,
-      cancellationCharge: truncate2(totalPrice),
+      walletRefund: isPaid ? new Decimal(0) : truncateDecimal(walletApplied.abs()),
+      razorpayRefund: new Decimal(0),
+      cancellationCharge: truncateDecimal(totalPrice),
+      refundFactor: new Decimal(0),
     };
   }
 
@@ -296,23 +302,24 @@ export class BookingRefundService {
     reason: string,
     tx: Prisma.TransactionClient,
     refundIntentId: string,
-  ): Promise<void> {
-    if (amount === 0) return;
+  ): Promise<number> {
+    if (amount === 0) return Number(booking.customer.walletBalance);
 
-    const walletBefore = Number(booking.customer.walletBalance);
-    const newBalance = truncate2(walletBefore + amount);
+    const walletBefore = toDecimal(booking.customer.walletBalance);
+    const amountDecimal = toDecimal(amount);
+    const newBalance = truncateDecimal(walletBefore.plus(amountDecimal));
 
     await tx.customer.update({
       where: { id: customerId },
-      data: { walletBalance: newBalance },
+      data: { walletBalance: toNumber(newBalance) },
     });
 
     await tx.customerWalletLog.create({
       data: {
         customerId,
-        beforeBalance: walletBefore,
-        afterBalance: newBalance,
-        amount: truncate2(amount),
+        beforeBalance: toNumber(walletBefore),
+        afterBalance: toNumber(newBalance),
+        amount: toNumber(truncateDecimal(amountDecimal)),
         reason,
         bookingId: booking.id,
         refundIntentId,
@@ -321,6 +328,8 @@ export class BookingRefundService {
 
     const action = amount > 0 ? 'Credited' : 'Debited';
     this.logger.log(`${action} ₹${Math.abs(amount)} ${amount > 0 ? 'to' : 'from'} customer ${customerId} wallet`);
+
+    return toNumber(newBalance);
   }
 
   /**
@@ -334,32 +343,33 @@ export class BookingRefundService {
   ): Promise<number> {
     if (cancellationCharge <= 0) return 0;
 
-    const driverWalletBefore = Number(driver.walletBalance);
+    const driverWalletBefore = toDecimal(driver.walletBalance);
+    const chargeDecimal = toDecimal(cancellationCharge);
 
     // Deduct platform commission from cancellation charge
-    const commissionRate = this.configService.get<number>('COMMISSION_RATE') || 0.07;
-    const compensation = truncate2(cancellationCharge * (1 - commissionRate));
+    const commissionRate = toDecimal(this.configService.get<number>('COMMISSION_RATE') || 0.07);
+    const compensation = truncateDecimal(chargeDecimal.mul(new Decimal(1).minus(commissionRate)));
 
-    const newBalance = truncate2(driverWalletBefore + compensation);
+    const newBalance = truncateDecimal(driverWalletBefore.plus(compensation));
 
     await tx.driver.update({
       where: { id: driver.id },
-      data: { walletBalance: newBalance },
+      data: { walletBalance: toNumber(newBalance) },
     });
 
     await tx.driverWalletLog.create({
       data: {
         driverId: driver.id,
-        beforeBalance: driverWalletBefore,
-        afterBalance: newBalance,
-        amount: compensation,
+        beforeBalance: toNumber(driverWalletBefore),
+        afterBalance: toNumber(newBalance),
+        amount: toNumber(compensation),
         reason: `Cancellation compensation for Booking #${booking.bookingNumber}`,
         bookingId: booking.id,
       },
     });
 
-    this.logger.log(`Compensated driver ${driver.id} with ₹${compensation} for cancellation`);
-    return compensation;
+    this.logger.log(`Compensated driver ${driver.id} with ₹${toNumber(compensation)} for cancellation`);
+    return toNumber(compensation);
   }
 
   /**
