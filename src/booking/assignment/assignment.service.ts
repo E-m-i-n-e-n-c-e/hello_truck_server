@@ -59,6 +59,7 @@ export class AssignmentService {
   async tryToAssignDriver(job: Job<AssignJobData>) {
     const { bookingId, attempt } = job.data;
     let assignedDriverId: string | null = null;
+    let customerId: string | null = null;
 
     // Acquire lock before processing
     const lockKey = `booking:${bookingId}:processing`;
@@ -88,7 +89,12 @@ export class AssignmentService {
         const timeSinceBooking = Date.now() - booking.createdAt.getTime();
         if (timeSinceBooking > this.FINALIZE_AFTER_MS || attempt >= this.MAX_ATTEMPTS) {
           this.logger.warn(`[tryToAssignDriver] Booking ${bookingId} expired (timeSinceBooking: ${timeSinceBooking}ms, attempt: ${attempt}). Marking as expired.`);
-          await tx.booking.update({ where: { id: bookingId }, data: { status: BookingStatus.EXPIRED } });
+          const updatedBooking = await tx.booking.update({
+            where: { id: bookingId },
+            data: { status: BookingStatus.EXPIRED },
+            select: { customerId: true },
+          });
+          customerId = updatedBooking.customerId;
           return;
         }
 
@@ -113,7 +119,11 @@ export class AssignmentService {
       await this.redisService.del(lockKey);
       if(assignedDriverId) {
         this.logger.log(`[tryToAssignDriver] Notifying driver ${assignedDriverId} of assignment for booking ${bookingId}.`);
-        await this.bookingNotificationService.notifyDriverAssignmentOffered(assignedDriverId, bookingId);
+        this.bookingNotificationService.notifyDriverAssignmentOffered(assignedDriverId, bookingId);
+      }
+      if(customerId) {
+        this.logger.log(`[tryToAssignDriver] Notifying customer ${customerId} of booking expiration for booking ${bookingId}.`);
+        this.bookingNotificationService.notifyCustomerBookingExpired(customerId);
       }
     }
   }

@@ -178,6 +178,20 @@ export class BookingNotificationService {
     });
   }
 
+  // Changes booking status to EXPIRED
+  notifyCustomerBookingExpired(customerId: string): void {
+    this.firebaseService.notifyAllSessions(customerId, 'customer', {
+      notification: {
+        title: 'Booking Expired',
+        body: 'Sorry, we could not find a driver for your booking. Please try again.',
+      },
+      data: {
+        event: FcmEventType.BookingStatusChange,
+        newStatus: BookingStatus.EXPIRED,
+      },
+    });
+  }
+
   // May update refund intent, transaction, and wallet balance/wallet logs
   notifyCustomerRefundProcessed(customerId: string, bookingNumber: bigint): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
