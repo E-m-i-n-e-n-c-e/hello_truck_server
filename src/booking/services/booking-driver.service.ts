@@ -505,7 +505,6 @@ export class BookingDriverService {
             dropAddress: true,
             invoices: {
               where: { type: 'FINAL' },
-              select: { finalAmount: true },
             },
           },
         },
