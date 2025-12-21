@@ -124,7 +124,7 @@ export class BookingPaymentService {
           amount: finalInvoice.finalAmount,
           bookingId: booking.id,
           customerId: booking.customerId,
-          description: `Cash payment for booking #${booking.bookingNumber}`,
+          description: `Payment for booking #${booking.bookingNumber}`,
           type: TransactionType.DEBIT, // Customer pays = DEBIT (money OUT)
           category: TransactionCategory.BOOKING_PAYMENT,
           paymentMethod: PaymentMethod.CASH,

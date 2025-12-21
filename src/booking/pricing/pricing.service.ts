@@ -32,8 +32,8 @@ export class PricingService {
     const perKm = Number(vehicleModel.perKm);
     const baseKm = vehicleModel.baseKm;
 
-    // effectiveBasePrice = baseFare * min(1, weightInTons)
-    const effectiveBasePrice = baseFare * Math.min(1, weightInTons);
+    // effectiveBasePrice = baseFare * max(1, weightInTons)
+    const effectiveBasePrice = baseFare * Math.max(1, weightInTons);
 
     // price = max(distance - baseKm, 0) * perKm + effectiveBasePrice
     const extraDistance = Math.max(distanceKm - baseKm, 0);
