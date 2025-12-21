@@ -12,10 +12,11 @@ import { DriverModule } from './driver/driver.module';
 import { BookingModule } from './booking/booking.module';
 import { AdminModule } from './admin/admin.module';
 import { validate } from './config/env.config';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ 
+    ConfigModule.forRoot({
       isGlobal: true,
       validate, // Fail-fast validation on startup
     }),
@@ -32,6 +33,7 @@ import { validate } from './config/env.config';
     BookingModule,
     AdminModule,
   ],
+  controllers: [AppController],
   providers: [ {
     provide: APP_GUARD,
     useClass: CustomThrottlerGuard,
