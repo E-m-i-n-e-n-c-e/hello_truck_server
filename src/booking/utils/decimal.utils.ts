@@ -33,13 +33,6 @@ export function maxDecimal(a: Decimal, b: Decimal): Decimal {
 }
 
 /**
- * Absolute value for Decimal
- */
-export function absDecimal(value: Decimal): Decimal {
-  return value.abs();
-}
-
-/**
  * Convert Decimal to number (use only when absolutely necessary)
  * For DB storage or external API calls
  */

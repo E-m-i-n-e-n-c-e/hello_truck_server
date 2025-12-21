@@ -275,7 +275,7 @@ export class BookingRefundService {
       return {
         walletRefund: isPaid
           ? truncateDecimal(walletApplied.mul(refundPercentage))
-          : truncateDecimal(walletApplied.abs()),
+          : truncateDecimal(walletApplied),
         razorpayRefund: isPaid ? truncateDecimal(totalPayable.mul(refundPercentage)) : new Decimal(0),
         cancellationCharge: truncateDecimal(totalPrice.mul(chargePercentage)),
         refundFactor: refundPercentage,
@@ -284,7 +284,7 @@ export class BookingRefundService {
 
     // No refund for other statuses
     return {
-      walletRefund: isPaid ? new Decimal(0) : truncateDecimal(walletApplied.abs()),
+      walletRefund: isPaid ? new Decimal(0) : truncateDecimal(walletApplied),
       razorpayRefund: new Decimal(0),
       cancellationCharge: truncateDecimal(totalPrice),
       refundFactor: new Decimal(0),
