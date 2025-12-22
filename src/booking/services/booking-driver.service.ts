@@ -343,7 +343,9 @@ export class BookingDriverService {
         throw new BadRequestException('Booking payment must be completed before finishing ride');
       }
 
-      const totalAmount = Number(finalInvoice.finalAmount);
+      // Use totalPrice (full service cost) for commission calculation
+      // NOT finalAmount (which is after wallet deduction)
+      const totalAmount = Number(finalInvoice.totalPrice);
       const commissionRate = this.configService.get<number>('COMMISSION_RATE')!;
       const commission = Math.round(totalAmount * commissionRate * 100) / 100;
 
@@ -523,7 +525,9 @@ export class BookingDriverService {
     completedAssignments.forEach((assignment) => {
       const finalInvoice = assignment.booking.invoices[0];
       if (finalInvoice) {
-        const grossAmount = Number(finalInvoice.finalAmount);
+        // Use totalPrice (full service cost) for commission calculation
+        // NOT finalAmount (which is after wallet deduction)
+        const grossAmount = Number(finalInvoice.totalPrice);
         const commission = truncate2(grossAmount * commissionRate);
         const netAmount = truncate2(grossAmount - commission);
 
