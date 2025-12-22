@@ -8,6 +8,7 @@ import { BookingPaymentService } from './booking-payment.service';
 import { BookingNotificationService } from './booking-notification.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { truncate2 } from '../utils/general.utils';
+import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
 
 type BookingWithRelations = Booking & {
   package: Package;
@@ -343,32 +344,49 @@ export class BookingDriverService {
         throw new BadRequestException('Booking payment must be completed before finishing ride');
       }
 
-      // Use totalPrice (full service cost) for commission calculation
-      // NOT finalAmount (which is after wallet deduction)
-      const totalAmount = Number(finalInvoice.totalPrice);
-      const commissionRate = this.configService.get<number>('COMMISSION_RATE')!;
-      const commission = Math.round(totalAmount * commissionRate * 100) / 100;
+      // Use Decimal for precision calculations
+      // totalPrice = full service cost (commission calculated on this)
+      const totalPrice = toDecimal(finalInvoice.totalPrice);
+      const commissionRate = toDecimal(this.configService.get<number>('COMMISSION_RATE')!);
+      const commission = truncateDecimal(totalPrice.mul(commissionRate));
 
       // Check payment type
       const isCashPayment = finalInvoice.paymentMethod === PaymentMethod.CASH;
 
       // Get current driver wallet balance
       const driver = assignment.driver;
-      const currentBalance = Number(driver.walletBalance);
+      const currentBalance = toDecimal(driver.walletBalance);
       let newBalance: number;
       let walletLogReason: string;
       let walletChange: number;
 
       if (isCashPayment) {
-        // Cash payment: Driver received cash, owes commission to platform (DEBIT)
-        walletChange = truncate2(-commission);
-        newBalance = truncate2(currentBalance - commission);
-        walletLogReason = `Commission for cash payment - Booking #${assignment.booking.bookingNumber}`;
+        // Cash payment: Driver collected finalAmount in cash
+        // walletChange = driverEarnings - cashCollected = (totalPrice - commission) - finalAmount
+        // Simplifies to: walletChange = walletApplied - commission
+        // - If walletApplied > 0: Customer used wallet credit, driver got less cash → platform compensates
+        // - If walletApplied < 0: Customer had debt, driver collected extra → driver owes platform
+        // - If walletApplied = 0: Simple commission deduction
+        const walletApplied = toDecimal(finalInvoice.walletApplied);
+        const walletChangeDecimal = truncateDecimal(walletApplied.minus(commission));
+        walletChange = toNumber(walletChangeDecimal);
+        newBalance = toNumber(truncateDecimal(currentBalance.plus(walletChangeDecimal)));
+
+        if (walletApplied.isZero()) {
+          // Simple case: no wallet adjustment, just commission
+          walletLogReason = `Commission for cash payment - Booking #${assignment.booking.bookingNumber}`;
+        } else if (walletChangeDecimal.greaterThanOrEqualTo(0)) {
+          // Wallet credit compensated driver
+          walletLogReason = `Earnings adjustment for Booking #${assignment.booking.bookingNumber}`;
+        } else {
+          // Commission + debt recovery deducted
+          walletLogReason = `Commission + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
+        }
       } else {
         // Online payment: Driver gets net earnings (CREDIT)
-        const driverEarnings = truncate2(totalAmount - commission);
-        walletChange = driverEarnings;
-        newBalance = truncate2(currentBalance + driverEarnings);
+        const driverEarnings = truncateDecimal(totalPrice.minus(commission));
+        walletChange = toNumber(driverEarnings);
+        newBalance = toNumber(truncateDecimal(currentBalance.plus(driverEarnings)));
         walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber}`;
       }
 
@@ -518,27 +536,28 @@ export class BookingDriverService {
       },
     });
 
-    // Calculate total earnings (gross) and net earnings (after commission)
-    let totalGrossEarnings = 0;
-    let totalNetEarnings = 0;
+    // Calculate total earnings (gross) and net earnings (after commission) using Decimal for precision
+    let totalGrossEarnings = toDecimal(0);
+    let totalNetEarnings = toDecimal(0);
+    const commissionRateDecimal = toDecimal(commissionRate);
 
     completedAssignments.forEach((assignment) => {
       const finalInvoice = assignment.booking.invoices[0];
       if (finalInvoice) {
         // Use totalPrice (full service cost) for commission calculation
         // NOT finalAmount (which is after wallet deduction)
-        const grossAmount = Number(finalInvoice.totalPrice);
-        const commission = truncate2(grossAmount * commissionRate);
-        const netAmount = truncate2(grossAmount - commission);
+        const grossAmount = toDecimal(finalInvoice.totalPrice);
+        const commission = truncateDecimal(grossAmount.mul(commissionRateDecimal));
+        const netAmount = truncateDecimal(grossAmount.minus(commission));
 
-        totalGrossEarnings += grossAmount;
-        totalNetEarnings += netAmount;
+        totalGrossEarnings = totalGrossEarnings.plus(grossAmount);
+        totalNetEarnings = totalNetEarnings.plus(netAmount);
       }
     });
 
     return {
       totalRides: completedAssignments.length,
-      netEarnings: truncate2(totalNetEarnings), // Driver's earnings after commission
+      netEarnings: toNumber(truncateDecimal(totalNetEarnings)), // Driver's earnings after commission
       commissionRate, // Platform commission rate (e.g., 0.07 for 7%)
       date: inputDate, // Return in YYYY-MM-DD format (IST date)
       assignments: completedAssignments, // Return completed assignments with bookings

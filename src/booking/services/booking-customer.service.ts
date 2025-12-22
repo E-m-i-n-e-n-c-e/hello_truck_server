@@ -244,7 +244,11 @@ export class BookingCustomerService {
       throw new BadRequestException('Booking cannot be cancelled after pickup verification');
     }
 
+    // Check if a cash payment was made(non returnable)
     const finalInvoice = booking.invoices[0];
+    if (finalInvoice?.isPaid && finalInvoice?.paymentMethod=='CASH') {
+      throw new BadRequestException('Booking cannot be cancelled after cash payment has been collected');
+    }
 
     // If no final invoice exists (PENDING or DRIVER_ASSIGNED booking), just cancel without refund processing
     if (!finalInvoice || !booking.assignedDriver) {
