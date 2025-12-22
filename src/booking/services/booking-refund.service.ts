@@ -258,19 +258,21 @@ export class BookingRefundService {
 
     // Partial refund for CONFIRMED and PICKUP_ARRIVED
     if (status === BookingStatus.CONFIRMED || status === BookingStatus.PICKUP_ARRIVED) {
-      const minCharge = new Decimal(this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') || 0.1);
-      const maxCharge = new Decimal(this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') || 0.5);
-      const incrementPerMinute = new Decimal(this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_MINUTE') || 0.01);
+      const minCharge = new Decimal(this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') ?? 0.1);
+      const maxCharge = new Decimal(this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') ?? 0.5);
+      const incrementPerMinute = new Decimal(this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_MINUTE') ?? 0.01);
 
-      let refundPercentage = minCharge;
+      // Charge percentage starts at minCharge and INCREASES with time
+      let chargePercentage = minCharge;
 
       if (acceptedAt) {
         const minutesElapsed = Math.floor((Date.now() - new Date(acceptedAt).getTime()) / (1000 * 60));
         const increment = incrementPerMinute.mul(minutesElapsed);
-        refundPercentage = Decimal.min(maxCharge, minCharge.plus(increment));
+        chargePercentage = Decimal.min(maxCharge, minCharge.plus(increment));
       }
 
-      const chargePercentage = new Decimal(1).minus(refundPercentage);
+      // Refund percentage DECREASES as charge increases
+      const refundPercentage = new Decimal(1).minus(chargePercentage);
 
       return {
         walletRefund: isPaid
