@@ -20,14 +20,17 @@ export class GstService {
       throw new BadRequestException('GST number already exists');
     }
 
-    await tx.customerGstDetails.create({
+    await tx.customer.update({
+      where: { id: userId },
       data: {
-        ...createGstDetailsDto,
-        customer: {
-            connect: { id: userId }
-          }
+        isBusiness: true,
+        gstDetails: {
+          create: {
+            ...createGstDetailsDto,
+          },
         },
-      });
+      },
+    });
 
     return {success:true, message:'GST details added successfully'};
   }
