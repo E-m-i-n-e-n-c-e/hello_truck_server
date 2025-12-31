@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
@@ -6,6 +6,7 @@ import { BookingNotificationService } from './booking-notification.service';
 import { Booking, BookingStatus, Customer, Invoice, PaymentMethod, Prisma, RefundIntent, TransactionCategory, TransactionType } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { truncateDecimal, toDecimal, toNumber } from '../utils/decimal.utils';
+import { REALTIME_BUS, RealtimeBus } from 'src/redis/interfaces/realtime-bus.interface';
 
 /**
  * Service for handling all refund operations
@@ -19,6 +20,7 @@ export class BookingRefundService {
     private readonly razorpayService: RazorpayService,
     private readonly notificationService: BookingNotificationService,
     private readonly configService: ConfigService,
+    @Inject(REALTIME_BUS) private readonly realtimeBus: RealtimeBus,
   ) {}
 
   /**
@@ -31,7 +33,7 @@ export class BookingRefundService {
     tx: Prisma.TransactionClient,
   ): Promise<RefundIntent> {
     const { walletRefund, razorpayRefund, cancellationCharge, refundFactor } =
-      this.calculateRefundAmounts(booking.status, finalInvoice, booking.acceptedAt);
+      await this.calculateRefundAmounts(booking, finalInvoice);
 
     // Determine status:
     // - PENDING if there's a refund to process OR cancellation charge to deduct
@@ -228,26 +230,25 @@ export class BookingRefundService {
   }
 
   /**
-   * Calculate refund amounts based on booking status and time elapsed
-   * Cancellation charge increases with time for CONFIRMED/PICKUP_ARRIVED
+   * Calculate refund amounts based on booking status and km travelled
+   * Cancellation charge increases with distance for CONFIRMED/PICKUP_ARRIVED
    */
-  calculateRefundAmounts(
-    status: BookingStatus,
+  async calculateRefundAmounts(
+    booking: Booking,
     invoice: Invoice,
-    acceptedAt?: Date | null,
-  ): {
+  ): Promise<{
     walletRefund: Decimal;
     razorpayRefund: Decimal;
     cancellationCharge: Decimal;
     refundFactor: Decimal | null;
-  } {
+  }> {
     const totalPrice = toDecimal(invoice.totalPrice);
     const walletApplied = toDecimal(invoice.walletApplied);
     const totalPayable = toDecimal(invoice.finalAmount);
     const isPaid = invoice.isPaid;
 
     // Full refund for PENDING and DRIVER_ASSIGNED
-    if (status === BookingStatus.PENDING || status === BookingStatus.DRIVER_ASSIGNED) {
+    if (booking.status === BookingStatus.PENDING || booking.status === BookingStatus.DRIVER_ASSIGNED) {
       return {
         walletRefund: truncateDecimal(walletApplied),
         razorpayRefund: truncateDecimal(totalPayable),
@@ -257,18 +258,34 @@ export class BookingRefundService {
     }
 
     // Partial refund for CONFIRMED and PICKUP_ARRIVED
-    if (status === BookingStatus.CONFIRMED || status === BookingStatus.PICKUP_ARRIVED) {
+    if (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.PICKUP_ARRIVED) {
       const minCharge = new Decimal(this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') ?? 0.1);
       const maxCharge = new Decimal(this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') ?? 0.5);
-      const incrementPerMinute = new Decimal(this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_MINUTE') ?? 0.01);
+      const incrementPerKm = new Decimal(this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_KM') ?? 0.05);
 
-      // Charge percentage starts at minCharge and INCREASES with time
+      // Charge percentage starts at minCharge and INCREASES with distance
       let chargePercentage = minCharge;
 
-      if (acceptedAt) {
-        const minutesElapsed = Math.floor((Date.now() - new Date(acceptedAt).getTime()) / (1000 * 60));
-        const increment = incrementPerMinute.mul(minutesElapsed);
-        chargePercentage = Decimal.min(maxCharge, minCharge.plus(increment));
+      // Read kmTravelled from Redis (driver navigation data)
+      if (booking.assignedDriverId) {
+        try {
+          const cacheKey = `driver_navigation:${booking.assignedDriverId}`;
+          const navigationDataStr = await this.realtimeBus.get(cacheKey);
+
+          if (navigationDataStr) {
+            const navigationData = JSON.parse(navigationDataStr);
+
+            // Only use kmTravelled if it's for the same booking
+            if (navigationData.bookingId === booking.id) {
+              const kmTravelled = navigationData.kmTravelled || 0;
+              const increment = incrementPerKm.mul(kmTravelled);
+              chargePercentage = Decimal.min(maxCharge, minCharge.plus(increment));
+              this.logger.log(`Booking ${booking.id}: ${kmTravelled}km travelled, charge: ${chargePercentage.mul(100).toFixed(1)}%`);
+            }
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to read navigation data for booking ${booking.id}, using min charge: ${error.message}`);
+        }
       }
 
       // Refund percentage DECREASES as charge increases

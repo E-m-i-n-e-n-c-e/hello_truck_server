@@ -48,10 +48,10 @@ const envSchema = z.object({
   // Business Logic
   COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.07),
 
-  // Cancellation Charge (time-based)
+  // Cancellation Charge (distance-based)
   CANCELLATION_MIN_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.1), // 10% minimum
   CANCELLATION_MAX_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.7), // 70% maximum
-  CANCELLATION_CHARGE_INCREMENT_PER_MINUTE: z.coerce.number().min(0).max(1).default(0.05), // 5% per minute
+  CANCELLATION_CHARGE_INCREMENT_PER_KM: z.coerce.number().min(0).max(1).default(0.05), // 5% per km travelled
 });
 
 // Export the inferred type

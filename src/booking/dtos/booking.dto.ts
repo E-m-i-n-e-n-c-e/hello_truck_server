@@ -131,5 +131,5 @@ export class CancellationConfigResponseDto {
   maxChargePercent: number;
 
   @Expose()
-  incrementPerMinute: number;
+  incrementPerKm: number;
 }

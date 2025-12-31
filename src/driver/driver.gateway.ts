@@ -131,6 +131,34 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
       const timeToDrop = Math.max(timeToPickup, payload.timeToFinalDestinationSeconds || 0);
       const distanceToDrop = Math.max(distanceToPickup, payload.distanceToFinalDestinationMeters || 0);
 
+      // Check if this is a new booking by looking at cached data
+      const cacheKey = `driver_navigation:${driverId}`;
+      const cachedDataStr = await this.realtimeBus.get(cacheKey);
+
+      let initialDistanceToPickup: number;
+      let kmTravelled: number;
+
+      if (!cachedDataStr) {
+        // No cached data - first update ever
+        initialDistanceToPickup = distanceToPickup;
+        kmTravelled = 0;
+        this.logger.log(`Booking ${payload.bookingId}: First navigation update, initial distance: ${Math.floor(initialDistanceToPickup / 1000)}km`);
+      } else {
+        const cachedData = JSON.parse(cachedDataStr);
+
+        if (cachedData.bookingId !== payload.bookingId) {
+          // Different booking - this is a new booking
+          initialDistanceToPickup = distanceToPickup;
+          kmTravelled = 0;
+          this.logger.log(`Booking ${payload.bookingId}: New booking started, initial distance: ${Math.floor(initialDistanceToPickup / 1000)}km`);
+        } else {
+          // Same booking - calculate distance travelled
+          initialDistanceToPickup = cachedData.initialDistanceToPickup || distanceToPickup;
+          const distanceTravelled = Math.max(0, initialDistanceToPickup - distanceToPickup);
+          kmTravelled = Math.floor(distanceTravelled / 1000);
+        }
+      }
+
       // Create the transformed data object
       const transformedData = {
         bookingId: payload.bookingId,
@@ -138,6 +166,8 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
         timeToDrop,
         distanceToPickup,
         distanceToDrop,
+        initialDistanceToPickup,
+        kmTravelled,
         location: payload.latitude && payload.longitude ? {
             latitude: Number(payload.latitude),
             longitude: Number(payload.longitude)
@@ -147,14 +177,13 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
       };
 
       // Store navigation data with driver ID as key
-      const cacheKey = `driver_navigation:${driverId}`;
       await this.realtimeBus.set(cacheKey, JSON.stringify(transformedData));
 
       // Publish update for SSE listeners scoped to driver
       const sseKey = `driver_navigation_updates:${driverId}`;
       await this.realtimeBus.publish(sseKey, JSON.stringify(transformedData));
 
-      this.logger.log(`Driver ${driverId} navigation data stored and published`);
+      this.logger.log(`Driver ${driverId} | Booking ${payload.bookingId}: ${kmTravelled}km travelled`);
 
     } catch (error) {
       this.logger.error(`Failed to process navigation update for driver ${driverId}:`, error);

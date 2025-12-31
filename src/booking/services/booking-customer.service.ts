@@ -384,9 +384,9 @@ export class BookingCustomerService {
 
   async getCancellationConfig(): Promise<CancellationConfigResponseDto> {
     return {
-      minChargePercent: this.configService.get('CANCELLATION_MIN_CHARGE_PERCENT') || 0.1,
-      maxChargePercent: this.configService.get('CANCELLATION_MAX_CHARGE_PERCENT') || 0.5,
-      incrementPerMinute: this.configService.get('CANCELLATION_INCREMENT_PER_MINUTE') || 0.01,
+      minChargePercent: this.configService.get('CANCELLATION_MIN_CHARGE_PERCENT') ?? 0.1,
+      maxChargePercent: this.configService.get('CANCELLATION_MAX_CHARGE_PERCENT') ?? 0.5,
+      incrementPerKm: this.configService.get('CANCELLATION_CHARGE_INCREMENT_PER_KM') ?? 0.05,
     };
   }
 
