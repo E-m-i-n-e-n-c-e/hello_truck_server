@@ -79,12 +79,16 @@ export class BookingDriverService {
     }
 
     const walletData = await this.prisma.$transaction(async (tx) => {
-      // Update assignment status to ACCEPTED
+      // Get current commission rate to store with assignment
+      const commissionRate = this.configService.get<number>('COMMISSION_RATE') || 0.07;
+
+      // Update assignment status to ACCEPTED with commission rate snapshot
       await tx.bookingAssignment.updateMany({
         where: { id: assignment.id, status: AssignmentStatus.OFFERED },
         data: {
           status: AssignmentStatus.ACCEPTED,
-          respondedAt: new Date()
+          respondedAt: new Date(),
+          commissionRate: commissionRate,
         }
       });
 
@@ -347,7 +351,11 @@ export class BookingDriverService {
       // Use Decimal for precision calculations
       // totalPrice = full service cost (commission calculated on this)
       const totalPrice = toDecimal(finalInvoice.totalPrice);
-      const commissionRate = toDecimal(this.configService.get<number>('COMMISSION_RATE')!);
+      // Use stored commission rate from assignment if available, fallback to env config
+      const storedRate = assignment.commissionRate;
+      const commissionRate = storedRate
+        ? toDecimal(storedRate)
+        : toDecimal(this.configService.get<number>('COMMISSION_RATE')!);
       const commission = truncateDecimal(totalPrice.mul(commissionRate));
 
       // Check payment type
@@ -498,8 +506,8 @@ export class BookingDriverService {
     const startUTC = new Date(`${inputDate}T00:00:00+05:30`);
     const endUTC = new Date(`${inputDate}T23:59:59.999+05:30`);
 
-    // Get commission rate from config
-    const commissionRate = this.configService.get<number>('COMMISSION_RATE')!;
+    // Get default commission rate from config (used for display and fallback)
+    const defaultCommissionRate = this.configService.get<number>('COMMISSION_RATE')!;
 
     // Query DB with UTC timestamps, filter FINAL invoices at DB level
     const completedAssignments = await this.prisma.bookingAssignment.findMany({
@@ -539,7 +547,6 @@ export class BookingDriverService {
     // Calculate total earnings (gross) and net earnings (after commission) using Decimal for precision
     let totalGrossEarnings = toDecimal(0);
     let totalNetEarnings = toDecimal(0);
-    const commissionRateDecimal = toDecimal(commissionRate);
 
     completedAssignments.forEach((assignment) => {
       const finalInvoice = assignment.booking.invoices[0];
@@ -547,7 +554,11 @@ export class BookingDriverService {
         // Use totalPrice (full service cost) for commission calculation
         // NOT finalAmount (which is after wallet deduction)
         const grossAmount = toDecimal(finalInvoice.totalPrice);
-        const commission = truncateDecimal(grossAmount.mul(commissionRateDecimal));
+        // Use stored commission rate from assignment if available, fallback to default
+        const assignmentCommissionRate = assignment.commissionRate
+          ? toDecimal(assignment.commissionRate)
+          : toDecimal(defaultCommissionRate);
+        const commission = truncateDecimal(grossAmount.mul(assignmentCommissionRate));
         const netAmount = truncateDecimal(grossAmount.minus(commission));
 
         totalGrossEarnings = totalGrossEarnings.plus(grossAmount);
@@ -558,7 +569,7 @@ export class BookingDriverService {
     return {
       totalRides: completedAssignments.length,
       netEarnings: toNumber(truncateDecimal(totalNetEarnings)), // Driver's earnings after commission
-      commissionRate, // Platform commission rate (e.g., 0.07 for 7%)
+      commissionRate: defaultCommissionRate, // Platform commission rate (e.g., 0.07 for 7%)
       date: inputDate, // Return in YYYY-MM-DD format (IST date)
       assignments: completedAssignments, // Return completed assignments with bookings
     };

@@ -37,9 +37,18 @@ export class DocumentCleanupService {
       data: { insuranceStatus: 'PENDING' }
     });
 
-    this.logger.log(`Expired docs: License=${expiredLicenses.count}, FC=${expiredFCs.count}, Insurance=${expiredInsurances.count}.`);
+    // 4. Expire RC Books
+    const expiredRcBooks = await this.prisma.driverDocuments.updateMany({
+      where: {
+        rcBookExpiry: { lt: now },
+        rcBookStatus: 'VERIFIED'
+      },
+      data: { rcBookStatus: 'PENDING' }
+    });
 
-    // 4. Update Driver status to PENDING ONLY if they have EXPIRED documents
+    this.logger.log(`Expired docs: License=${expiredLicenses.count}, FC=${expiredFCs.count}, Insurance=${expiredInsurances.count}, RCBook=${expiredRcBooks.count}.`);
+
+    // 5. Update Driver status to PENDING ONLY if they have EXPIRED documents
     const demotedDrivers = await this.prisma.driver.updateMany({
       where: {
         verificationStatus: 'VERIFIED',
@@ -47,7 +56,8 @@ export class DocumentCleanupService {
           OR: [
             { licenseExpiry: { lt: now } },
             { fcExpiry: { lt: now } },
-            { insuranceExpiry: { lt: now } }
+            { insuranceExpiry: { lt: now } },
+            { rcBookExpiry: { lt: now } }
           ]
         }
       },

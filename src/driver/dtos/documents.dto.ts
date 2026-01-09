@@ -32,6 +32,11 @@ export class CreateDriverDocumentsDto {
   @IsString()
   @IsUrl()
   ebBillUrl: string;
+
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  selfieUrl?: string;
 }
 
 export class UpdateDriverDocumentsDto {
@@ -71,6 +76,11 @@ export class UpdateDriverDocumentsDto {
   @IsOptional()
   @IsUrl()
   ebBillUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  selfieUrl?: string;
 }
 
 export class DriverDocumentsResponseDto implements DriverDocuments {
@@ -86,6 +96,10 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
 
   @Expose()
   rcBookUrl: string;
+  @Expose()
+  rcBookExpiry: Date | null;
+  @Expose()
+  rcBookStatus: VerificationStatus;
 
   @Expose()
   fcUrl: string;
@@ -107,6 +121,8 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   panNumber: string;
   @Expose()
   ebBillUrl: string;
+  @Expose()
+  selfieUrl: string | null;
   @Expose()
   createdAt: Date;
   @Expose()

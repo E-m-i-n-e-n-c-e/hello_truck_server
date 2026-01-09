@@ -100,6 +100,7 @@ export class AdminService {
           { licenseStatus: VerificationStatus.PENDING },
           { fcStatus: VerificationStatus.PENDING },
           { insuranceStatus: VerificationStatus.PENDING },
+          { rcBookStatus: VerificationStatus.PENDING },
         ],
       },
     };
@@ -188,6 +189,7 @@ export class AdminService {
       licenseExpiry: dto.licenseExpiry ? new Date(dto.licenseExpiry) : undefined,
       fcExpiry: dto.fcExpiry ? new Date(dto.fcExpiry) : undefined,
       insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : undefined,
+      rcBookExpiry: dto.rcBookExpiry ? new Date(dto.rcBookExpiry) : undefined,
     };
 
     // Update driver verification status and document expiry dates in a transaction
@@ -206,9 +208,11 @@ export class AdminService {
             licenseExpiry: expiryDates.licenseExpiry,
             fcExpiry: expiryDates.fcExpiry,
             insuranceExpiry: expiryDates.insuranceExpiry,
+            rcBookExpiry: expiryDates.rcBookExpiry,
             fcStatus: VerificationStatus.VERIFIED,
             licenseStatus: VerificationStatus.VERIFIED,
             insuranceStatus: VerificationStatus.VERIFIED,
+            rcBookStatus: VerificationStatus.VERIFIED,
           },
         });
       }

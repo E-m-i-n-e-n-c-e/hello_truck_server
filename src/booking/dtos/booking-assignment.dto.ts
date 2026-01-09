@@ -1,8 +1,8 @@
 import { Expose, Type } from 'class-transformer';
 import { DriverBookingResponseDto } from './booking.dto';
-import { AssignmentStatus, BookingAssignment } from '@prisma/client';
+import { AssignmentStatus } from '@prisma/client';
 
-export class BookingAssignmentResponseDto implements BookingAssignment {
+export class BookingAssignmentResponseDto  {
   @Expose()
   id: string;
 
@@ -14,6 +14,9 @@ export class BookingAssignmentResponseDto implements BookingAssignment {
 
   @Expose()
   status: AssignmentStatus;
+
+  @Expose()
+  commissionRate: Number | null;
 
   @Expose()
   offeredAt: Date;

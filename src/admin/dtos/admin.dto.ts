@@ -62,6 +62,9 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   driverId: string;
 
   @Expose()
+  selfieUrl: string | null;
+
+  @Expose()
   licenseUrl: string;
   @Expose()
   licenseExpiry: Date | null;
@@ -70,6 +73,10 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
 
   @Expose()
   rcBookUrl: string;
+  @Expose()
+  rcBookExpiry: Date | null;
+  @Expose()
+  rcBookStatus: VerificationStatus;
 
   @Expose()
   fcUrl: string;
@@ -211,4 +218,7 @@ export class UpdateDriverVerificationDto {
 
   @IsOptional()
   insuranceExpiry?: string;
+
+  @IsOptional()
+  rcBookExpiry?: string;
 }

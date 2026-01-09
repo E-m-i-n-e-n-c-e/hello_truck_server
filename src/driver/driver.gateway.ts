@@ -106,7 +106,7 @@ export class DriverGateway implements OnGatewayConnection, OnGatewayDisconnect, 
   }
 
   @SubscribeMessage('driver-navigation-update')
-  @Throttle({ default: { ttl: seconds(2), limit: 1 } })
+  @Throttle({ default: { ttl: seconds(5), limit: 1 } })
   async handleNavigationUpdate(client: Socket, payload: {
     bookingId: string;
     remainingTime: number;

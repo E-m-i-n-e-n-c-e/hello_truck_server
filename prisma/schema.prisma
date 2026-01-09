@@ -146,6 +146,8 @@ model DriverDocuments {
   licenseExpiry   DateTime?
   licenseStatus   VerificationStatus @default(PENDING)
   rcBookUrl       String
+  rcBookExpiry    DateTime?
+  rcBookStatus    VerificationStatus @default(PENDING)
   fcUrl           String
   fcExpiry        DateTime?
   fcStatus        VerificationStatus @default(PENDING)
@@ -155,10 +157,12 @@ model DriverDocuments {
   aadharUrl       String
   panNumber       String
   ebBillUrl       String
+  selfieUrl       String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([licenseExpiry])
+  @@index([rcBookExpiry])
   @@index([fcExpiry])
   @@index([insuranceExpiry])
 }
@@ -384,14 +388,15 @@ model Booking {
 }
 
 model BookingAssignment {
-  id          String            @id @default(uuid())
-  bookingId   String
-  booking     Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  driverId    String
-  driver      Driver            @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  status      AssignmentStatus  @default(OFFERED)
-  offeredAt   DateTime          @default(now())
-  respondedAt DateTime?
+  id             String            @id @default(uuid())
+  bookingId      String
+  booking        Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driverId       String
+  driver         Driver            @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  status         AssignmentStatus  @default(OFFERED)
+  commissionRate Decimal?          @db.Decimal(5,4)
+  offeredAt      DateTime          @default(now())
+  respondedAt    DateTime?
 
   @@unique([bookingId, driverId])
   @@index([bookingId, status])

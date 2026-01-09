@@ -242,7 +242,9 @@ export class BookingRefundService {
     cancellationCharge: Decimal;
     refundFactor: Decimal | null;
   }> {
-    const totalPrice = toDecimal(invoice.totalPrice);
+    // Use basePrice for cancellation charge (not effectiveBasePrice which includes weight)
+    // Cancellation happens before pickup, so weight doesn't matter
+    const basePrice = toDecimal(invoice.basePrice);
     const walletApplied = toDecimal(invoice.walletApplied);
     const totalPayable = toDecimal(invoice.finalAmount);
     const isPaid = invoice.isPaid;
@@ -290,13 +292,34 @@ export class BookingRefundService {
 
       // Refund percentage DECREASES as charge increases
       const refundPercentage = new Decimal(1).minus(chargePercentage);
+      const cancellationCharge = truncateDecimal(basePrice.mul(chargePercentage));
 
+      // Calculate refunds with proportional distribution of cancellation charge
+      // Each payment method bears its share of the charge based on contribution to total
+      if (isPaid) {
+        const totalPaid = walletApplied.plus(totalPayable);
+
+        // Proportional deduction: each method loses (cancellationCharge × itsContribution / totalPaid)
+        const walletShare = totalPaid.greaterThan(0)
+          ? cancellationCharge.mul(walletApplied).div(totalPaid)
+          : new Decimal(0);
+        const razorpayShare = totalPaid.greaterThan(0)
+          ? cancellationCharge.mul(totalPayable).div(totalPaid)
+          : new Decimal(0);
+
+        return {
+          walletRefund: truncateDecimal(walletApplied.minus(walletShare)),
+          razorpayRefund: truncateDecimal(totalPayable.minus(razorpayShare)),
+          cancellationCharge,
+          refundFactor: refundPercentage,
+        };
+      }
+
+      // Unpaid: full wallet refund, no razorpay refund
       return {
-        walletRefund: isPaid
-          ? truncateDecimal(walletApplied.mul(refundPercentage))
-          : truncateDecimal(walletApplied),
-        razorpayRefund: isPaid ? truncateDecimal(totalPayable.mul(refundPercentage)) : new Decimal(0),
-        cancellationCharge: truncateDecimal(totalPrice.mul(chargePercentage)),
+        walletRefund: truncateDecimal(walletApplied),
+        razorpayRefund: new Decimal(0),
+        cancellationCharge,
         refundFactor: refundPercentage,
       };
     }
@@ -305,7 +328,7 @@ export class BookingRefundService {
     return {
       walletRefund: isPaid ? new Decimal(0) : truncateDecimal(walletApplied),
       razorpayRefund: new Decimal(0),
-      cancellationCharge: truncateDecimal(totalPrice),
+      cancellationCharge: truncateDecimal(basePrice),
       refundFactor: new Decimal(0),
     };
   }
@@ -353,6 +376,7 @@ export class BookingRefundService {
 
   /**
    * Compensate driver from cancellation charge
+   * Uses stored commission rate from assignment if available
    */
   private async compensateDriver(
     driver: { id: string; walletBalance: any },
@@ -365,8 +389,22 @@ export class BookingRefundService {
     const driverWalletBefore = toDecimal(driver.walletBalance);
     const chargeDecimal = toDecimal(cancellationCharge);
 
-    // Deduct platform commission from cancellation charge
-    const commissionRate = toDecimal(this.configService.get<number>('COMMISSION_RATE') || 0.07);
+    // Try to get commission rate from the accepted assignment
+    const assignment = await tx.bookingAssignment.findFirst({
+      where: {
+        bookingId: booking.id,
+        driverId: driver.id,
+        status: 'ACCEPTED',
+      },
+    });
+
+    // Use stored commission rate if available, otherwise fall back to env config
+    // Note: commissionRate field added in migration - may be null for older assignments
+    const storedRate = assignment?.commissionRate;
+    const commissionRate = storedRate
+      ? toDecimal(storedRate)
+      : toDecimal(this.configService.get<number>('COMMISSION_RATE') || 0.07);
+
     const compensation = truncateDecimal(chargeDecimal.mul(new Decimal(1).minus(commissionRate)));
 
     const newBalance = truncateDecimal(driverWalletBefore.plus(compensation));

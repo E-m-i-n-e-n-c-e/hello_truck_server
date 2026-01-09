@@ -39,7 +39,7 @@ export class BookingNotificationService {
   notifyCustomerPickupArrived(customerId: string): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
-        title: 'Parcel Pickup Arrived',
+        title: 'Pickup Arrived',
         body: 'Your driver has arrived at the pickup location. Please verify the pickup and proceed with the delivery.',
       },
       data: {
