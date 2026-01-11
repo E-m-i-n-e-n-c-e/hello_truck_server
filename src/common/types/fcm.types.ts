@@ -3,6 +3,7 @@ export enum FcmEventType {
   BookingStatusChange = 'BOOKING_STATUS_CHANGE',
   DriverAssignmentOffered = 'DRIVER_ASSIGNMENT_OFFERED',
   DriverAssignmentTimeout = 'DRIVER_ASSIGNMENT_TIMEOUT',
+  DriverPaymentSuccess = 'DRIVER_PAYMENT_SUCCESS',
   DriverVerificationUpdate = 'DRIVER_VERIFICATION_UPDATE',
   PaymentSuccess = 'PAYMENT_SUCCESS',
   PayoutProcessed = 'PAYOUT_PROCESSED',

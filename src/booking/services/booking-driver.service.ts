@@ -7,7 +7,6 @@ import { BookingInvoiceService } from './booking-invoice.service';
 import { BookingPaymentService } from './booking-payment.service';
 import { BookingNotificationService } from './booking-notification.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
-import { truncate2 } from '../utils/general.utils';
 import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
 
 type BookingWithRelations = Booking & {
@@ -491,25 +490,27 @@ export class BookingDriverService {
     });
   }
 
-  async getRideSummary(driverId: string, date?: string): Promise<{
+  /**
+   * Common function for fetching earnings data for a date range
+   */
+  private async _getEarningsCore(
+    driverId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<{
     totalRides: number;
     netEarnings: number;
     commissionRate: number;
-    date: string;
     assignments: BookingAssignment[];
   }> {
-    // Parse input date or use today in IST
-    const inputDate = date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD in IST
-
     // Create UTC timestamps for IST day boundaries
-    // When Date parses '2025-01-01T00:00:00+05:30', it automatically converts to UTC (2024-12-31T18:30:00Z)
-    const startUTC = new Date(`${inputDate}T00:00:00+05:30`);
-    const endUTC = new Date(`${inputDate}T23:59:59.999+05:30`);
+    const startUTC = new Date(`${startDate}T00:00:00+05:30`);
+    const endUTC = new Date(`${endDate}T23:59:59.999+05:30`);
 
-    // Get default commission rate from config (used for display and fallback)
+    // Get default commission rate from config
     const defaultCommissionRate = this.configService.get<number>('COMMISSION_RATE')!;
 
-    // Query DB with UTC timestamps, filter FINAL invoices at DB level
+    // Query DB with UTC timestamps
     const completedAssignments = await this.prisma.bookingAssignment.findMany({
       where: {
         driverId,
@@ -544,34 +545,71 @@ export class BookingDriverService {
       },
     });
 
-    // Calculate total earnings (gross) and net earnings (after commission) using Decimal for precision
-    let totalGrossEarnings = toDecimal(0);
+    // Calculate net earnings using Decimal for precision
     let totalNetEarnings = toDecimal(0);
 
     completedAssignments.forEach((assignment) => {
       const finalInvoice = assignment.booking.invoices[0];
       if (finalInvoice) {
-        // Use totalPrice (full service cost) for commission calculation
-        // NOT finalAmount (which is after wallet deduction)
         const grossAmount = toDecimal(finalInvoice.totalPrice);
-        // Use stored commission rate from assignment if available, fallback to default
         const assignmentCommissionRate = assignment.commissionRate
           ? toDecimal(assignment.commissionRate)
           : toDecimal(defaultCommissionRate);
         const commission = truncateDecimal(grossAmount.mul(assignmentCommissionRate));
         const netAmount = truncateDecimal(grossAmount.minus(commission));
-
-        totalGrossEarnings = totalGrossEarnings.plus(grossAmount);
         totalNetEarnings = totalNetEarnings.plus(netAmount);
       }
     });
 
     return {
       totalRides: completedAssignments.length,
-      netEarnings: toNumber(truncateDecimal(totalNetEarnings)), // Driver's earnings after commission
-      commissionRate: defaultCommissionRate, // Platform commission rate (e.g., 0.07 for 7%)
-      date: inputDate, // Return in YYYY-MM-DD format (IST date)
-      assignments: completedAssignments, // Return completed assignments with bookings
+      netEarnings: toNumber(truncateDecimal(totalNetEarnings)),
+      commissionRate: defaultCommissionRate,
+      assignments: completedAssignments,
+    };
+  }
+
+  /**
+   * Get ride summary for a single date (backward compatible)
+   */
+  async getRideSummary(driverId: string, date?: string): Promise<{
+    totalRides: number;
+    netEarnings: number;
+    commissionRate: number;
+    date: string;
+    assignments: BookingAssignment[];
+  }> {
+    const inputDate = date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const result = await this._getEarningsCore(driverId, inputDate, inputDate);
+    return {
+      ...result,
+      date: inputDate,
+    };
+  }
+
+  /**
+   * Get earnings summary for a date range
+   */
+  async getEarningsSummary(
+    driverId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{
+    totalRides: number;
+    netEarnings: number;
+    commissionRate: number;
+    startDate: string;
+    endDate: string;
+    assignments: BookingAssignment[];
+  }> {
+    const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const start = startDate || todayIST;
+    const end = endDate || start;
+    const result = await this._getEarningsCore(driverId, start, end);
+    return {
+      ...result,
+      startDate: start,
+      endDate: end,
     };
   }
 }

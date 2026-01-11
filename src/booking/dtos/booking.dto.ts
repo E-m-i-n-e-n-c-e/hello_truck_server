@@ -98,8 +98,10 @@ export class DriverBookingResponseDto extends BookingResponseDto {
   declare dropOtp: string;
 }
 
-
-export class RideSummaryDto {
+/**
+ * Base earnings response with common fields
+ */
+class BaseEarningsDto {
   @Expose()
   totalRides: number;
 
@@ -110,11 +112,27 @@ export class RideSummaryDto {
   commissionRate: number; // Platform commission rate (e.g., 0.07 = 7%)
 
   @Expose()
+  @Type(() => BookingAssignmentResponseDto)
+  assignments: BookingAssignmentResponseDto[];
+}
+
+/**
+ * Ride summary for single date (backward compatible)
+ */
+export class RideSummaryDto extends BaseEarningsDto {
+  @Expose()
   date: string; // YYYY-MM-DD format
+}
+
+/**
+ * Earnings summary for date range (startDate to endDate)
+ */
+export class EarningsSummaryResponseDto extends BaseEarningsDto {
+  @Expose()
+  startDate: string; // YYYY-MM-DD format
 
   @Expose()
-  @Type(() => BookingAssignmentResponseDto)
-  assignments: BookingAssignmentResponseDto[]; // Completed assignments with bookings for the day
+  endDate: string; // YYYY-MM-DD format
 }
 
 

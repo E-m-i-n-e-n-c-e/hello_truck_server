@@ -2,8 +2,10 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 import { TransactionType, TransactionCategory, PaymentMethod } from '@prisma/client';
 import { toDecimal, toNumber, truncateDecimal } from 'src/booking/utils/decimal.utils';
+import { FcmEventType } from 'src/common/types/fcm.types';
 
 interface CachedPaymentLink {
   paymentLinkId: string;
@@ -23,6 +25,7 @@ export class DriverPaymentService {
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
     private readonly razorpayService: RazorpayService,
+    private readonly firebaseService: FirebaseService,
   ) {}
 
   private getRedisKey(driverId: string): string {
@@ -170,6 +173,19 @@ export class DriverPaymentService {
 
     // Clear cache
     await this.redisService.del(this.getRedisKey(driverId));
+
+    // Send FCM notification to driver
+    this.firebaseService.notifyAllSessions(driverId, 'driver', {
+      notification: {
+        title: 'Payment Successful ✅',
+        body: `₹${amountPaid.toFixed(2)} has been credited to your wallet`,
+      },
+      data: {
+        event: FcmEventType.DriverPaymentSuccess,
+        amount: amountPaid.toString(),
+      },
+    });
+
     this.logger.log(`Credited ₹${amountPaid} to driver ${driverId}`);
   }
 

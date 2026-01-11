@@ -6,7 +6,7 @@ import { User } from 'src/token/decorators/user.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingAssignmentResponseDto } from '../dtos/booking-assignment.dto';
 import { BookingDriverService } from '../services/booking-driver.service';
-import { RideSummaryDto } from '../dtos/booking.dto';
+import { RideSummaryDto, EarningsSummaryResponseDto } from '../dtos/booking.dto';
 
 @Controller('bookings/driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -87,5 +87,15 @@ export class BookingDriverController {
   ) {
     return this.bookingDriverService.getRideSummary(driverId, date);
   }
-}
 
+  // Get earnings summary with date range and per-booking commission breakdown
+  @Get('earnings-summary')
+  @Serialize(EarningsSummaryResponseDto)
+  getEarningsSummary(
+    @User('userId') driverId: string,
+    @Query('startDate') startDate?: string, // Optional: YYYY-MM-DD format, defaults to today
+    @Query('endDate') endDate?: string, // Optional: YYYY-MM-DD format, defaults to startDate
+  ) {
+    return this.bookingDriverService.getEarningsSummary(driverId, startDate, endDate);
+  }
+}
