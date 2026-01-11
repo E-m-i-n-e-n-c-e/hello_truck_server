@@ -11,14 +11,13 @@ interface CachedPaymentLink {
   amount: number;
   collected: number;
   expiresAt: number;
-  driverId: string;
 }
 
 @Injectable()
 export class DriverPaymentService {
   private readonly logger = new Logger(DriverPaymentService.name);
-  private readonly LINK_EXPIRY_SECONDS = 300; // 5 minutes
-  private readonly MIN_REMAINING_SECONDS = 240; // Minimum time left to reuse link
+  private readonly LINK_EXPIRY_SECONDS = 1200; // 20 minutes (Razorpay minimum)
+  private readonly MIN_REMAINING_SECONDS = 300; // 5 min minimum to reuse link
 
   constructor(
     private readonly prisma: PrismaService,
@@ -32,7 +31,8 @@ export class DriverPaymentService {
 
   /**
    * Generate payment link for driver wallet top-up
-   * App sends the amount, we cache to prevent spam
+   * DB stores referenceId → driverId mapping for webhook lookup
+   * Redis caches for spam prevention
    */
   async generatePaymentLink(driverId: string, amount: number): Promise<{
     paymentLinkUrl: string;
@@ -73,7 +73,13 @@ export class DriverPaymentService {
       }
     }
 
-    // Create new link
+   // Create DB record first with generated referenceId (UUID, 36 chars)
+   const referenceId = crypto.randomUUID();
+   await this.prisma.driverPaymentLink.create({
+      data: { referenceId, driverId },
+    });
+
+    // Create Razorpay link with referenceId
     const expiresAt = now + this.LINK_EXPIRY_SECONDS;
     const customerName = driver.firstName && driver.lastName
       ? `${driver.firstName} ${driver.lastName}`
@@ -87,17 +93,16 @@ export class DriverPaymentService {
       acceptPartial: true,
       firstMinPartialAmount: 1, // ₹1 minimum
       expireBy: expiresAt,
-      referenceId: `driver-${driverId}-${now}`,
+      referenceId,
     });
 
-    // Cache it
+    // Cache in Redis for spam prevention
     const cacheData: CachedPaymentLink = {
       paymentLinkId: paymentLink.paymentLinkId,
       shortUrl: paymentLink.paymentLinkUrl,
       amount,
       collected: 0,
       expiresAt,
-      driverId,
     };
     await this.redisService.set(redisKey, JSON.stringify(cacheData), 'EX', this.LINK_EXPIRY_SECONDS);
 
@@ -112,12 +117,12 @@ export class DriverPaymentService {
   }
 
   /**
-   * Handle payment from webhook - just credit the wallet
+   * Handle payment from webhook - lookup driver from DB via referenceId
    */
   async handlePaymentReceived(referenceId: string, rzpPaymentId: string, amountPaid: number): Promise<void> {
-    const driverId = this.extractDriverIdFromReference(referenceId);
+    const driverId = await this.extractDriverIdFromReference(referenceId);
     if (!driverId) {
-      this.logger.warn(`Invalid reference_id format: ${referenceId}`);
+      this.logger.warn(`Invalid referenceId`);
       return;
     }
 
@@ -172,7 +177,7 @@ export class DriverPaymentService {
    * Handle link expiry - just clear cache
    */
   async handleLinkExpired(referenceId: string): Promise<void> {
-    const driverId = this.extractDriverIdFromReference(referenceId);
+    const driverId = await this.extractDriverIdFromReference(referenceId);
     if (driverId) {
       await this.redisService.del(this.getRedisKey(driverId));
       this.logger.log(`Cleared cache for expired link: driver=${driverId}`);
@@ -180,14 +185,14 @@ export class DriverPaymentService {
   }
 
   /**
-   * Extract driver ID from reference_id format: driver-{driverId}-{timestamp}
+   * Lookup driver ID from referenceId via DB
    */
-  private extractDriverIdFromReference(referenceId: string): string | null {
-    if (!referenceId?.startsWith('driver-')) return null;
-    const parts = referenceId.split('-');
-    // Format: driver-{uuid}-{timestamp}, UUID has dashes so join middle parts
-    if (parts.length < 3) return null;
-    // Remove 'driver' prefix and timestamp suffix, rejoin UUID
-    return parts.slice(1, -1).join('-');
+  private async extractDriverIdFromReference(referenceId: string) {
+    const paymentLink = await this.prisma.driverPaymentLink.findUnique({
+      where: { referenceId },
+      select: { driverId: true },
+    });
+
+    return paymentLink?.driverId || null;
   }
 }

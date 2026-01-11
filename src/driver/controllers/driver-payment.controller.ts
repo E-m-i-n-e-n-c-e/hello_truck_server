@@ -58,13 +58,9 @@ export class DriverPaymentController {
     const paymentLink = body.payload.payment_link?.entity;
     const payment = body.payload.payment?.entity;
 
-    if (!paymentLink?.id) {
-      return { status: 'ok' };
-    }
-
-    // Only handle driver payment links (reference_id starts with "driver-")
-    const referenceId = paymentLink.reference_id;
-    if (!referenceId?.startsWith('driver-')) {
+    // Get referenceId from payment link - this is our lookup key
+    const referenceId = paymentLink?.reference_id;
+    if (!referenceId) {
       return { status: 'ok' };
     }
 

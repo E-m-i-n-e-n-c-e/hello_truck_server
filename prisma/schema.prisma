@@ -133,6 +133,7 @@ model Driver {
   transactions       Transaction[]
   payouts            Payout[]
   walletLogs         DriverWalletLog[]
+  paymentLinks       DriverPaymentLink[]
 
   @@index([isActive, verificationStatus])
   @@index([lastSeenAt, driverStatus])
@@ -534,6 +535,15 @@ model DriverWalletLog {
 
   @@index([driverId, createdAt])
   @@index([createdAt])
+}
+
+// Driver payment links - lookup table for webhook (referenceId → driverId)
+model DriverPaymentLink {
+  id                String   @id @default(uuid())
+  referenceId       String   @unique // Sent to Razorpay, used for webhook lookup
+  driverId          String
+  driver            Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
 }
 
 model CustomerWalletLog {

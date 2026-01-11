@@ -792,7 +792,15 @@
         "operationId": "getRideSummary",
         "parameters": [
           {
-            "name": "date",
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
             "required": true,
             "in": "query",
             "schema": {
@@ -1010,6 +1018,25 @@
         },
         "tags": [
           "Admin"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/": {
+      "get": {
+        "operationId": "getRoot",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
         ],
         "security": [
           {
@@ -2220,6 +2247,63 @@
           }
         ]
       }
+    },
+    "/driver/payment/link": {
+      "post": {
+        "operationId": "generatePaymentLink",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePaymentLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverPayment"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/payment/webhook": {
+      "post": {
+        "operationId": "handleWebhook",
+        "parameters": [
+          {
+            "name": "x-razorpay-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverPayment"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
     }
   },
   "info": {
@@ -2609,14 +2693,14 @@
           "maxChargePercent": {
             "type": "number"
           },
-          "incrementPerMinute": {
+          "incrementPerKm": {
             "type": "number"
           }
         },
         "required": [
           "minChargePercent",
           "maxChargePercent",
-          "incrementPerMinute"
+          "incrementPerKm"
         ]
       },
       "CancelBookingDto": {
@@ -2643,6 +2727,9 @@
             "type": "string"
           },
           "insuranceExpiry": {
+            "type": "string"
+          },
+          "rcBookExpiry": {
             "type": "string"
           }
         },
@@ -2756,9 +2843,6 @@
       "GetProfileResponseDto": {
         "type": "object",
         "properties": {
-          "walletBalance": {
-            "$ref": "#/components/schemas/i"
-          },
           "id": {
             "type": "string"
           },
@@ -2787,6 +2871,9 @@
           "phoneNumber": {
             "type": "string"
           },
+          "walletBalance": {
+            "$ref": "#/components/schemas/i"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -2797,7 +2884,6 @@
           }
         },
         "required": [
-          "walletBalance",
           "id",
           "isActive",
           "firstName",
@@ -2806,6 +2892,7 @@
           "isBusiness",
           "referralCode",
           "phoneNumber",
+          "walletBalance",
           "createdAt",
           "updatedAt"
         ]
@@ -2980,6 +3067,10 @@
             "pattern": "/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/"
           },
           "ebBillUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "selfieUrl": {
             "type": "string",
             "format": "uri"
           }
@@ -3299,6 +3390,14 @@
           "rcBookUrl": {
             "type": "string"
           },
+          "rcBookExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "rcBookStatus": {
+            "type": "object"
+          },
           "fcUrl": {
             "type": "string"
           },
@@ -3330,6 +3429,10 @@
           "ebBillUrl": {
             "type": "string"
           },
+          "selfieUrl": {
+            "type": "string",
+            "nullable": true
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -3346,6 +3449,8 @@
           "licenseExpiry",
           "licenseStatus",
           "rcBookUrl",
+          "rcBookExpiry",
+          "rcBookStatus",
           "fcUrl",
           "fcExpiry",
           "fcStatus",
@@ -3355,6 +3460,7 @@
           "aadharUrl",
           "panNumber",
           "ebBillUrl",
+          "selfieUrl",
           "createdAt",
           "updatedAt"
         ]
@@ -3387,6 +3493,10 @@
             "pattern": "/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/"
           },
           "ebBillUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "selfieUrl": {
             "type": "string",
             "format": "uri"
           }
@@ -3550,6 +3660,18 @@
             "$ref": "#/components/schemas/i"
           }
         }
+      },
+      "GeneratePaymentLinkDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "amount"
+        ]
       }
     }
   }
