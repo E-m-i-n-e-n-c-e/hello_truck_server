@@ -99,6 +99,38 @@ export class DriverBookingResponseDto extends BookingResponseDto {
 }
 
 /**
+ * Cancelled assignment with cancellation charge info
+ */
+export class CancelledAssignmentResponseDto {
+  @Expose()
+  bookingId: string;
+
+  @Expose()
+  bookingNumber: number;
+
+  @Expose()
+  cancelledAt: Date;
+
+  @Expose()
+  cancellationReason: string | null;
+
+  @Expose()
+  cancellationCharge: number; // Amount credited to driver from wallet log
+
+  @Expose()
+  @Type(() => BookingAddressResponseDto)
+  pickupAddress: BookingAddressResponseDto;
+
+  @Expose()
+  @Type(() => BookingAddressResponseDto)
+  dropAddress: BookingAddressResponseDto;
+
+  @Expose()
+  @Type(() => PackageDetailsResponseDto)
+  package: PackageDetailsResponseDto;
+}
+
+/**
  * Base earnings response with common fields
  */
 class BaseEarningsDto {
@@ -114,6 +146,10 @@ class BaseEarningsDto {
   @Expose()
   @Type(() => BookingAssignmentResponseDto)
   assignments: BookingAssignmentResponseDto[];
+
+  @Expose()
+  @Type(() => CancelledAssignmentResponseDto)
+  cancelledAssignments: CancelledAssignmentResponseDto[];
 }
 
 /**

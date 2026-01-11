@@ -672,6 +672,7 @@ enum AssignmentStatus {
   ACCEPTED
   REJECTED
   AUTO_REJECTED
+  CANCELLED
 }
 
 enum DriverStatus {

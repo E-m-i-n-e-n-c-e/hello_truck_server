@@ -502,6 +502,16 @@ export class BookingDriverService {
     netEarnings: number;
     commissionRate: number;
     assignments: BookingAssignment[];
+    cancelledAssignments: Array<{
+      bookingId: string;
+      bookingNumber: number;
+      cancelledAt: Date;
+      cancellationReason: string | null;
+      cancellationCharge: number;
+      pickupAddress: any;
+      dropAddress: any;
+      package: any;
+    }>;
   }> {
     // Create UTC timestamps for IST day boundaries
     const startUTC = new Date(`${startDate}T00:00:00+05:30`);
@@ -561,11 +571,72 @@ export class BookingDriverService {
       }
     });
 
+    // Fetch cancelled assignments with cancellation compensation
+    // Only include bookings that:
+    // 1. Booking is CANCELLED
+    // 2. Has a wallet log with positive cancellation compensation for this driver
+    const cancelledAssignmentsData = await this.prisma.bookingAssignment.findMany({
+      where: {
+        driverId,
+        booking: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: {
+            gte: startUTC,
+            lte: endUTC,
+          },
+          // Filter for bookings with compensation - must have positive wallet log
+          driverWalletLogs: {
+            some: {
+              driverId,
+              amount: { gt: 0 }, // Only positive credits (compensation)
+            },
+          },
+        },
+      },
+      include: {
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
+            driverWalletLogs: {
+              where: {
+                driverId,
+                amount: { gt: 0 },
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: {
+        booking: {
+          cancelledAt: 'desc',
+        },
+      },
+    });
+
+    // Map cancelled assignments (no filtering needed - already done in query)
+    const cancelledAssignments = cancelledAssignmentsData.map(assignment => {
+      const walletLog = assignment.booking.driverWalletLogs[0];
+      return {
+        bookingId: assignment.booking.id,
+        bookingNumber: Number(assignment.booking.bookingNumber),
+        cancelledAt: assignment.booking.cancelledAt!,
+        cancellationReason: assignment.booking.cancellationReason,
+        cancellationCharge: toNumber(walletLog.amount),
+        pickupAddress: assignment.booking.pickupAddress,
+        dropAddress: assignment.booking.dropAddress,
+        package: assignment.booking.package,
+      };
+    });
+
     return {
       totalRides: completedAssignments.length,
       netEarnings: toNumber(truncateDecimal(totalNetEarnings)),
       commissionRate: defaultCommissionRate,
       assignments: completedAssignments,
+      cancelledAssignments,
     };
   }
 
@@ -578,6 +649,16 @@ export class BookingDriverService {
     commissionRate: number;
     date: string;
     assignments: BookingAssignment[];
+    cancelledAssignments: Array<{
+      bookingId: string;
+      bookingNumber: number;
+      cancelledAt: Date;
+      cancellationReason: string | null;
+      cancellationCharge: number;
+      pickupAddress: any;
+      dropAddress: any;
+      package: any;
+    }>;
   }> {
     const inputDate = date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const result = await this._getEarningsCore(driverId, inputDate, inputDate);
@@ -601,6 +682,16 @@ export class BookingDriverService {
     startDate: string;
     endDate: string;
     assignments: BookingAssignment[];
+    cancelledAssignments: Array<{
+      bookingId: string;
+      bookingNumber: number;
+      cancelledAt: Date;
+      cancellationReason: string | null;
+      cancellationCharge: number;
+      pickupAddress: any;
+      dropAddress: any;
+      package: any;
+    }>;
   }> {
     const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const start = startDate || todayIST;

@@ -1857,7 +1857,17 @@
     "/driver/profile/transaction-logs": {
       "get": {
         "operationId": "getTransactionLogs",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "includePayments",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
