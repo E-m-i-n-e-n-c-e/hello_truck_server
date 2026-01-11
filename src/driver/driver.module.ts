@@ -3,13 +3,14 @@ import { ProfileModule } from './profile/profile.module';
 import { DocumentsModule } from './documents/documents.module';
 import { VehicleModule } from './vehicle/vehicle.module';
 import { AddressModule } from './address/address.module';
+import { PaymentModule } from './payment/payment.module';
 import { TokenModule } from 'src/token/token.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { RedisModule } from 'src/redis/redis.module';
 import { DriverGateway } from './driver.gateway';
 
 @Module({
-  imports: [TokenModule, PrismaModule, ProfileModule, DocumentsModule, VehicleModule, AddressModule, RedisModule],
+  imports: [TokenModule, PrismaModule, ProfileModule, DocumentsModule, VehicleModule, AddressModule, PaymentModule, RedisModule],
   providers: [DriverGateway],
   exports: [DriverGateway],
 })

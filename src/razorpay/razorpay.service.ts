@@ -141,7 +141,11 @@ export class RazorpayService {
           email: !!params.customerEmail,
           sms: !!params.customerContact,
         },
-        accept_partial: false,
+        accept_partial: params.acceptPartial ?? false,
+        first_min_partial_amount: params.firstMinPartialAmount
+          ? Math.round(params.firstMinPartialAmount * 100)
+          : undefined,
+        expire_by: params.expireBy,
       };
 
       const response: AxiosResponse = await this.axiosInstance.post('/payment_links', paymentLinkData);
