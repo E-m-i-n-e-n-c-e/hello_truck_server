@@ -138,8 +138,8 @@ export class RazorpayService {
           email: params.customerEmail || undefined,
         },
         notify: {
-          email: !!params.customerEmail,
-          sms: !!params.customerContact,
+          email: params.disableNotifications ? false : !!params.customerEmail,
+          sms: params.disableNotifications ? false : !!params.customerContact,
         },
         accept_partial: params.acceptPartial ?? false,
         first_min_partial_amount: params.firstMinPartialAmount

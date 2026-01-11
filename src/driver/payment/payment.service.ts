@@ -97,6 +97,7 @@ export class DriverPaymentService {
       firstMinPartialAmount: 1, // ₹1 minimum
       expireBy: expiresAt,
       referenceId,
+      disableNotifications: true, // Don't send email/SMS for driver payments
     });
 
     // Cache in Redis for spam prevention

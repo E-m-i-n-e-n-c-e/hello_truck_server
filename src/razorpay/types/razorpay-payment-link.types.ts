@@ -16,6 +16,8 @@ export interface CreatePaymentLinkParams {
   firstMinPartialAmount?: number;
   /** Unix timestamp for link expiry */
   expireBy?: number;
+  /** Disable email and SMS notifications */
+  disableNotifications?: boolean;
 }
 
 export interface PaymentLinkResponse {
