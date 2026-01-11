@@ -792,6 +792,34 @@
         "operationId": "getRideSummary",
         "parameters": [
           {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BookingDriver"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/bookings/driver/earnings-summary": {
+      "get": {
+        "operationId": "getEarningsSummary",
+        "parameters": [
+          {
             "name": "startDate",
             "required": true,
             "in": "query",

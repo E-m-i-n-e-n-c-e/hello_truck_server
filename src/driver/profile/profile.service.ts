@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { UpdateDriverProfileDto, CreateDriverProfileDto, UpdateLocationDto } from '../dtos/profile.dto';
-import { Driver, DriverStatus, PayoutMethodType } from '@prisma/client';
+import { Driver, DriverStatus, PayoutMethodType, TransactionCategory } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { AddressService } from '../address/address.service';
@@ -220,9 +220,17 @@ export class ProfileService {
     return logs;
   }
 
-  async getTransactionLogs(userId: string) {
+  async getTransactionLogs(userId: string, includePayments: boolean = false) {
+    // Build category filter
+    const categoryFilter = includePayments
+      ? undefined // Include all categories
+      : { in: [TransactionCategory.DRIVER_PAYOUT] }; // Only payouts (exclude DRIVER_PAYMENT)
+
     const transactions = await this.prisma.transaction.findMany({
-      where: { driverId: userId },
+      where: {
+        driverId: userId,
+        ...(categoryFilter && { category: categoryFilter }),
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         booking: {

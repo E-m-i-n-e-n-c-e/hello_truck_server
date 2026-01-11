@@ -10,7 +10,7 @@ import { ProfileResponseDto, UpdateDriverProfileDto, CreateDriverProfileDto, Get
 import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
 import { UpdatePayoutDetailsDto } from 'src/razorpay/dtos/payout-details.dto';
 import { DriverWalletLogResponseDto } from '../dtos/wallet-log.dto';
-import { DriverTransactionLogResponseDto } from '../dtos/transaction-log.dto';
+import { DriverTransactionLogResponseDto, GetTransactionLogsDto } from '../dtos/transaction-log.dto';
 
 @Controller('driver/profile')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -79,7 +79,10 @@ export class DriverProfileController {
 
   @Get('transaction-logs')
   @Serialize(DriverTransactionLogResponseDto)
-  async getTransactionLogs(@User('userId') userId: string) {
-    return this.profileService.getTransactionLogs(userId);
+  async getTransactionLogs(
+    @User('userId') userId: string,
+    @Query() query: GetTransactionLogsDto,
+  ) {
+    return this.profileService.getTransactionLogs(userId, query.includePayments);
   }
 }

@@ -165,7 +165,7 @@ export class DriverPaymentService {
           paymentMethod: PaymentMethod.ONLINE,
           amount: toNumber(amountPaidDecimal),
           type: TransactionType.CREDIT,
-          category: TransactionCategory.DRIVER_PAYOUT,
+          category: TransactionCategory.DRIVER_PAYMENT,
           description: 'Wallet top-up',
         },
       });

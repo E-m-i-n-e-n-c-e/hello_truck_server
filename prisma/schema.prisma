@@ -707,6 +707,7 @@ enum TransactionCategory {
   BOOKING_PAYMENT  // Customer pays for booking
   BOOKING_REFUND   // Refund to customer (Razorpay)
   DRIVER_PAYOUT    // Payout to driver (Razorpay)
+  DRIVER_PAYMENT   // Driver pays platform (clears negative balance)
 }
 
 enum PayoutStatus {

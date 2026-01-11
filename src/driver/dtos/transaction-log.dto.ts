@@ -1,6 +1,8 @@
 import { Expose, Type } from 'class-transformer';
 import { TransactionType, TransactionCategory, Transaction, $Enums, PaymentMethod, PayoutStatus } from '@prisma/client';
 import { BookingResponseDto } from 'src/booking/dtos/booking.dto';
+import { IsBoolean, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class PayoutResponseDto {
   @Expose()
@@ -72,4 +74,11 @@ export class DriverTransactionLogResponseDto {
 
   @Expose()
   createdAt: Date;
+}
+
+export class GetTransactionLogsDto {
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  includePayments?: boolean = false; // Default: only show payouts, not driver payments to platform
 }
