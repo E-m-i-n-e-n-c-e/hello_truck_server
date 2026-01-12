@@ -2,6 +2,11 @@
  * Razorpay Payment Link Types
  */
 
+export enum PaymentType {
+  DRIVER_WALLET = 'DRIVER_WALLET',
+  BOOKING_INVOICE = 'BOOKING_INVOICE',
+}
+
 export interface CreatePaymentLinkParams {
   amount: number;
   currency?: string;
@@ -18,6 +23,8 @@ export interface CreatePaymentLinkParams {
   expireBy?: number;
   /** Disable email and SMS notifications */
   disableNotifications?: boolean;
+  /** Mandatory payment type for webhook routing */
+  paymentType: PaymentType;
 }
 
 export interface PaymentLinkResponse {

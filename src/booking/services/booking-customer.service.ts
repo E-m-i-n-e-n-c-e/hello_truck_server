@@ -348,7 +348,7 @@ export class BookingCustomerService {
       if (booking.assignedDriverId) {
         await tx.bookingAssignment.updateMany({
           where: { bookingId, driverId: booking.assignedDriverId},
-          data: { status: 'AUTO_REJECTED', respondedAt: new Date() }
+          data: { status: 'CANCELLED' }
         });
 
         await tx.driver.update({

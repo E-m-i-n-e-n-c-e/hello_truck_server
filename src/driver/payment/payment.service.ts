@@ -6,6 +6,7 @@ import { FirebaseService } from 'src/firebase/firebase.service';
 import { TransactionType, TransactionCategory, PaymentMethod } from '@prisma/client';
 import { toDecimal, toNumber, truncateDecimal } from 'src/booking/utils/decimal.utils';
 import { FcmEventType } from 'src/common/types/fcm.types';
+import { PaymentType } from 'src/razorpay/types/razorpay-payment-link.types';
 
 interface CachedPaymentLink {
   paymentLinkId: string;
@@ -98,6 +99,7 @@ export class DriverPaymentService {
       expireBy: expiresAt,
       referenceId,
       disableNotifications: true, // Don't send email/SMS for driver payments
+      paymentType: PaymentType.DRIVER_WALLET,
     });
 
     // Cache in Redis for spam prevention

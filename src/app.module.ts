@@ -13,6 +13,7 @@ import { BookingModule } from './booking/booking.module';
 import { AdminModule } from './admin/admin.module';
 import { validate } from './config/env.config';
 import { AppController } from './app.controller';
+import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AppController } from './app.controller';
     DriverModule,
     BookingModule,
     AdminModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [ {

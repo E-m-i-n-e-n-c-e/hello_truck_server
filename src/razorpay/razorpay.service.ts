@@ -146,6 +146,9 @@ export class RazorpayService {
           ? Math.round(params.firstMinPartialAmount * 100)
           : undefined,
         expire_by: params.expireBy,
+        notes: {
+          paymentType: params.paymentType,
+        },
       };
 
       const response: AxiosResponse = await this.axiosInstance.post('/payment_links', paymentLinkData);

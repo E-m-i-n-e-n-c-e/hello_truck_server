@@ -9,7 +9,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { truncateDecimal, toDecimal, toNumber, minDecimal } from '../utils/decimal.utils';
-import { PaymentLinkResponse } from 'src/razorpay/types/razorpay-payment-link.types';
+import { PaymentLinkResponse, PaymentType } from 'src/razorpay/types/razorpay-payment-link.types';
 
 @Injectable()
 export class BookingInvoiceService {
@@ -180,6 +180,7 @@ export class BookingInvoiceService {
       customerName,
       customerContact: booking.customer.phoneNumber,
       customerEmail: booking.customer.email ?? undefined,
+      paymentType: PaymentType.BOOKING_INVOICE,
     });
 
     // Update invoice with payment link details in a separate transaction
