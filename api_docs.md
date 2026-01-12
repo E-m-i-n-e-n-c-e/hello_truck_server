@@ -129,8 +129,30 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `totalRides`: `number` - Number of completed rides
     *   `netEarnings`: `number` - Driver's net earnings after commission deduction
     *   `commissionRate`: `number` - Platform commission rate (e.g., 0.07 for 7%)
+    *   `netCompensation`: `number` - Total cancellation compensation earned
+    *   `totalCancelledRides`: `number` - Count of cancelled rides with compensation
     *   `date`: `string` - YYYY-MM-DD format (IST timezone)
     *   `assignments`: `BookingAssignmentResponseDto[]` - Array of completed assignments with full booking details for the day
+    *   `cancelledAssignments`: `CancelledAssignmentResponseDto[]` - Array of cancelled assignments with compensation details
+*   **`EarningsSummaryResponseDto`**: Driver's earnings summary for a date range.
+    *   `totalRides`: `number` - Number of completed rides
+    *   `netEarnings`: `number` - Driver's net earnings after commission deduction
+    *   `commissionRate`: `number` - Platform commission rate (e.g., 0.07 for 7%)
+    *   `netCompensation`: `number` - Total cancellation compensation earned
+    *   `totalCancelledRides`: `number` - Count of cancelled rides with compensation
+    *   `startDate`: `string` - YYYY-MM-DD format (IST timezone)
+    *   `endDate`: `string` - YYYY-MM-DD format (IST timezone)
+    *   `assignments`: `BookingAssignmentResponseDto[]` - Array of completed assignments with full booking details for the date range
+    *   `cancelledAssignments`: `CancelledAssignmentResponseDto[]` - Array of cancelled assignments with compensation details
+*   **`CancelledAssignmentResponseDto`**: Cancelled assignment with cancellation charge info.
+    *   `bookingId`: `string`
+    *   `bookingNumber`: `number`
+    *   `cancelledAt`: `Date`
+    *   `cancellationReason`: `string | null`
+    *   `cancellationCharge`: `number` - Amount credited to driver from wallet log
+    *   `pickupAddress`: `BookingAddressResponseDto`
+    *   `dropAddress`: `BookingAddressResponseDto`
+    *   `package`: `PackageDetailsResponseDto`
 *   **`CancelBookingDto`**: Booking cancellation request.
     *   `reason`: `string` - Cancellation reason
 *   **`CancellationConfigResponseDto`**: Configuration for cancellation charges.
@@ -371,12 +393,18 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/bookings/driver/start` 🔒 | Starts the trip. | - | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/finish` 🔒 | Finishes the trip. | - | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/settle-cash` 🔒 | Marks cash payment as settled (driver acknowledges receiving cash). | - | `SuccessResponseDto` |
-| `GET` | `/bookings/driver/ride-summary` 🔒 | Gets daily ride summary with net earnings, commission rate, and completed assignments. Defaults to today in IST timezone. | Query: `date?` (YYYY-MM-DD) | `RideSummaryDto` |
+| `GET` | `/bookings/driver/ride-summary` 🔒 | Gets daily ride summary with net earnings, commission rate, cancellation compensation, and completed/cancelled assignments. Defaults to today in IST timezone. | Query: `date?` (YYYY-MM-DD) | `RideSummaryDto` |
+| `GET` | `/bookings/driver/earnings-summary` 🔒 | Gets earnings summary for a date range with net earnings, commission rate, cancellation compensation, and completed/cancelled assignments. Defaults to today if no dates provided. | Query: `startDate?` (YYYY-MM-DD), `endDate?` (YYYY-MM-DD) | `EarningsSummaryResponseDto` |
 
-### Booking (Payment) (`BookingPayment`)
+### Webhooks (`Webhook`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/bookings/webhook/razorpay` | Called by Razorpay when a payment is made | `RazorpayWebhookPayload` | `{ status: string, message?: string }` |
+| `POST` | `/webhook/razorpay` | **Unified webhook endpoint** for all Razorpay payment events. Routes to appropriate handler based on `paymentType` in notes. Handles both driver wallet top-ups and booking invoice payments. | `RazorpayWebhookPayload` | `{ status: string }` |
+
+### Driver Payment (`DriverPayment`)
+| Method | Path | Description | Request Body | Success Response |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/driver/payment/link` 🔒 | Generates a payment link for driver wallet top-up. Reuses existing link if valid. | `{ amount: number }` | `{ paymentLinkUrl: string, paymentLinkId: string, amount: number, expiresAt: number }` |
 
 ### Customer Profile (`CustomerProfile`)
 | Method | Path | Description | Request Body | Success Response |
