@@ -21,6 +21,7 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../.env.test') });
 import { ConfigService } from '@nestjs/config';
 import { RazorpayService } from '../../src/razorpay/razorpay.service';
+import { PaymentType } from '../../src/razorpay/types/razorpay-payment-link.types';
 import { PayoutMethod } from '../../src/razorpay/dtos/payout-details.dto';
 import { createHmac } from 'crypto';
 import * as readline from 'readline';
@@ -170,6 +171,7 @@ async function run() {
     customerName: 'Smoke Test Customer',
     customerContact: '6300012345',
     customerEmail: 'smoke@test.com',
+    paymentType: PaymentType.BOOKING_INVOICE,
   });
 
   paymentLinkId = paymentLink.paymentLinkId;
@@ -191,6 +193,7 @@ async function run() {
     referenceId: `smoke_minimal_${Date.now()}`,
     customerName: 'Test',
     customerContact: '9876543210',
+    paymentType: PaymentType.BOOKING_INVOICE,
   });
 
   assert(minimalPaymentLink.paymentLinkId.startsWith('plink_'), 'Invalid minimal payment link ID');
@@ -206,6 +209,7 @@ async function run() {
     referenceId: `smoke_prefix_${Date.now()}`,
     customerName: 'Test',
     customerContact: '+919876543210',
+    paymentType: PaymentType.BOOKING_INVOICE,
   });
 
   assert(prefixPaymentLink.paymentLinkId.startsWith('plink_'), 'Invalid prefix payment link ID');
