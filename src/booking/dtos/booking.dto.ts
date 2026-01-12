@@ -144,6 +144,12 @@ class BaseEarningsDto {
   commissionRate: number; // Platform commission rate (e.g., 0.07 = 7%)
 
   @Expose()
+  netCompensation: number; // Total cancellation compensation earned
+
+  @Expose()
+  totalCancelledRides: number; // Count of cancelled rides with compensation
+
+  @Expose()
   @Type(() => BookingAssignmentResponseDto)
   assignments: BookingAssignmentResponseDto[];
 

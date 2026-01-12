@@ -501,6 +501,8 @@ export class BookingDriverService {
     totalRides: number;
     netEarnings: number;
     commissionRate: number;
+    netCompensation: number;
+    totalCancelledRides: number;
     assignments: BookingAssignment[];
     cancelledAssignments: Array<{
       bookingId: string;
@@ -616,15 +618,19 @@ export class BookingDriverService {
       },
     });
 
-    // Map cancelled assignments (no filtering needed - already done in query)
+    // Map cancelled assignments and calculate total compensation
+    let totalCompensation = toDecimal(0);
     const cancelledAssignments = cancelledAssignmentsData.map(assignment => {
       const walletLog = assignment.booking.driverWalletLogs[0];
+      const compensationAmount = toDecimal(walletLog.amount);
+      totalCompensation = totalCompensation.plus(compensationAmount);
+
       return {
         bookingId: assignment.booking.id,
         bookingNumber: Number(assignment.booking.bookingNumber),
         cancelledAt: assignment.booking.cancelledAt!,
         cancellationReason: assignment.booking.cancellationReason,
-        cancellationCharge: toNumber(walletLog.amount),
+        cancellationCharge: toNumber(compensationAmount),
         pickupAddress: assignment.booking.pickupAddress,
         dropAddress: assignment.booking.dropAddress,
         package: assignment.booking.package,
@@ -635,6 +641,8 @@ export class BookingDriverService {
       totalRides: completedAssignments.length,
       netEarnings: toNumber(truncateDecimal(totalNetEarnings)),
       commissionRate: defaultCommissionRate,
+      netCompensation: toNumber(truncateDecimal(totalCompensation)),
+      totalCancelledRides: cancelledAssignments.length,
       assignments: completedAssignments,
       cancelledAssignments,
     };
@@ -647,6 +655,8 @@ export class BookingDriverService {
     totalRides: number;
     netEarnings: number;
     commissionRate: number;
+    netCompensation: number;
+    totalCancelledRides: number;
     date: string;
     assignments: BookingAssignment[];
     cancelledAssignments: Array<{
@@ -679,6 +689,8 @@ export class BookingDriverService {
     totalRides: number;
     netEarnings: number;
     commissionRate: number;
+    netCompensation: number;
+    totalCancelledRides: number;
     startDate: string;
     endDate: string;
     assignments: BookingAssignment[];
