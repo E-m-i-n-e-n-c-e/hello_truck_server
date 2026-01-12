@@ -69,12 +69,16 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   @Expose()
   licenseExpiry: Date | null;
   @Expose()
+  suggestedLicenseExpiry: Date | null;
+  @Expose()
   licenseStatus: VerificationStatus;
 
   @Expose()
   rcBookUrl: string;
   @Expose()
   rcBookExpiry: Date | null;
+  @Expose()
+  suggestedRcBookExpiry: Date | null;
   @Expose()
   rcBookStatus: VerificationStatus;
 
@@ -83,12 +87,16 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   @Expose()
   fcExpiry: Date | null;
   @Expose()
+  suggestedFcExpiry: Date | null;
+  @Expose()
   fcStatus: VerificationStatus;
 
   @Expose()
   insuranceUrl: string;
   @Expose()
   insuranceExpiry: Date | null;
+  @Expose()
+  suggestedInsuranceExpiry: Date | null;
   @Expose()
   insuranceStatus: VerificationStatus;
 

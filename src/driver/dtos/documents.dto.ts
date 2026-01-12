@@ -1,6 +1,6 @@
 import { DriverDocuments, VerificationStatus } from "@prisma/client";
 import { Expose } from "class-transformer";
-import { IsOptional, IsString, IsUrl, Matches } from "class-validator";
+import { IsOptional, IsString, IsUrl, Matches, IsDateString } from "class-validator";
 
 export class CreateDriverDocumentsDto {
   @IsString()
@@ -37,6 +37,23 @@ export class CreateDriverDocumentsDto {
   @IsOptional()
   @IsUrl()
   selfieUrl?: string;
+
+  // Suggested expiry dates from driver (optional, ISO 8601 strings)
+  @IsOptional()
+  @IsDateString()
+  suggestedLicenseExpiry?: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedRcBookExpiry?: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedFcExpiry?: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedInsuranceExpiry?: string;
 }
 
 export class UpdateDriverDocumentsDto {
@@ -81,6 +98,23 @@ export class UpdateDriverDocumentsDto {
   @IsOptional()
   @IsUrl()
   selfieUrl?: string;
+
+  // Suggested expiry dates from driver (optional, ISO 8601 strings)
+  @IsOptional()
+  @IsDateString()
+  suggestedLicenseExpiry?: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedRcBookExpiry?: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedFcExpiry?: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedInsuranceExpiry?: string;
 }
 
 export class DriverDocumentsResponseDto implements DriverDocuments {
@@ -92,12 +126,16 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   @Expose()
   licenseExpiry: Date | null;
   @Expose()
+  suggestedLicenseExpiry: Date | null;
+  @Expose()
   licenseStatus: VerificationStatus;
 
   @Expose()
   rcBookUrl: string;
   @Expose()
   rcBookExpiry: Date | null;
+  @Expose()
+  suggestedRcBookExpiry: Date | null;
   @Expose()
   rcBookStatus: VerificationStatus;
 
@@ -106,12 +144,16 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   @Expose()
   fcExpiry: Date | null;
   @Expose()
+  suggestedFcExpiry: Date | null;
+  @Expose()
   fcStatus: VerificationStatus;
 
   @Expose()
   insuranceUrl: string;
   @Expose()
   insuranceExpiry: Date | null;
+  @Expose()
+  suggestedInsuranceExpiry: Date | null;
   @Expose()
   insuranceStatus: VerificationStatus;
 

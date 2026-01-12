@@ -24,9 +24,26 @@ export class DocumentsService {
     }
 
     try {
+      // Normalize suggested expiry strings to Date objects (if provided)
+      const suggestedExpiryDates = {
+        suggestedLicenseExpiry: createDocumentsDto.suggestedLicenseExpiry
+          ? new Date(createDocumentsDto.suggestedLicenseExpiry)
+          : undefined,
+        suggestedFcExpiry: createDocumentsDto.suggestedFcExpiry
+          ? new Date(createDocumentsDto.suggestedFcExpiry)
+          : undefined,
+        suggestedInsuranceExpiry: createDocumentsDto.suggestedInsuranceExpiry
+          ? new Date(createDocumentsDto.suggestedInsuranceExpiry)
+          : undefined,
+        suggestedRcBookExpiry: createDocumentsDto.suggestedRcBookExpiry
+          ? new Date(createDocumentsDto.suggestedRcBookExpiry)
+          : undefined,
+      };
+
       const documents = await tx.driverDocuments.create({
         data: {
           ...createDocumentsDto,
+          ...suggestedExpiryDates,
           driver: {
             connect: { id: driverId }
           }
@@ -75,6 +92,20 @@ export class DocumentsService {
 
     // Prepare update data with status resets
     const data: any = { ...updateDocumentsDto };
+
+    // Normalize suggested expiry strings to Date objects (if provided)
+    if (updateDocumentsDto.suggestedLicenseExpiry) {
+      data.suggestedLicenseExpiry = new Date(updateDocumentsDto.suggestedLicenseExpiry);
+    }
+    if (updateDocumentsDto.suggestedFcExpiry) {
+      data.suggestedFcExpiry = new Date(updateDocumentsDto.suggestedFcExpiry);
+    }
+    if (updateDocumentsDto.suggestedInsuranceExpiry) {
+      data.suggestedInsuranceExpiry = new Date(updateDocumentsDto.suggestedInsuranceExpiry);
+    }
+    if (updateDocumentsDto.suggestedRcBookExpiry) {
+      data.suggestedRcBookExpiry = new Date(updateDocumentsDto.suggestedRcBookExpiry);
+    }
 
     // If license is updated, reset status
     if (updateDocumentsDto.licenseUrl) {
