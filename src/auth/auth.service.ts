@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OtpService } from './otp/otp.service';
 import { VerifyOtpDto } from './dtos/verify-otp.dto';
 import { TokenService } from '../token/token.service';
+import { ReferralService } from '../referral/referral.service';
 import { UserType } from 'src/common/types/user-session.types';
 
 @Injectable()
@@ -11,13 +12,15 @@ export class AuthService {
     private prisma: PrismaService,
     private otpService: OtpService,
     private tokenService: TokenService,
-  ) { }
+    private referralService: ReferralService,
+  ) {}
 
   async sendOtp(phoneNumber: string) {
     return this.otpService.sendOtp(phoneNumber);
   }
 
-  async verifyCustomerOtp(verifyOtpDto: VerifyOtpDto) {const { phoneNumber, otp, staleRefreshToken, fcmToken } = verifyOtpDto;
+  async verifyCustomerOtp(verifyOtpDto: VerifyOtpDto) {
+    const { phoneNumber, otp, staleRefreshToken, fcmToken } = verifyOtpDto;
 
     await this.otpService.verifyOtp(phoneNumber, otp);
 
@@ -25,15 +28,38 @@ export class AuthService {
       where: { phoneNumber },
     });
 
+    let isNewCustomer = false;
     if (!customer) {
       customer = await this.prisma.customer.create({
         data: { phoneNumber },
       });
+      isNewCustomer = true;
     }
 
-    const newRefreshToken = await this.tokenService.generateRefreshToken(customer.id, 'customer', staleRefreshToken, fcmToken);
+    const newRefreshToken = await this.tokenService.generateRefreshToken(
+      customer.id,
+      'customer',
+      staleRefreshToken,
+      fcmToken,
+    );
     const sessionsId = newRefreshToken.split('.', 2)[0];
-    const accessToken = await this.tokenService.generateAccessToken(customer, 'customer', sessionsId);
+    const accessToken = await this.tokenService.generateAccessToken(
+      customer,
+      'customer',
+      sessionsId,
+    );
+
+    // Generate referral code asynchronously for new customers
+    if (isNewCustomer) {
+      this.referralService
+        .generateCustomerReferralCode(customer.id)
+        .catch((error) => {
+          console.error(
+            `Failed to generate referral code for customer ${customer.id}:`,
+            error,
+          );
+        });
+    }
 
     return { accessToken, refreshToken: newRefreshToken };
   }
@@ -60,15 +86,37 @@ export class AuthService {
       where: { phoneNumber },
     });
 
+    let isNewDriver = false;
     if (!driver) {
       driver = await this.prisma.driver.create({
         data: { phoneNumber },
       });
+      isNewDriver = true;
     }
 
-    const newRefreshToken = await this.tokenService.generateRefreshToken(driver.id, 'driver', staleRefreshToken);
+    const newRefreshToken = await this.tokenService.generateRefreshToken(
+      driver.id,
+      'driver',
+      staleRefreshToken,
+    );
     const sessionsId = newRefreshToken.split('.', 2)[0];
-    const accessToken = await this.tokenService.generateAccessToken(driver, 'driver', sessionsId);
+    const accessToken = await this.tokenService.generateAccessToken(
+      driver,
+      'driver',
+      sessionsId,
+    );
+
+    // Generate referral code asynchronously for new drivers
+    if (isNewDriver) {
+      this.referralService
+        .generateDriverReferralCode(driver.id)
+        .catch((error) => {
+          console.error(
+            `Failed to generate referral code for driver ${driver.id}:`,
+            error,
+          );
+        });
+    }
 
     return { accessToken, refreshToken: newRefreshToken };
   }
@@ -87,7 +135,8 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string, userType: UserType) {
-    const { accessToken, refreshToken: newRefreshToken } = await this.tokenService.refreshAccessToken(refreshToken, userType);
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.tokenService.refreshAccessToken(refreshToken, userType);
     return { accessToken, refreshToken: newRefreshToken };
   }
 }

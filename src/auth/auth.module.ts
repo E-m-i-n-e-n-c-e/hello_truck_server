@@ -5,13 +5,10 @@ import { DriverAuthController } from './driver-auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { OtpModule } from './otp/otp.module';
 import { TokenModule } from '../token/token.module';
+import { ReferralModule } from '../referral/referral.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    OtpModule,
-    TokenModule,
-  ],
+  imports: [PrismaModule, OtpModule, TokenModule, ReferralModule],
   controllers: [CustomerAuthController, DriverAuthController],
   providers: [AuthService],
 })
