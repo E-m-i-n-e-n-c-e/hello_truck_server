@@ -1,18 +1,75 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateDriverDocumentsDto, UpdateDriverDocumentsDto } from '../dtos/documents.dto';
-import { DriverDocuments, Prisma } from '@prisma/client';
+import {
+  CreateDriverDocumentsDto,
+  UpdateDriverDocumentsDto,
+} from '../dtos/documents.dto';
+import { DriverDocuments, Prisma, VerificationStatus } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { uploadUrlDto } from 'src/common/dtos/upload-url.dto';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService, private readonly firebaseService: FirebaseService) {}
+  private readonly ENCRYPTION_KEY: Buffer;
+  private readonly ALGORITHM = 'aes-256-cbc';
+  private readonly IV_LENGTH = 16;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly firebaseService: FirebaseService,
+  ) {
+    // Get encryption key from environment variable
+    const key = process.env.AADHAR_ENCRYPTION_KEY;
+    if (!key) {
+      throw new Error('AADHAR_ENCRYPTION_KEY environment variable is not set');
+    }
+    // Ensure key is 32 bytes for AES-256
+    this.ENCRYPTION_KEY = crypto.createHash('sha256').update(key).digest();
+  }
+
+  private hashAadhar(aadharNumber: string): string {
+    return crypto.createHash('sha256').update(aadharNumber).digest('hex');
+  }
+
+  private encryptAadhar(aadharNumber: string): string {
+    const iv = crypto.randomBytes(this.IV_LENGTH);
+    const cipher = crypto.createCipheriv(
+      this.ALGORITHM,
+      this.ENCRYPTION_KEY,
+      iv,
+    );
+    let encrypted = cipher.update(aadharNumber, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    // Return IV + encrypted data (IV is needed for decryption)
+    return iv.toString('hex') + ':' + encrypted;
+  }
+
+  private decryptAadhar(encryptedData: string): string {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 2) {
+      throw new Error('Invalid encrypted data format');
+    }
+    const iv = Buffer.from(parts[0], 'hex');
+    const encryptedText = parts[1];
+    const decipher = crypto.createDecipheriv(
+      this.ALGORITHM,
+      this.ENCRYPTION_KEY,
+      iv,
+    );
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  }
 
   async createDocuments(
     driverId: string,
     createDocumentsDto: CreateDriverDocumentsDto,
-    tx: Prisma.TransactionClient = this.prisma
+    tx: Prisma.TransactionClient = this.prisma,
   ): Promise<DriverDocuments> {
     // Check if documents already exist for this driver
     const existingDocuments = await tx.driverDocuments.findUnique({
@@ -22,6 +79,18 @@ export class DocumentsService {
     if (existingDocuments) {
       throw new BadRequestException('Documents already exist for this driver');
     }
+
+    // Hash and encrypt the Aadhaar number
+    const aadharNumberHash = this.hashAadhar(createDocumentsDto.aadharNumber);
+    const aadharNumberEncrypted = this.encryptAadhar(
+      createDocumentsDto.aadharNumber,
+    );
+
+    // Check for duplicate Aadhaar among active verified drivers
+    await this.checkAadharDuplicate(aadharNumberHash, driverId, tx);
+
+    // Check for duplicate PAN among active verified drivers
+    await this.checkPanDuplicate(createDocumentsDto.panNumber, driverId, tx);
 
     try {
       // Normalize suggested expiry strings to Date objects (if provided)
@@ -40,13 +109,18 @@ export class DocumentsService {
           : undefined,
       };
 
+      // Remove aadharNumber from the data to be saved (we only store hash and encrypted)
+      const { aadharNumber, ...documentsData } = createDocumentsDto;
+
       const documents = await tx.driverDocuments.create({
         data: {
-          ...createDocumentsDto,
+          ...documentsData,
           ...suggestedExpiryDates,
+          aadharNumberHash,
+          aadharNumberEncrypted,
           driver: {
-            connect: { id: driverId }
-          }
+            connect: { id: driverId },
+          },
         },
       });
 
@@ -57,11 +131,75 @@ export class DocumentsService {
           // Unique constraint violation
           const target = error.meta?.target as string[];
           if (target?.includes('panNumber')) {
-            throw new BadRequestException('This PAN number is already registered. Please use a different PAN number.');
+            throw new BadRequestException(
+              'This PAN number is already registered. Please use a different PAN number.',
+            );
           }
         }
       }
       throw error;
+    }
+  }
+
+  private async checkAadharDuplicate(
+    aadharNumberHash: string,
+    excludeDriverId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    // Find any active verified driver with the same Aadhaar hash
+    const existingDriver = await tx.driverDocuments.findFirst({
+      where: {
+        aadharNumberHash,
+        driverId: { not: excludeDriverId },
+        driver: {
+          isActive: true,
+          verificationStatus: { not: VerificationStatus.REJECTED },
+        },
+      },
+      include: {
+        driver: {
+          select: {
+            phoneNumber: true,
+          },
+        },
+      },
+    });
+
+    if (existingDriver) {
+      throw new BadRequestException(
+        'This Aadhaar number is already registered with an active verified driver account.',
+      );
+    }
+  }
+
+  private async checkPanDuplicate(
+    panNumber: string,
+    excludeDriverId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    // Find any active verified driver with the same PAN
+    const existingDriver = await tx.driverDocuments.findFirst({
+      where: {
+        panNumber,
+        driverId: { not: excludeDriverId },
+        driver: {
+          isActive: true,
+          verificationStatus: { not: VerificationStatus.REJECTED },
+        },
+      },
+      include: {
+        driver: {
+          select: {
+            phoneNumber: true,
+          },
+        },
+      },
+    });
+
+    if (existingDriver) {
+      throw new BadRequestException(
+        'This PAN number is already registered with an active verified driver account.',
+      );
     }
   }
 
@@ -79,7 +217,7 @@ export class DocumentsService {
 
   async updateDocuments(
     driverId: string,
-    updateDocumentsDto: UpdateDriverDocumentsDto
+    updateDocumentsDto: UpdateDriverDocumentsDto,
   ): Promise<DriverDocuments> {
     // Check if documents exist
     const existingDocuments = await this.prisma.driverDocuments.findUnique({
@@ -95,16 +233,22 @@ export class DocumentsService {
 
     // Normalize suggested expiry strings to Date objects (if provided)
     if (updateDocumentsDto.suggestedLicenseExpiry) {
-      data.suggestedLicenseExpiry = new Date(updateDocumentsDto.suggestedLicenseExpiry);
+      data.suggestedLicenseExpiry = new Date(
+        updateDocumentsDto.suggestedLicenseExpiry,
+      );
     }
     if (updateDocumentsDto.suggestedFcExpiry) {
       data.suggestedFcExpiry = new Date(updateDocumentsDto.suggestedFcExpiry);
     }
     if (updateDocumentsDto.suggestedInsuranceExpiry) {
-      data.suggestedInsuranceExpiry = new Date(updateDocumentsDto.suggestedInsuranceExpiry);
+      data.suggestedInsuranceExpiry = new Date(
+        updateDocumentsDto.suggestedInsuranceExpiry,
+      );
     }
     if (updateDocumentsDto.suggestedRcBookExpiry) {
-      data.suggestedRcBookExpiry = new Date(updateDocumentsDto.suggestedRcBookExpiry);
+      data.suggestedRcBookExpiry = new Date(
+        updateDocumentsDto.suggestedRcBookExpiry,
+      );
     }
 
     // If license is updated, reset status
@@ -128,15 +272,54 @@ export class DocumentsService {
     return updatedDocuments;
   }
 
-  async getUploadUrl(driverId: string, uploadUrlDto: uploadUrlDto): Promise<{
+  async getUploadUrl(
+    driverId: string,
+    uploadUrlDto: uploadUrlDto,
+  ): Promise<{
     signedUrl: string;
     publicUrl: string;
     token: string;
   }> {
     const uploadUrl = await this.firebaseService.generateSignedUploadUrl(
       uploadUrlDto.filePath,
-      uploadUrlDto.type
+      uploadUrlDto.type,
     );
     return uploadUrl;
+  }
+
+  async validateAadharNumber(
+    aadharNumber: string,
+    driverId?: string,
+  ): Promise<{ isAvailable: boolean }> {
+    const aadharNumberHash = this.hashAadhar(aadharNumber);
+
+    try {
+      await this.checkAadharDuplicate(
+        aadharNumberHash,
+        driverId || '',
+        this.prisma,
+      );
+      return { isAvailable: true };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        return { isAvailable: false };
+      }
+      throw error;
+    }
+  }
+
+  async validatePanNumber(
+    panNumber: string,
+    driverId?: string,
+  ): Promise<{ isAvailable: boolean }> {
+    try {
+      await this.checkPanDuplicate(panNumber, driverId || '', this.prisma);
+      return { isAvailable: true };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        return { isAvailable: false };
+      }
+      throw error;
+    }
   }
 }

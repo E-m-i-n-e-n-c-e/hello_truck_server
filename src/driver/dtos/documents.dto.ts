@@ -88,19 +88,6 @@ export class UpdateDriverDocumentsDto {
   @IsUrl()
   aadharUrl?: string;
 
-  @IsString()
-  @IsOptional()
-  @Matches(/^[0-9]{12}$/, {
-    message: 'Aadhaar number must be 12 digits'
-  })
-  aadharNumber?: string;
-
-  @IsString()
-  @IsOptional()
-  @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
-    message: 'PAN number must be in format: ABCDE1234F'
-  })
-  panNumber?: string;
 
   @IsString()
   @IsOptional()

@@ -16,6 +16,7 @@ export class TokenService {
       phoneNumber: user.phoneNumber,
       hasCompletedOnboarding,
       sessionId,
+      isActive: user.isActive
     });
 
     return accessToken;
@@ -102,9 +103,13 @@ export class TokenService {
           phoneNumber: '6300045929',
           hasCompletedOnboarding: true,
           sessionId: '1234567890',
+          isActive: true
         };
       }
-      const user = await this.jwtService.verifyAsync(token);
+      const user: UserToken = await this.jwtService.verifyAsync(token);
+      if(!user.isActive) {
+        throw new UnauthorizedException('Account is not active');
+      }
       return user;
     } catch (error) {
       throw new UnauthorizedException('Invalid access token');

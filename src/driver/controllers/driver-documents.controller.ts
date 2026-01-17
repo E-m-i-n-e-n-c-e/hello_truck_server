@@ -39,4 +39,20 @@ export class DriverDocumentsController {
   ): Promise<UploadUrlResponseDto> {
     return this.documentsService.getUploadUrl(userId, uploadUrlDto);
   }
+
+  @Get('validate-aadhar')
+  async validateAadhar(
+    @User('userId') userId: string,
+    @Query('aadharNumber') aadharNumber: string,
+  ): Promise<{ isAvailable: boolean }> {
+    return this.documentsService.validateAadharNumber(aadharNumber, userId);
+  }
+
+  @Get('validate-pan')
+  async validatePan(
+    @User('userId') userId: string,
+    @Query('panNumber') panNumber: string,
+  ): Promise<{ isAvailable: boolean }> {
+    return this.documentsService.validatePanNumber(panNumber, userId);
+  }
 }
