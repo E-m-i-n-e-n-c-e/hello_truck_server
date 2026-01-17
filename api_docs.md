@@ -228,6 +228,7 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `firstName`: `string`
     *   `lastName?`: `string`
     *   `photo?`: `string` (URL)
+    *   `referalCode?`: `string` - Optional referral code to apply during signup
     *   ... and nested DTOs for documents, vehicle, address, etc.
 *   **`UpdateDriverStatusDto`**:
     *   `status`: `enum` (`AVAILABLE`, `UNAVAILABLE`)
@@ -238,10 +239,16 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `vehicleBodyLength`: `number`
     *   `vehicleImageUrl`: `string` (URL)
     *   ... and other vehicle-specific fields.
+*   **`CreateDriverDocumentsDto`**:
+    *   `licenseUrl`: `string` (URL)
+    *   `rcBookUrl`: `string` (URL)
+    *   `aadharNumber`: `string` - 12-digit Aadhaar number (encrypted and hashed for storage)
+    *   `panNumber`: `string` - PAN number in format ABCDE1234F
+    *   ... and other document URLs.
 *   **`UpdateDriverDocumentsDto`**:
     *   `licenseUrl?`: `string` (URL)
     *   `rcBookUrl?`: `string` (URL)
-    *   ... and other document URLs.
+    *   ... and other document URLs (Aadhaar and PAN cannot be updated after initial submission).
 *   **`CreateDriverAddressDto` / `UpdateDriverAddressDto`**: Driver's permanent address.
     *   `addressLine1`: `string`
     *   `landmark?`: `string`
@@ -287,6 +294,15 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `retryCount`: `number`
     *   `createdAt`: `Date`
     *   `processedAt`: `Date | null`
+*   **`GeneratePaymentLinkDto`**: Request to generate driver wallet top-up payment link.
+    *   `amount`: `number` - Amount to add to wallet (minimum ₹1)
+*   **`WithdrawalRequestDto`**: Request to withdraw funds from driver wallet.
+    *   `amount`: `number` - Amount to withdraw (minimum ₹100)
+*   **`PaymentLinkResponseDto`**: Payment link details.
+    *   `paymentLinkUrl`: `string` - URL for payment
+    *   `paymentLinkId`: `string` - Razorpay payment link ID
+    *   `amount`: `number` - Payment amount
+    *   `expiresAt`: `number` - Expiry timestamp
 *   **`DriverTransactionLogResponseDto`**: Driver transaction ledger entry with full booking and payout details.
     *   `id`: `string`
     *   `customerId`: `string | null`
@@ -325,11 +341,12 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `lastName`: `string | null`
     *   `email`: `string | null`
     *   `alternatePhone`: `string | null`
-    *   `referalCode`: `string | null`
+    *   `referalCode`: `string | null` - Driver's unique referral code (format: DRI-XXXXXXXX)
     *   `photo`: `string | null`
     *   `contactId`: `string | null`
     *   `fundAccountId`: `string | null`
-    *   `score`: `number`
+    *   `score`: `number` - Driver rating score (default: 100)
+    *   `rideCount`: `number` - Total completed rides (default: 0)
     *   `latitude`: `Decimal | null`
     *   `longitude`: `Decimal | null`
     *   `isActive`: `boolean`
@@ -391,7 +408,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `POST` | `/bookings/driver/pickup/verify` 🔒 | Verifies pickup with a code. | `VerifyCodeDto` | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/drop/verify` 🔒 | Verifies drop-off with a code. | `VerifyCodeDto` | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/start` 🔒 | Starts the trip. | - | `SuccessResponseDto` |
-| `POST` | `/bookings/driver/finish` 🔒 | Finishes the trip. | - | `SuccessResponseDto` |
+| `POST` | `/bookings/driver/finish` 🔒 | Finishes the trip. **Increments driver's rideCount by 1.** Updates wallet with earnings after commission deduction. | - | `SuccessResponseDto` |
 | `POST` | `/bookings/driver/settle-cash` 🔒 | Marks cash payment as settled (driver acknowledges receiving cash). | - | `SuccessResponseDto` |
 | `GET` | `/bookings/driver/ride-summary` 🔒 | Gets daily ride summary with net earnings, commission rate, cancellation compensation, and completed/cancelled assignments. Defaults to today in IST timezone. | Query: `date?` (YYYY-MM-DD) | `RideSummaryDto` |
 | `GET` | `/bookings/driver/earnings-summary` 🔒 | Gets earnings summary for a date range with net earnings, commission rate, cancellation compensation, and completed/cancelled assignments. Defaults to today if no dates provided. | Query: `startDate?` (YYYY-MM-DD), `endDate?` (YYYY-MM-DD) | `EarningsSummaryResponseDto` |
@@ -404,7 +421,9 @@ Common Data Transfer Objects (DTOs) used across the API.
 ### Driver Payment (`DriverPayment`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/driver/payment/link` 🔒 | Generates a payment link for driver wallet top-up. Reuses existing link if valid. | `{ amount: number }` | `{ paymentLinkUrl: string, paymentLinkId: string, amount: number, expiresAt: number }` |
+| `POST` | `/driver/payment/link` 🔒 | Generates a payment link for driver wallet top-up. Reuses existing link if valid. | `GeneratePaymentLinkDto` | `PaymentLinkResponseDto` |
+| `POST` | `/driver/payment/withdraw` 🔒 | Requests withdrawal from driver wallet. **Requirements**: Minimum 2 completed rides, minimum ₹100 withdrawal, remaining balance must be ₹0 or ≥₹100. | `WithdrawalRequestDto` | `{ message: string }` |
+| `POST` | `/driver/payment/webhook` | Webhook endpoint for driver payment events (wallet top-ups). Verifies signature and processes payment. | `RazorpayWebhookPayload` | `{ status: string }` |
 
 ### Customer Profile (`CustomerProfile`)
 | Method | Path | Description | Request Body | Success Response |
@@ -453,8 +472,10 @@ Common Data Transfer Objects (DTOs) used across the API.
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
 | `GET` | `/driver/documents` 🔒 | Retrieves driver's documents with expiry dates. Expiry alerts are calculated client-side. | - | `DriverDocumentsResponseDto` |
-| `PUT` | `/driver/documents` 🔒 | Updates driver's documents. | `UpdateDriverDocumentsDto` | `DriverDocumentsResponseDto` |
+| `PUT` | `/driver/documents` 🔒 | Updates driver's documents. Aadhaar and PAN cannot be updated after initial submission. | `UpdateDriverDocumentsDto` | `DriverDocumentsResponseDto` |
 | `GET` | `/driver/documents/upload-url` 🔒 | Gets a signed URL for document uploads. | Query: `filePath`, `type` | `UploadUrlResponseDto` |
+| `GET` | `/driver/documents/validate-aadhar` 🔒 | Validates if Aadhaar number is available (not already registered by another active verified driver). | Query: `aadharNumber` | `{ isAvailable: boolean }` |
+| `GET` | `/driver/documents/validate-pan` 🔒 | Validates if PAN number is available (not already registered by another active verified driver). | Query: `panNumber` | `{ isAvailable: boolean }` |
 
 ### Driver Vehicle (`DriverVehicle`)
 | Method | Path | Description | Request Body | Success Response |
@@ -475,6 +496,18 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `PUT` | `/driver/address` 🔒 | Updates driver's permanent address. | `UpdateDriverAddressDto` | `DriverAddressResponseDto` |
 | `DELETE`| `/driver/address` 🔒 | Deletes driver's permanent address. | - | `SuccessResponseDto` |
 
+### Customer Referral (`CustomerReferral`)
+| Method | Path | Description | Request Body | Success Response |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/customer/referral/apply` 🔒 | Applies a referral code for the customer. Can only be used once. Maximum 5 referrals per referrer. | `{ referralCode: string }` (format: CUS-XXXXXXXX) | `{ message: string }` |
+| `GET` | `/customer/referral/stats` 🔒 | Gets customer's referral statistics including their referral code, total referrals, and referral history. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number, maxReferrals: number, referrals: Array }` |
+
+### Driver Referral (`DriverReferral`)
+| Method | Path | Description | Request Body | Success Response |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/driver/referral/apply` 🔒 | Applies a referral code for the driver. Can only be used once. Maximum 5 referrals per referrer. | `{ referralCode: string }` (format: DRI-XXXXXXXX) | `{ message: string }` |
+| `GET` | `/driver/referral/stats` 🔒 | Gets driver's referral statistics including their referral code, total referrals, and referral history. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number, maxReferrals: number, referrals: Array }` |
+
 ### Admin (`Admin`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
@@ -482,4 +515,4 @@ Common Data Transfer Objects (DTOs) used across the API.
 | `GET` | `/admin/drivers/pending-verification` 🔒 | Lists drivers pending verification. | Query: `page`, `limit`, `search` | `AdminDriverListResponseDto` |
 | `GET` | `/admin/drivers/pending-documents` 🔒 | Lists verified drivers with pending documents. | Query: `page`, `limit`, `search` | `AdminDriverListResponseDto` |
 | `GET` | `/admin/drivers/{id}` 🔒 | Gets specific driver details. | - | `DriverResponseDto` |
-| `PATCH` | `/admin/drivers/{id}/verification` 🔒 | Updates driver verification status and expiry dates. | `{ status: VerificationStatus, licenseExpiry?: string, fcExpiry?: string, insuranceExpiry?: string }` | `DriverResponseDto` |
+| `PATCH` | `/admin/drivers/{id}/verification` 🔒 | Updates driver verification status and expiry dates. | `{ status: VerificationStatus, licenseExpiry?: string, fcExpiry?: string, insuranceExpiry?: string, rcBookExpiry?: string }` | `DriverResponseDto` |
