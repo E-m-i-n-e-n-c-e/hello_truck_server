@@ -1,7 +1,10 @@
 import { IsOptional, ValidateNested, IsString } from 'class-validator';
 import { Type, Exclude } from 'class-transformer';
 import { $Enums, Driver, VehicleType } from '@prisma/client';
-import { CreateBookingAddressDto, BookingAddressResponseDto } from './booking-address.dto';
+import {
+  CreateBookingAddressDto,
+  BookingAddressResponseDto,
+} from './booking-address.dto';
 import { PackageDetailsDto, PackageDetailsResponseDto } from './package.dto';
 import { Expose } from 'class-transformer';
 import { InvoiceResponseDto } from './booking-invoice.dto';
@@ -34,6 +37,8 @@ class DriverResponseDto implements Partial<Driver> {
   photo: string | null;
   @Expose()
   score: number;
+  @Expose()
+  rideCount: number;
 }
 
 export class BookingResponseDto {
@@ -176,7 +181,6 @@ export class EarningsSummaryResponseDto extends BaseEarningsDto {
   @Expose()
   endDate: string; // YYYY-MM-DD format
 }
-
 
 export class CancelBookingDto {
   @IsString()

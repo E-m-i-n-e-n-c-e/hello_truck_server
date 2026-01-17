@@ -196,6 +196,8 @@ export class DriverResponseDto {
   @Expose()
   score: number;
   @Expose()
+  rideCount: number;
+  @Expose()
   @Type(() => DriverDocumentsResponseDto)
   documents: DriverDocumentsResponseDto | null;
   @Expose()

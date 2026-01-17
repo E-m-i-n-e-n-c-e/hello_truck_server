@@ -1,12 +1,34 @@
-import { Driver, DriverStatus, DriverStatusLog, Vehicle, VerificationStatus } from "@prisma/client";
-import { Expose, Type } from "class-transformer";
-import { IsIn, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, ValidateNested } from "class-validator";
-import { CreateDriverDocumentsDto, DriverDocumentsResponseDto } from "./documents.dto";
-import { CreateVehicleDto, VehicleResponseDto } from "./vehicle.dto";
-import { ToBoolean } from "src/common/decorators/to-boolean.decorator";
-import { CreateDriverAddressDto } from "./address.dto";
-import { CreatePayoutDetailsDto, UpdatePayoutDetailsDto } from "src/razorpay/dtos/payout-details.dto";
-import { Decimal } from "@prisma/client/runtime/library";
+import {
+  Driver,
+  DriverStatus,
+  DriverStatusLog,
+  Vehicle,
+  VerificationStatus,
+} from '@prisma/client';
+import { Expose, Type } from 'class-transformer';
+import {
+  IsIn,
+  IsLatitude,
+  IsLongitude,
+  IsNotEmpty,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+  IsUrl,
+  ValidateNested,
+} from 'class-validator';
+import {
+  CreateDriverDocumentsDto,
+  DriverDocumentsResponseDto,
+} from './documents.dto';
+import { CreateVehicleDto, VehicleResponseDto } from './vehicle.dto';
+import { ToBoolean } from 'src/common/decorators/to-boolean.decorator';
+import { CreateDriverAddressDto } from './address.dto';
+import {
+  CreatePayoutDetailsDto,
+  UpdatePayoutDetailsDto,
+} from 'src/razorpay/dtos/payout-details.dto';
+import { Decimal } from '@prisma/client/runtime/library';
 
 export class GetQueryDto {
   @ToBoolean()
@@ -135,6 +157,8 @@ export class ProfileResponseDto {
   vehicle: VehicleResponseDto | null;
   @Expose()
   score: number;
+  @Expose()
+  rideCount: number;
   @Expose()
   walletBalance: number;
 }

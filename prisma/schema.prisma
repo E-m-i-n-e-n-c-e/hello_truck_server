@@ -117,6 +117,7 @@ model Driver {
   fundAccountId      String?
   payoutMethod       PayoutMethodType?
   score              Int                @default(100)
+  rideCount          Int                @default(0)
   isActive           Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
   driverStatus       DriverStatus       @default(UNAVAILABLE)
@@ -165,8 +166,8 @@ model DriverDocuments {
   suggestedInsuranceExpiry DateTime?
   insuranceStatus          VerificationStatus @default(PENDING)
   aadharUrl                String
-  aadharNumberHash         String
-  aadharNumberEncrypted    String
+  aadharNumberHash         String             @default("RandomHash")
+  aadharNumberEncrypted    String             @default("RandomHash")
   panNumber                String
   ebBillUrl                String
   selfieUrl                String?

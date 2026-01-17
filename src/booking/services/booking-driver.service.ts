@@ -403,6 +403,7 @@ export class BookingDriverService {
         data: {
           driverStatus: DriverStatus.AVAILABLE,
           walletBalance: newBalance,
+          rideCount: { increment: 1 },
         },
       });
 
