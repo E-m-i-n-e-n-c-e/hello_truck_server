@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BookingPaymentService } from '../../booking/services/booking-payment.service';
+import { DriverPayoutService } from '../../driver/payment/payout.service';
 
 @Injectable()
 export class PayoutService {
@@ -8,7 +8,7 @@ export class PayoutService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly bookingPaymentService: BookingPaymentService,
+    private readonly driverPayoutService: DriverPayoutService,
   ) {}
 
   async processDailyPayouts() {
@@ -30,17 +30,21 @@ export class PayoutService {
 
     for (const driver of drivers) {
       try {
-        await this.bookingPaymentService.processPayout(driver);
+        await this.driverPayoutService.processPayout(driver);
         successCount++;
       } catch (error) {
         // Log error but continue to next driver
-        this.logger.error(`✗ Failed to process payout for driver ${driver.id}: ${error.message}`);
+        this.logger.error(
+          `✗ Failed to process payout for driver ${driver.id}: ${error.message}`,
+        );
         this.logger.error(error.stack);
         failureCount++;
         // Continue to next driver instead of throwing
       }
     }
 
-    this.logger.log(`Daily payout processing completed: ${successCount} succeeded, ${failureCount} failed`);
+    this.logger.log(
+      `Daily payout processing completed: ${successCount} succeeded, ${failureCount} failed`,
+    );
   }
 }

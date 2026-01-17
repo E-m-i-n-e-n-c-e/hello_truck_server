@@ -1,6 +1,12 @@
-import { DriverDocuments, VerificationStatus } from "@prisma/client";
-import { Expose } from "class-transformer";
-import { IsOptional, IsString, IsUrl, Matches, IsDateString } from "class-validator";
+import { DriverDocuments, VerificationStatus } from '@prisma/client';
+import { Expose } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateDriverDocumentsDto {
   @IsString()
@@ -25,13 +31,13 @@ export class CreateDriverDocumentsDto {
 
   @IsString()
   @Matches(/^[0-9]{12}$/, {
-    message: 'Aadhaar number must be 12 digits'
+    message: 'Aadhaar number must be 12 digits',
   })
   aadharNumber: string;
 
   @IsString()
   @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
-    message: 'PAN number must be in format: ABCDE1234F'
+    message: 'PAN number must be in format: ABCDE1234F',
   })
   panNumber: string;
 
@@ -88,7 +94,6 @@ export class UpdateDriverDocumentsDto {
   @IsUrl()
   aadharUrl?: string;
 
-
   @IsString()
   @IsOptional()
   @IsUrl()
@@ -120,6 +125,8 @@ export class UpdateDriverDocumentsDto {
 export class DriverDocumentsResponseDto implements DriverDocuments {
   id: string;
   driverId: string;
+  aadharNumberHash: string;
+  aadharNumberEncrypted: string;
 
   @Expose()
   licenseUrl: string;
@@ -159,7 +166,6 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
 
   @Expose()
   aadharUrl: string;
-  aadharNumberHash: string;
   @Expose()
   panNumber: string;
   @Expose()
@@ -175,7 +181,7 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
 export class ValidateAadharDto {
   @IsString()
   @Matches(/^[0-9]{12}$/, {
-    message: 'Aadhaar number must be 12 digits'
+    message: 'Aadhaar number must be 12 digits',
   })
   aadharNumber: string;
 }
@@ -183,7 +189,7 @@ export class ValidateAadharDto {
 export class ValidatePanDto {
   @IsString()
   @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
-    message: 'PAN number must be in format: ABCDE1234F'
+    message: 'PAN number must be in format: ABCDE1234F',
   })
   panNumber: string;
 }

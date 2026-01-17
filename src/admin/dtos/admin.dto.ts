@@ -1,6 +1,15 @@
-import { DriverStatus, VerificationStatus, VehicleOwner, VehicleType, VehicleBodyType, FuelType, DriverDocuments, DriverAddress } from "@prisma/client";
-import { Expose, Type } from "class-transformer";
-import { IsOptional, IsEnum, IsNotEmpty } from "class-validator";
+import {
+  DriverStatus,
+  VerificationStatus,
+  VehicleOwner,
+  VehicleType,
+  VehicleBodyType,
+  FuelType,
+  DriverDocuments,
+  DriverAddress,
+} from '@prisma/client';
+import { Expose, Type } from 'class-transformer';
+import { IsOptional, IsEnum, IsNotEmpty } from 'class-validator';
 
 export class VehicleOwnerResponseDto implements VehicleOwner {
   id: string;
@@ -81,6 +90,11 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   suggestedRcBookExpiry: Date | null;
   @Expose()
   rcBookStatus: VerificationStatus;
+
+  @Expose()
+  aadharNumberHash: string;
+  @Expose()
+  aadharNumberEncrypted: string;
 
   @Expose()
   fcUrl: string;

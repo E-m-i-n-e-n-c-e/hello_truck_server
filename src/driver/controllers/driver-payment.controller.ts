@@ -1,5 +1,14 @@
-import { Controller, Post, Body, Headers, UseGuards, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  UseGuards,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { DriverPaymentService } from '../payment/payment.service';
+import { DriverPayoutService } from '../payment/payout.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
@@ -8,7 +17,11 @@ import { Roles } from 'src/token/decorators/roles.decorator';
 import { User } from 'src/token/decorators/user.decorator';
 import { RazorpayWebhookPayload } from 'src/razorpay/types/razorpay-webhook.types';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
-import { PaymentLinkResponseDto, GeneratePaymentLinkDto } from '../payment/dtos/driver-payment.dto';
+import {
+  PaymentLinkResponseDto,
+  GeneratePaymentLinkDto,
+  WithdrawalRequestDto,
+} from '../payment/dtos/driver-payment.dto';
 
 @Controller('driver/payment')
 export class DriverPaymentController {
@@ -16,6 +29,7 @@ export class DriverPaymentController {
 
   constructor(
     private readonly driverPaymentService: DriverPaymentService,
+    private readonly driverPayoutService: DriverPayoutService,
     private readonly razorpayService: RazorpayService,
     private readonly prisma: PrismaService,
   ) {}
@@ -31,6 +45,17 @@ export class DriverPaymentController {
     return this.driverPaymentService.generatePaymentLink(driverId, dto.amount);
   }
 
+  @Post('withdraw')
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles('driver')
+  async requestWithdrawal(
+    @User('userId') driverId: string,
+    @Body() dto: WithdrawalRequestDto,
+  ) {
+    await this.driverPayoutService.processWithdrawal(driverId, dto.amount);
+    return { message: 'Withdrawal processed successfully' };
+  }
+
   @Post('webhook')
   async handleWebhook(
     @Body() body: RazorpayWebhookPayload,
@@ -39,7 +64,10 @@ export class DriverPaymentController {
     this.logger.log('Received driver payment webhook');
 
     // Verify signature
-    const isValid = this.razorpayService.verifyWebhookSignature(JSON.stringify(body), signature);
+    const isValid = this.razorpayService.verifyWebhookSignature(
+      JSON.stringify(body),
+      signature,
+    );
     if (!isValid) {
       this.logger.warn('Invalid webhook signature');
       throw new UnauthorizedException('Invalid signature');
@@ -64,7 +92,10 @@ export class DriverPaymentController {
       return { status: 'ok' };
     }
 
-    if (event === 'payment_link.paid' || event === 'payment_link.partially_paid') {
+    if (
+      event === 'payment_link.paid' ||
+      event === 'payment_link.partially_paid'
+    ) {
       const amountPaid = (payment?.amount ?? 0) / 100; // Convert paise to rupees
       await this.driverPaymentService.handlePaymentReceived(
         referenceId,

@@ -7,6 +7,12 @@ export class GeneratePaymentLinkDto {
   amount: number;
 }
 
+export class WithdrawalRequestDto {
+  @IsNumber()
+  @Min(1)
+  amount: number;
+}
+
 export class PaymentLinkResponseDto {
   @Expose()
   paymentLinkUrl: string;
