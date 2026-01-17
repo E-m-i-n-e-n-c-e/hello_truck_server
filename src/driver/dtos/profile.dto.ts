@@ -60,7 +60,7 @@ export class CreateDriverProfileDto {
 
   @IsString()
   @IsOptional()
-  referalCode?: string;
+  appliedReferralCode?: string;
 
   @IsString()
   @IsOptional()
@@ -136,7 +136,7 @@ export class ProfileResponseDto {
   @Expose()
   alternatePhone: string | null;
   @Expose()
-  referalCode: string | null;
+  referralCode: string | null;
   @Expose()
   photo: string | null;
   @Expose()

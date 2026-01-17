@@ -5,6 +5,7 @@ import { GstService } from '../gst/gst.service';
 import { AddressService } from '../address/address.service';
 import { Customer } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import { ReferralService } from 'src/referral/referral.service';
 
 @Injectable()
 export class ProfileService {
@@ -12,7 +13,8 @@ export class ProfileService {
     private prisma: PrismaService,
     private gstService: GstService,
     private addressService: AddressService,
-    private firebaseService: FirebaseService
+    private firebaseService: FirebaseService,
+    private referralService: ReferralService,
   ) {}
 
   async getProfile(userId: string): Promise<Customer> {
@@ -59,7 +61,7 @@ export class ProfileService {
       throw new BadRequestException('Profile already exists');
     }
 
-    const {googleIdToken, gstDetails, savedAddress, ...profileData } = createProfileDto;
+    const {googleIdToken, gstDetails, savedAddress, appliedReferralCode, ...profileData } = createProfileDto;
     let email: string | undefined;
     if(googleIdToken) {
       email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
@@ -83,6 +85,14 @@ export class ProfileService {
         }
       });
     });
+
+    // Apply referral code if provided 
+    if (appliedReferralCode) {
+      await this.referralService.applyCustomerReferralCode(appliedReferralCode, userId).catch((error) => {
+        console.error(`Failed to apply referral code for customer ${userId}:`, error);
+      });
+    }
+
     return {success:true, message:'Profile created successfully'};
   }
 

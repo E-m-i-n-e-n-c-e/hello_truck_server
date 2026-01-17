@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -39,5 +40,13 @@ export class DriverReferralController {
   @Get('stats')
   async getReferralStats(@User() user: UserToken) {
     return this.referralService.getDriverReferralStats(user.userId);
+  }
+
+  @Get('validate')
+  async validateReferralCode(
+    @User() user: UserToken,
+    @Query('code') code: string,
+  ) {
+    return this.referralService.validateDriverReferralCode(code, user.userId);
   }
 }

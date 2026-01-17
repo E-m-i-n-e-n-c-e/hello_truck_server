@@ -8,6 +8,7 @@ import { VehicleService } from '../vehicle/vehicle.service';
 import { AddressService } from '../address/address.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { RedisService } from 'src/redis/redis.service';
+import { ReferralService } from 'src/referral/referral.service';
 import { PayoutMethod } from 'src/razorpay/dtos/payout-details.dto';
 
 interface GetProfileOptions {
@@ -25,6 +26,7 @@ export class ProfileService {
     private readonly addressService: AddressService,
     private readonly razorpayService: RazorpayService,
     private readonly redisService: RedisService,
+    private readonly referralService: ReferralService,
   ) {}
 
   async getProfile(
@@ -62,7 +64,7 @@ export class ProfileService {
       throw new BadRequestException('Profile already exists');
     }
 
-    const { googleIdToken, documents, vehicle, address, payoutDetails, ...profileData } = createProfileDto;
+    const { googleIdToken, documents, vehicle, address, payoutDetails, appliedReferralCode, ...profileData } = createProfileDto;
     let email: string | undefined;
     if (googleIdToken) {
       email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
@@ -109,6 +111,13 @@ export class ProfileService {
         },
       });
     });
+
+    // Apply referral code if provided 
+    if (appliedReferralCode) {
+      await this.referralService.applyDriverReferralCode(appliedReferralCode, userId).catch((error) => {
+        console.error(`Failed to apply referral code for driver ${userId}:`, error);
+      });
+    }
 
     return { success: true, message: 'Profile created successfully' };
   }

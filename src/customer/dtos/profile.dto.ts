@@ -19,7 +19,7 @@ export class CreateProfileDto implements Partial<Customer> {
 
   @IsString()
   @IsOptional()
-  referralCode?: string;
+  appliedReferralCode?: string;
 
   @IsOptional()
   @ValidateNested()

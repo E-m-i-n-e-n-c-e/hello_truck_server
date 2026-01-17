@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -39,5 +40,13 @@ export class CustomerReferralController {
   @Get('stats')
   async getReferralStats(@User() user: UserToken) {
     return this.referralService.getCustomerReferralStats(user.userId);
+  }
+
+  @Get('validate')
+  async validateReferralCode(
+    @User() user: UserToken,
+    @Query('code') code: string,
+  ) {
+    return this.referralService.validateCustomerReferralCode(code, user.userId);
   }
 }

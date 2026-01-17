@@ -165,7 +165,20 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `firstName`: `string`
     *   `lastName?`: `string`
     *   `googleIdToken?`: `string`
+    *   `appliedReferralCode?`: `string` - Optional referral code to apply during profile creation (format: CUS-XXXXXXXX). Applied asynchronously after profile creation.
     *   ... and other fields for initial setup.
+*   **`GetProfileResponseDto`**: Customer profile response.
+    *   `id`: `string`
+    *   `firstName`: `string | null`
+    *   `lastName`: `string | null`
+    *   `email`: `string | null`
+    *   `phoneNumber`: `string`
+    *   `isBusiness`: `boolean`
+    *   `referralCode`: `string | null` - Customer's unique referral code (format: CUS-XXXXXXXX, auto-generated on signup)
+    *   `walletBalance`: `Decimal`
+    *   `isActive`: `boolean`
+    *   `createdAt`: `Date`
+    *   `updatedAt`: `Date`
 *   **`CreateSavedAddressDto` / `UpdateSavedAddressDto`**: For customer's saved addresses.
     *   `name`: `string`
     *   `contactName`: `string`
@@ -228,8 +241,30 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `firstName`: `string`
     *   `lastName?`: `string`
     *   `photo?`: `string` (URL)
-    *   `referalCode?`: `string` - Optional referral code to apply during signup
+    *   `appliedReferralCode?`: `string` - Optional referral code to apply during profile creation (format: DRI-XXXXXXXX). Applied asynchronously after profile creation.
     *   ... and nested DTOs for documents, vehicle, address, etc.
+*   **`ProfileResponseDto`**: Driver profile response.
+    *   `id`: `string`
+    *   `phoneNumber`: `string`
+    *   `firstName`: `string | null`
+    *   `lastName`: `string | null`
+    *   `email`: `string | null`
+    *   `alternatePhone`: `string | null`
+    *   `referalCode`: `string | null` - Driver's unique referral code (format: DRI-XXXXXXXX, auto-generated on signup)
+    *   `photo`: `string | null`
+    *   `contactId`: `string | null`
+    *   `fundAccountId`: `string | null`
+    *   `score`: `number` - Driver rating score (default: 100)
+    *   `rideCount`: `number` - Total completed rides (default: 0)
+    *   `verificationStatus`: `VerificationStatus`
+    *   `driverStatus`: `DriverStatus`
+    *   `walletBalance`: `number`
+    *   `isActive`: `boolean`
+    *   `documents`: `DriverDocumentsResponseDto | null`
+    *   `vehicle`: `VehicleResponseDto | null`
+    *   `createdAt`: `Date`
+    *   `updatedAt`: `Date`
+    *   `lastSeenAt`: `Date | null`
 *   **`UpdateDriverStatusDto`**:
     *   `status`: `enum` (`AVAILABLE`, `UNAVAILABLE`)
 *   **`CreateVehicleDto` / `UpdateVehicleDto`**:
@@ -318,6 +353,30 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `paymentMethod`: `enum` (CASH, ONLINE, WALLET)
     *   `createdAt`: `Date`
 
+
+### Referral DTOs
+*   **`ApplyCustomerReferralDto`**: Apply a customer referral code.
+    *   `referralCode`: `string` - Customer referral code (format: CUS-XXXXXXXX)
+*   **`ApplyDriverReferralDto`**: Apply a driver referral code.
+    *   `referralCode`: `string` - Driver referral code (format: DRI-XXXXXXXX)
+*   **`CustomerReferralStatsResponseDto`**: Customer referral statistics.
+    *   `referralCode`: `string | null` - Customer's unique referral code
+    *   `totalReferrals`: `number` - Number of successful referrals
+    *   `remainingReferrals`: `number` - Remaining referral slots (max 5)
+    *   `maxReferrals`: `number` - Maximum allowed referrals (5)
+    *   `referrals`: `Array` - List of referred customers with details
+        *   `id`: `string` - Referral record ID
+        *   `referredCustomer`: `object` - Referred customer details (id, firstName, lastName, phoneNumber, createdAt)
+        *   `createdAt`: `Date` - When referral was applied
+*   **`DriverReferralStatsResponseDto`**: Driver referral statistics.
+    *   `referralCode`: `string | null` - Driver's unique referral code
+    *   `totalReferrals`: `number` - Number of successful referrals
+    *   `remainingReferrals`: `number` - Remaining referral slots (max 5)
+    *   `maxReferrals`: `number` - Maximum allowed referrals (5)
+    *   `referrals`: `Array` - List of referred drivers with details
+        *   `id`: `string` - Referral record ID
+        *   `referredDriver`: `object` - Referred driver details (id, firstName, lastName, phoneNumber, createdAt)
+        *   `createdAt`: `Date` - When referral was applied
 
 ### Razorpay DTOs
 *   **`CreateContactDto`**:
@@ -422,7 +481,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/driver/payment/link` 🔒 | Generates a payment link for driver wallet top-up. Reuses existing link if valid. | `GeneratePaymentLinkDto` | `PaymentLinkResponseDto` |
-| `POST` | `/driver/payment/withdraw` 🔒 | Requests withdrawal from driver wallet. **Requirements**: Minimum 2 completed rides, minimum ₹100 withdrawal, remaining balance must be ₹0 or ≥₹100. | `WithdrawalRequestDto` | `{ message: string }` |
+| `POST` | `/driver/payment/withdraw` 🔒 | Requests withdrawal from driver wallet. **Requirements**: Minimum 2 completed rides. | `WithdrawalRequestDto` | `{ message: string }` |
 | `POST` | `/driver/payment/webhook` | Webhook endpoint for driver payment events (wallet top-ups). Verifies signature and processes payment. | `RazorpayWebhookPayload` | `{ status: string }` |
 
 ### Customer Profile (`CustomerProfile`)
@@ -501,12 +560,14 @@ Common Data Transfer Objects (DTOs) used across the API.
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/customer/referral/apply` 🔒 | Applies a referral code for the customer. Can only be used once. Maximum 5 referrals per referrer. | `{ referralCode: string }` (format: CUS-XXXXXXXX) | `{ message: string }` |
 | `GET` | `/customer/referral/stats` 🔒 | Gets customer's referral statistics including their referral code, total referrals, and referral history. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number, maxReferrals: number, referrals: Array }` |
+| `GET` | `/customer/referral/validate` 🔒 | Validates a customer referral code before applying it. Checks if code exists, not self-referral, not already used, and referrer hasn't reached limit. | Query: `code` (string) | `{ isValid: boolean, reason?: string }` |
 
 ### Driver Referral (`DriverReferral`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/driver/referral/apply` 🔒 | Applies a referral code for the driver. Can only be used once. Maximum 5 referrals per referrer. | `{ referralCode: string }` (format: DRI-XXXXXXXX) | `{ message: string }` |
 | `GET` | `/driver/referral/stats` 🔒 | Gets driver's referral statistics including their referral code, total referrals, and referral history. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number, maxReferrals: number, referrals: Array }` |
+| `GET` | `/driver/referral/validate` 🔒 | Validates a driver referral code before applying it. Checks if code exists, not self-referral, not already used, and referrer hasn't reached limit. | Query: `code` (string) | `{ isValid: boolean, reason?: string }` |
 
 ### Admin (`Admin`)
 | Method | Path | Description | Request Body | Success Response |

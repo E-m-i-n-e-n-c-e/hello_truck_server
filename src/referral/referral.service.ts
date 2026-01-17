@@ -285,4 +285,96 @@ export class ReferralService {
       })),
     };
   }
+
+  /**
+   * Validate a customer referral code
+   */
+  async validateCustomerReferralCode(
+    referralCode: string,
+    customerId: string,
+  ): Promise<{ isValid: boolean; reason?: string }> {
+    try {
+      // Find the referrer by code
+      const referrer = await this.prisma.customer.findUnique({
+        where: { referralCode },
+      });
+
+      if (!referrer) {
+        return { isValid: false, reason: 'Invalid referral code' };
+      }
+
+      if (referrer.id === customerId) {
+        return { isValid: false, reason: 'Cannot use your own referral code' };
+      }
+
+      // Check if customer already used a referral code
+      const existingReferral = await this.prisma.customerReferral.findUnique({
+        where: { referredId: customerId },
+      });
+
+      if (existingReferral) {
+        return { isValid: false, reason: 'Referral code already applied' };
+      }
+
+      // Check referrer's referral count
+      const referralCount = await this.prisma.customerReferral.count({
+        where: { referrerId: referrer.id },
+      });
+
+      if (referralCount >= this.MAX_REFERRALS) {
+        return { isValid: false, reason: 'Referral limit reached for this code' };
+      }
+
+      return { isValid: true };
+    } catch (error) {
+      this.logger.error(`Error validating customer referral code: ${error.message}`);
+      return { isValid: false, reason: 'Validation error' };
+    }
+  }
+
+  /**
+   * Validate a driver referral code
+   */
+  async validateDriverReferralCode(
+    referralCode: string,
+    driverId: string,
+  ): Promise<{ isValid: boolean; reason?: string }> {
+    try {
+      // Find the referrer by code
+      const referrer = await this.prisma.driver.findUnique({
+        where: { referralCode },
+      });
+
+      if (!referrer) {
+        return { isValid: false, reason: 'Invalid referral code' };
+      }
+
+      if (referrer.id === driverId) {
+        return { isValid: false, reason: 'Cannot use your own referral code' };
+      }
+
+      // Check if driver already used a referral code
+      const existingReferral = await this.prisma.driverReferral.findUnique({
+        where: { referredId: driverId },
+      });
+
+      if (existingReferral) {
+        return { isValid: false, reason: 'Referral code already applied' };
+      }
+
+      // Check referrer's referral count
+      const referralCount = await this.prisma.driverReferral.count({
+        where: { referrerId: referrer.id },
+      });
+
+      if (referralCount >= this.MAX_REFERRALS) {
+        return { isValid: false, reason: 'Referral limit reached for this code' };
+      }
+
+      return { isValid: true };
+    } catch (error) {
+      this.logger.error(`Error validating driver referral code: ${error.message}`);
+      return { isValid: false, reason: 'Validation error' };
+    }
+  }
 }
