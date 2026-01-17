@@ -24,6 +24,12 @@ export class CreateDriverDocumentsDto {
   aadharUrl: string;
 
   @IsString()
+  @Matches(/^[0-9]{12}$/, {
+    message: 'Aadhaar number must be 12 digits'
+  })
+  aadharNumber: string;
+
+  @IsString()
   @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
     message: 'PAN number must be in format: ABCDE1234F'
   })
@@ -81,6 +87,13 @@ export class UpdateDriverDocumentsDto {
   @IsOptional()
   @IsUrl()
   aadharUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[0-9]{12}$/, {
+    message: 'Aadhaar number must be 12 digits'
+  })
+  aadharNumber?: string;
 
   @IsString()
   @IsOptional()
@@ -159,6 +172,7 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
 
   @Expose()
   aadharUrl: string;
+  aadharNumberHash: string;
   @Expose()
   panNumber: string;
   @Expose()
@@ -169,4 +183,25 @@ export class DriverDocumentsResponseDto implements DriverDocuments {
   createdAt: Date;
   @Expose()
   updatedAt: Date;
+}
+
+export class ValidateAadharDto {
+  @IsString()
+  @Matches(/^[0-9]{12}$/, {
+    message: 'Aadhaar number must be 12 digits'
+  })
+  aadharNumber: string;
+}
+
+export class ValidatePanDto {
+  @IsString()
+  @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
+    message: 'PAN number must be in format: ABCDE1234F'
+  })
+  panNumber: string;
+}
+
+export class DocumentValidationResponseDto {
+  @Expose()
+  isAvailable: boolean;
 }

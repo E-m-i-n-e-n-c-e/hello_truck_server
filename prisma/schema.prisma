@@ -17,7 +17,7 @@ model Customer {
   lastName      String?
   email         String?
   isBusiness    Boolean              @default(false)
-  referralCode  String?
+  referralCode  String?              @unique
   isActive      Boolean              @default(true)
   walletBalance Decimal              @default(0) @db.Decimal(10, 2)
   createdAt     DateTime             @default(now())
@@ -29,8 +29,11 @@ model Customer {
   transactions  Transaction[]
   walletLogs    CustomerWalletLog[]
   refundIntents RefundIntent[]
+  referrals     CustomerReferral[]   @relation("CustomerReferrer")
+  appliedReferral CustomerReferral?  @relation("CustomerReferred")
 
   @@index([isActive])
+  @@index([referralCode])
 }
 
 model Address {
@@ -108,7 +111,7 @@ model Driver {
   lastName           String?
   email              String?
   alternatePhone     String?
-  referalCode        String?
+  referralCode       String?            @unique
   photo              String?
   contactId          String?
   fundAccountId      String?
@@ -134,6 +137,8 @@ model Driver {
   payouts      Payout[]
   walletLogs   DriverWalletLog[]
   paymentLinks DriverPaymentLink[]
+  referrals    DriverReferral[]     @relation("DriverReferrer")
+  appliedReferral DriverReferral?   @relation("DriverReferred")
 
   @@index([isActive, verificationStatus])
   @@index([lastSeenAt, driverStatus])
@@ -160,6 +165,8 @@ model DriverDocuments {
   suggestedInsuranceExpiry DateTime?
   insuranceStatus          VerificationStatus @default(PENDING)
   aadharUrl                String
+  aadharNumberHash         String
+  aadharNumberEncrypted    String
   panNumber                String
   ebBillUrl                String
   selfieUrl                String?
@@ -170,6 +177,8 @@ model DriverDocuments {
   @@index([rcBookExpiry])
   @@index([fcExpiry])
   @@index([insuranceExpiry])
+  @@index([aadharNumberHash])
+  @@index([panNumber])
 }
 
 model DriverSession {
@@ -607,6 +616,40 @@ model RefundIntent {
 
   @@index([status])
   @@index([bookingId])
+}
+
+// Customer referral tracking table
+model CustomerReferral {
+  id         String   @id @default(uuid())
+
+  // Referrer (customer who shared the code)
+  referrerId String
+  referrer   Customer @relation("CustomerReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+
+  // Referred (customer who used the code)
+  referredId String   @unique
+  referred   Customer @relation("CustomerReferred", fields: [referredId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([referrerId])
+}
+
+// Driver referral tracking table
+model DriverReferral {
+  id         String   @id @default(uuid())
+
+  // Referrer (driver who shared the code)
+  referrerId String
+  referrer   Driver   @relation("DriverReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+
+  // Referred (driver who used the code)
+  referredId String   @unique
+  referred   Driver   @relation("DriverReferred", fields: [referredId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([referrerId])
 }
 
 model WebhookLog {
