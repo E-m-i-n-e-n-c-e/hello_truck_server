@@ -114,7 +114,7 @@ export class ProfileService {
 
     // Apply referral code if provided 
     if (appliedReferralCode) {
-      await this.referralService.applyDriverReferralCode(appliedReferralCode, userId).catch((error) => {
+      this.referralService.applyDriverReferralCode(appliedReferralCode, userId).catch((error) => {
         console.error(`Failed to apply referral code for driver ${userId}:`, error);
       });
     }

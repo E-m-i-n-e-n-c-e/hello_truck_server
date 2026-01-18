@@ -1,6 +1,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { generateReferralCode } from '../common/utils/referral-code.util';
+import { FirebaseService } from '../firebase/firebase.service';
+import { FcmEventType } from '../common/types/fcm.types';
 
 @Injectable()
 export class ReferralService {
@@ -8,7 +10,10 @@ export class ReferralService {
   private readonly MAX_REFERRALS = 5;
   private readonly MAX_RETRIES = 5;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private firebaseService: FirebaseService,
+  ) {}
 
   /**
    * Generate and assign a referral code to a customer (called asynchronously after signup)
@@ -137,9 +142,55 @@ export class ReferralService {
         },
       });
 
+      // 1. Credit Referrer (Customer) -> 100
+      const updatedReferrer = await tx.customer.update({
+        where: { id: referrer.id },
+        data: { walletBalance: { increment: 100 } },
+      });
+
+      await tx.customerWalletLog.create({
+        data: {
+          customerId: referrer.id,
+          amount: 100,
+          reason: 'Referral Bonus',
+          beforeBalance: referrer.walletBalance!, // Assuming fetched by findUnique
+          afterBalance: updatedReferrer.walletBalance!,
+        },
+      });
+
+      // 2. Credit Referred (New Customer) -> 50
+      const newCustomer = await tx.customer.findUnique({
+        where: { id: newCustomerId },
+      });
+
+      if (newCustomer) {
+        const updatedNewCustomer = await tx.customer.update({
+          where: { id: newCustomerId },
+          data: { walletBalance: { increment: 50 } },
+        });
+
+        await tx.customerWalletLog.create({
+          data: {
+            customerId: newCustomerId,
+            amount: 50,
+            reason: 'Referral Bonus',
+            beforeBalance: newCustomer.walletBalance!,
+            afterBalance: updatedNewCustomer.walletBalance!,
+          },
+        });
+      }
+
       this.logger.log(
         `Successfully applied referral code ${referralCode} for customer ${newCustomerId}`,
       );
+
+      // Send notifications (fire-and-forget)
+      this.firebaseService.notifyAllSessions(referrer.id, 'customer', {
+        data: { event: FcmEventType.WalletChange },
+      });
+      this.firebaseService.notifyAllSessions(newCustomerId, 'customer', {
+        data: { event: FcmEventType.WalletChange },
+      });
     });
   }
 
@@ -194,9 +245,55 @@ export class ReferralService {
         },
       });
 
+      // 1. Credit Referrer (Driver) -> 300
+      const updatedReferrer = await tx.driver.update({
+        where: { id: referrer.id },
+        data: { walletBalance: { increment: 300 } },
+      });
+
+      await tx.driverWalletLog.create({
+        data: {
+          driverId: referrer.id,
+          amount: 300,
+          reason: 'Referral Bonus',
+          beforeBalance: referrer.walletBalance!,
+          afterBalance: updatedReferrer.walletBalance!,
+        },
+      });
+
+      // 2. Credit Referred (New Driver) -> 50
+      const newDriver = await tx.driver.findUnique({
+        where: { id: newDriverId },
+      });
+
+      if (newDriver) {
+        const updatedNewDriver = await tx.driver.update({
+          where: { id: newDriverId },
+          data: { walletBalance: { increment: 50 } },
+        });
+
+        await tx.driverWalletLog.create({
+          data: {
+            driverId: newDriverId,
+            amount: 50,
+            reason: 'Referral Bonus',
+            beforeBalance: newDriver.walletBalance!,
+            afterBalance: updatedNewDriver.walletBalance!,
+          },
+        });
+      }
+
       this.logger.log(
         `Successfully applied referral code ${referralCode} for driver ${newDriverId}`,
       );
+
+      // Send notifications (fire-and-forget)
+      this.firebaseService.notifyAllSessions(referrer.id, 'driver', {
+        data: { event: FcmEventType.WalletChange },
+      });
+      this.firebaseService.notifyAllSessions(newDriverId, 'driver', {
+        data: { event: FcmEventType.WalletChange },
+      });
     });
   }
 

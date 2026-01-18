@@ -31,7 +31,8 @@
     "smoke:razorpay": "ts-node test/smoke/razorpay.smoke.ts",
     "smoke:razorpayx": "ts-node test/smoke/razorpayx.smoke.ts",
     "test:smoke": "npm run smoke:razorpayx && npm run smoke:razorpay",
-    "test:all": "jest --config ./test/jest-all.json --runInBand --detectOpenHandles"
+    "test:all": "jest --config ./test/jest-all.json --runInBand --detectOpenHandles",
+    "generate:referral-codes": "ts-node scripts/generate-referral-codes.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.3",
