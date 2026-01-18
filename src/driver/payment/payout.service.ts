@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayXService } from 'src/razorpay/razorpayx.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
@@ -116,7 +116,7 @@ export class DriverPayoutService {
    */
   async processWithdrawal(driverId: string, amount: number): Promise<void> {
     if (amount <= 0) {
-      throw new Error('Withdrawal amount must be positive');
+      throw new BadRequestException('Withdrawal amount must be positive');
     }
 
     const driver = await this.prisma.driver.findUnique({
@@ -130,17 +130,17 @@ export class DriverPayoutService {
     });
 
     if (!driver) {
-      throw new Error('Driver not found');
+      throw new NotFoundException('Driver not found');
     }
 
     if (driver.rideCount < 2) {
-      throw new Error(
+      throw new BadRequestException(
         'You must complete at least 2 rides before withdrawing funds',
       );
     }
 
     if (!driver.fundAccountId || !driver.payoutMethod) {
-      throw new Error(
+      throw new BadRequestException(
         'Payout method not configured. Please add bank account or UPI details.',
       );
     }
