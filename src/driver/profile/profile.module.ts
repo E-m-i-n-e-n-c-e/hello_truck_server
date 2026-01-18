@@ -8,9 +8,10 @@ import { TokenModule } from 'src/token/token.module';
 import { DriverProfileController } from '../controllers/driver-profile.controller';
 import { AddressModule } from '../address/address.module';
 import { RazorpayModule } from 'src/razorpay/razorpay.module';
+import { ReferralModule } from 'src/referral/referral.module';
 
 @Module({
-  imports: [PrismaModule, FirebaseModule, DocumentsModule, VehicleModule, TokenModule, AddressModule, RazorpayModule],
+  imports: [PrismaModule, FirebaseModule, DocumentsModule, VehicleModule, TokenModule, AddressModule, RazorpayModule, ReferralModule],
   controllers: [DriverProfileController],
   providers: [ProfileService],
   exports: [ProfileService]
