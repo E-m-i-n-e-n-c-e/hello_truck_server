@@ -154,6 +154,13 @@ export class DriverPayoutService {
 
     const withdrawalAmount = toNumber(truncateDecimal(withdrawalAmountDecimal));
 
+    // Calculate 1% service fee (truncated to 2 decimal places)
+    const serviceFeeDecimal = truncateDecimal(withdrawalAmountDecimal.times(0.01));
+    
+    // Actual payout amount after service fee
+    const payoutAmountDecimal = withdrawalAmountDecimal.minus(serviceFeeDecimal);
+    const payoutAmount = toNumber(truncateDecimal(payoutAmountDecimal));
+
     this.logger.log(
       `Processing withdrawal for driver ${driverId}: ₹${withdrawalAmount}`,
     );
@@ -194,7 +201,7 @@ export class DriverPayoutService {
           beforeBalance,
           afterBalance,
           amount: -withdrawalAmount,
-          reason: 'Manual withdrawal',
+          reason: 'Wallet withdrawal',
         },
       });
 
@@ -203,7 +210,7 @@ export class DriverPayoutService {
         data: {
           driverId,
           paymentMethod: PaymentMethod.ONLINE,
-          amount: withdrawalAmount,
+          amount: payoutAmount,
           type: TransactionType.CREDIT, // Driver receives withdrawal = CREDIT (money IN)
           category: TransactionCategory.DRIVER_PAYOUT,
           description: 'Wallet withdrawal',
@@ -214,7 +221,7 @@ export class DriverPayoutService {
       await tx.payout.create({
         data: {
           driverId,
-          amount: withdrawalAmount,
+          amount: payoutAmount,
           razorpayPayoutId: payout.razorpayPayoutId,
           status: 'PROCESSING',
           processedAt: new Date(),
@@ -227,7 +234,7 @@ export class DriverPayoutService {
     );
 
     // Send notification
-    this.notifyDriverWithdrawalProcessed(driverId, withdrawalAmount);
+    this.notifyDriverWithdrawalProcessed(driverId, payoutAmount);
   }
 
   /**
