@@ -263,6 +263,10 @@ export class DocumentsService {
     if (updateDocumentsDto.insuranceUrl) {
       data.insuranceStatus = 'PENDING';
     }
+    // If RC Book is updated, reset status
+    if (updateDocumentsDto.rcBookUrl) {
+      data.rcBookStatus = 'PENDING';
+    }
 
     const updatedDocuments = await this.prisma.driverDocuments.update({
       where: { driverId },
