@@ -88,6 +88,7 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `pickupAddress`: `CreateBookingAddressDto`
     *   `dropAddress`: `CreateBookingAddressDto`
     *   `package`: `PackageDetailsDto`
+    *   `gstNumber?`: `string` - Optional GST number to waive platform fee (must belong to customer and be active)
 *   **`InvoiceResponseDto`**: Pricing and payment details for a booking.
     *   `id`: `string`
     *   `bookingId`: `string`
@@ -100,6 +101,8 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `weightInTons`: `number`
     *   `effectiveBasePrice`: `number`
     *   `totalPrice`: `number`
+    *   `platformFee`: `number` - Platform fee (₹20 for non-GST bookings, ₹0 for GST bookings)
+    *   `gstNumber`: `string | null` - GST number if booking used GST details to waive platform fee
     *   `walletApplied`: `number`
     *   `finalAmount`: `number` - Amount customer needs to pay
     *   `paymentLinkUrl`: `string | null` - Only in FINAL invoice
