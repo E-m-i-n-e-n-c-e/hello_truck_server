@@ -1,25 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import {
-  AssignmentStatus,
-  DriverStatus,
-  BookingStatus,
-  BookingAssignment,
-  Booking,
-  Prisma,
-  Invoice,
-  Driver,
-  PaymentMethod,
-  Package,
-  Address,
-  Customer,
-} from '@prisma/client';
+import { AssignmentStatus, DriverStatus, BookingStatus, BookingAssignment, Booking, Prisma, Invoice, Driver, PaymentMethod, Package, Address, Customer } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { BookingInvoiceService } from './booking-invoice.service';
 import { BookingPaymentService } from './booking-payment.service';
@@ -33,12 +15,12 @@ type BookingWithRelations = Booking & {
   dropAddress: Address;
   customer: Customer | null;
   invoices: Invoice[];
-};
+}
 
 type AssignmentWithRelations = BookingAssignment & {
   driver: Driver;
   booking: BookingWithRelations;
-};
+}
 
 @Injectable()
 export class BookingDriverService {
@@ -52,7 +34,7 @@ export class BookingDriverService {
     private readonly notificationService: BookingNotificationService,
     private readonly configService: ConfigService,
     private readonly razorpayService: RazorpayService,
-  ) {}
+  ) { }
 
   async acceptBooking(driverAssignmentId: string): Promise<void> {
     // Check if assignment exists and is in OFFERED status
@@ -65,7 +47,7 @@ export class BookingDriverService {
             pickupAddress: true,
             dropAddress: true,
             customer: true,
-          },
+          }
         },
         driver: {
           include: {
@@ -74,21 +56,17 @@ export class BookingDriverService {
                 vehicleModel: true,
               },
             },
-          },
-        },
-      },
+          }
+        }
+      }
     });
 
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending offer found for driver assignment ${driverAssignmentId}`,
-      );
+      throw new NotFoundException(`No pending offer found for driver assignment ${driverAssignmentId}`);
     }
 
     if (assignment.booking.status !== BookingStatus.DRIVER_ASSIGNED) {
-      throw new BadRequestException(
-        `Cannot accept booking in ${assignment.booking.status} status`,
-      );
+      throw new BadRequestException(`Cannot accept booking in ${assignment.booking.status} status`);
     }
 
     if (!assignment.driver.vehicle) {
@@ -101,8 +79,7 @@ export class BookingDriverService {
 
     const walletData = await this.prisma.$transaction(async (tx) => {
       // Get current commission rate to store with assignment
-      const commissionRate =
-        this.configService.get<number>('COMMISSION_RATE') || 0.07;
+      const commissionRate = this.configService.get<number>('COMMISSION_RATE') || 0.07;
 
       // Update assignment status to ACCEPTED with commission rate snapshot
       await tx.bookingAssignment.updateMany({
@@ -111,19 +88,19 @@ export class BookingDriverService {
           status: AssignmentStatus.ACCEPTED,
           respondedAt: new Date(),
           commissionRate: commissionRate,
-        },
+        }
       });
 
       // Update booking status to CONFIRMED
       await tx.booking.update({
         where: { id: assignment.booking.id },
-        data: { status: BookingStatus.CONFIRMED, acceptedAt: new Date() },
+        data: { status: BookingStatus.CONFIRMED, acceptedAt: new Date() }
       });
 
       // Update driver status to ON_RIDE
       await tx.driver.update({
         where: { id: assignment.driver.id },
-        data: { driverStatus: DriverStatus.ON_RIDE },
+        data: { driverStatus: DriverStatus.ON_RIDE }
       });
 
       const invoice = await this.invoiceService.createFinalInvoice(
@@ -132,7 +109,7 @@ export class BookingDriverService {
           customer: assignment.booking.customer!,
         },
         assignment.driver.vehicle!.vehicleModel,
-        tx,
+        tx
       );
 
       return {
@@ -143,23 +120,14 @@ export class BookingDriverService {
       };
     });
 
-    this.bookingAssignmentService.onDriverAccept(
-      assignment.booking.id,
-      assignment.driver.id,
-    );
+    this.bookingAssignmentService.onDriverAccept(assignment.booking.id, assignment.driver.id);
 
     // Send wallet notifications (fire-and-forget, outside transaction)
     if (walletData.walletApplied !== 0 && walletData.customerId) {
       if (walletData.walletApplied > 0) {
-        this.notificationService.notifyCustomerWalletApplied(
-          walletData.customerId,
-          walletData.walletApplied,
-        );
+        this.notificationService.notifyCustomerWalletApplied(walletData.customerId, walletData.walletApplied);
       } else {
-        this.notificationService.notifyCustomerWalletDebtCleared(
-          walletData.customerId,
-          walletData.walletApplied,
-        );
+        this.notificationService.notifyCustomerWalletDebtCleared(walletData.customerId, walletData.walletApplied);
       }
     }
 
@@ -172,22 +140,16 @@ export class BookingDriverService {
       );
     }
 
-    if (
-      Number(walletData.invoice.finalAmount) > 0 &&
-      !walletData.invoice.isPaid
-    ) {
-      this.invoiceService
-        .createPaymentLinkForInvoice(walletData.invoice, {
-          ...walletData.booking,
-          customer: assignment.booking.customer,
-        })
-        .catch((error) => {
-          this.logger.error(
-            `Async payment link creation failed for invoice ${walletData.invoice.id}: ${error.message}`,
-          );
-        });
+    if (Number(walletData.invoice.finalAmount) > 0 && !walletData.invoice.isPaid) {
+      this.invoiceService.createPaymentLinkForInvoice(
+        walletData.invoice,
+        { ...walletData.booking, customer: assignment.booking.customer! }
+      ).catch(error => {
+        this.logger.error(`Async payment link creation failed for invoice ${walletData.invoice.id}: ${error.message}`);
+      });
     }
   }
+
 
   async rejectBooking(driverAssignmentId: string): Promise<void> {
     // Check if assignment exists and is in OFFERED status
@@ -195,14 +157,12 @@ export class BookingDriverService {
       where: { id: driverAssignmentId },
       include: {
         booking: true,
-        driver: true,
-      },
+        driver: true
+      }
     });
 
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending offer found for driver assignment ${driverAssignmentId}`,
-      );
+      throw new NotFoundException(`No pending offer found for driver assignment ${driverAssignmentId}`);
     }
 
     // Update assignment status to REJECTED
@@ -212,8 +172,8 @@ export class BookingDriverService {
         where: { id: assignment.id },
         data: {
           status: AssignmentStatus.REJECTED,
-          respondedAt: new Date(),
-        },
+          respondedAt: new Date()
+        }
       });
 
       // Update booking status back to PENDING (so another driver can be assigned)
@@ -221,20 +181,17 @@ export class BookingDriverService {
         where: { id: assignment.booking.id },
         data: {
           status: BookingStatus.PENDING,
-          assignedDriverId: null, // Remove driver assignment
-        },
+          assignedDriverId: null // Remove driver assignment
+        }
       });
 
       // Update driver status back to AVAILABLE
       await tx.driver.update({
         where: { id: assignment.driver.id },
-        data: { driverStatus: DriverStatus.AVAILABLE },
+        data: { driverStatus: DriverStatus.AVAILABLE }
       });
 
-      await this.bookingAssignmentService.onDriverReject(
-        assignment.booking.id,
-        assignment.driver.id,
-      );
+      await this.bookingAssignmentService.onDriverReject(assignment.booking.id, assignment.driver.id);
     });
 
     // Send notification (fire-and-forget, outside transaction)
@@ -242,28 +199,19 @@ export class BookingDriverService {
       this.notificationService.notifyBookingStatusChange(
         assignment.booking.customerId,
         'customer',
-        BookingStatus.PENDING,
+        BookingStatus.PENDING
       );
     }
   }
 
-  async getDriverAssignment(
-    driverId: string,
-    tx: Prisma.TransactionClient = this.prisma,
-  ): Promise<AssignmentWithRelations | null> {
+  async getDriverAssignment(driverId: string, tx: Prisma.TransactionClient = this.prisma): Promise<AssignmentWithRelations | null> {
     return tx.bookingAssignment.findFirst({
       where: {
         driverId,
         status: { in: [AssignmentStatus.OFFERED, AssignmentStatus.ACCEPTED] },
         booking: {
-          status: {
-            notIn: [
-              BookingStatus.COMPLETED,
-              BookingStatus.CANCELLED,
-              BookingStatus.EXPIRED,
-            ],
-          },
-        },
+          status: { notIn: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.EXPIRED] }
+        }
       },
       orderBy: {
         offeredAt: 'desc', // Get most recent assignment first
@@ -279,104 +227,78 @@ export class BookingDriverService {
             invoices: true,
           },
         },
-      },
+      }
     });
   }
 
   async pickupArrived(driverId: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending assignment found for driver ${driverId}`,
-      );
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
     await this.prisma.booking.update({
       where: {
         id: assignment.booking.id,
         status: BookingStatus.CONFIRMED,
       },
-      data: {
-        status: BookingStatus.PICKUP_ARRIVED,
-        pickupArrivedAt: new Date(),
-      },
+      data: { status: BookingStatus.PICKUP_ARRIVED, pickupArrivedAt: new Date() }
     });
 
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
-      this.notificationService.notifyCustomerPickupArrived(
-        assignment.booking.customerId,
-      );
+      this.notificationService.notifyCustomerPickupArrived(assignment.booking.customerId);
     }
   }
 
   async dropArrived(driverId: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending assignment found for driver ${driverId}`,
-      );
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
     await this.prisma.booking.update({
       where: {
         id: assignment.booking.id,
-        status: {
-          in: [BookingStatus.PICKUP_VERIFIED, BookingStatus.IN_TRANSIT],
-        },
+        status: { in: [BookingStatus.PICKUP_VERIFIED, BookingStatus.IN_TRANSIT ] }
       },
-      data: { status: BookingStatus.DROP_ARRIVED, dropArrivedAt: new Date() },
+      data: { status: BookingStatus.DROP_ARRIVED, dropArrivedAt: new Date() }
     });
 
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
-      this.notificationService.notifyCustomerDropArrived(
-        assignment.booking.customerId,
-      );
+      this.notificationService.notifyCustomerDropArrived(assignment.booking.customerId);
     }
   }
 
   async verifyPickup(driverId: string, pickupOtp: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending assignment found for driver ${driverId}`,
-      );
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
     if (assignment.booking.pickupOtp !== pickupOtp) {
       throw new BadRequestException('Invalid OTP');
     }
-    const finalInvoice = assignment.booking.invoices.find(
-      (invoice) => invoice.type === 'FINAL',
-    );
-    if (!finalInvoice || !finalInvoice.isPaid || !finalInvoice.paymentMethod) {
-      throw new BadRequestException(
-        'Booking payment must be completed before verifying pickup',
-      );
+    const finalInvoice = assignment.booking.invoices.find(invoice => invoice.type === 'FINAL');
+    if (!finalInvoice || !finalInvoice.isPaid || !finalInvoice.paymentMethod ) {
+      throw new BadRequestException('Booking payment must be completed before verifying pickup');
     }
     await this.prisma.booking.update({
       where: {
         id: assignment.booking.id,
-        status: { in: [BookingStatus.CONFIRMED, BookingStatus.PICKUP_ARRIVED] },
+        status: { in: [BookingStatus.CONFIRMED, BookingStatus.PICKUP_ARRIVED] }
       },
-      data: {
-        status: BookingStatus.PICKUP_VERIFIED,
-        pickupVerifiedAt: new Date(),
-      },
+      data: { status: BookingStatus.PICKUP_VERIFIED, pickupVerifiedAt: new Date() }
     });
 
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
-      this.notificationService.notifyCustomerPickupVerified(
-        assignment.booking.customerId,
-      );
+      this.notificationService.notifyCustomerPickupVerified(assignment.booking.customerId);
     }
   }
 
   async verifyDrop(driverId: string, dropOtp: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending assignment found for driver ${driverId}`,
-      );
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
     if (assignment.booking.dropOtp !== dropOtp) {
       throw new BadRequestException('Invalid OTP');
@@ -384,180 +306,134 @@ export class BookingDriverService {
     await this.prisma.booking.update({
       where: {
         id: assignment.booking.id,
-        status: {
-          in: [
-            BookingStatus.PICKUP_VERIFIED,
-            BookingStatus.IN_TRANSIT,
-            BookingStatus.DROP_ARRIVED,
-          ],
-        },
+        status: { in: [BookingStatus.PICKUP_VERIFIED, BookingStatus.IN_TRANSIT, BookingStatus.DROP_ARRIVED] }
       },
-      data: { status: BookingStatus.DROP_VERIFIED, dropVerifiedAt: new Date() },
+      data: { status: BookingStatus.DROP_VERIFIED, dropVerifiedAt: new Date() }
     });
 
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
-      this.notificationService.notifyCustomerDropVerified(
-        assignment.booking.customerId,
-      );
+      this.notificationService.notifyCustomerDropVerified(assignment.booking.customerId);
     }
   }
 
   async startRide(driverId: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending assignment found for driver ${driverId}`,
-      );
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
     await this.prisma.booking.update({
-      where: {
-        id: assignment.booking.id,
-        status: BookingStatus.PICKUP_VERIFIED,
-      },
-      data: { status: BookingStatus.IN_TRANSIT },
-    });
+        where: { id: assignment.booking.id, status: BookingStatus.PICKUP_VERIFIED },
+        data: { status: BookingStatus.IN_TRANSIT }
+      });
 
     // Send notification (fire-and-forget, outside transaction)
     if (assignment.booking.customerId) {
-      this.notificationService.notifyCustomerRideStarted(
-        assignment.booking.customerId,
-      );
+      this.notificationService.notifyCustomerRideStarted(assignment.booking.customerId);
     }
   }
 
   async finishRide(driverId: string): Promise<void> {
-    const { walletChange, isCashPayment, customerId } =
-      await this.prisma.$transaction(async (tx) => {
-        const assignment = await this.getDriverAssignment(driverId, tx);
-        if (!assignment) {
-          throw new NotFoundException(
-            `No pending assignment found for driver ${driverId}`,
-          );
-        }
+    const { walletChange, isCashPayment, customerId } = await this.prisma.$transaction(async (tx) => {
+      const assignment = await this.getDriverAssignment(driverId, tx);
+      if (!assignment) {
+        throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
+      }
 
-        // Get final invoice to calculate driver earnings
-        const finalInvoice = assignment.booking.invoices.find(
-          (invoice) => invoice.type === 'FINAL',
-        );
+      // Get final invoice to calculate driver earnings
+      const finalInvoice = assignment.booking.invoices.find(invoice => invoice.type === 'FINAL');
 
-        if (
-          !finalInvoice ||
-          !finalInvoice.isPaid ||
-          !finalInvoice.paymentMethod
-        ) {
-          throw new BadRequestException(
-            'Booking payment must be completed before finishing ride',
-          );
-        }
+      if (!finalInvoice || !finalInvoice.isPaid || !finalInvoice.paymentMethod ) {
+        throw new BadRequestException('Booking payment must be completed before finishing ride');
+      }
 
-        // Use Decimal for precision calculations
-        // totalPrice = full service cost including platform fee
-        // Commission should be calculated ONLY on (totalPrice - platformFee)
-        const totalPrice = toDecimal(finalInvoice.totalPrice);
-        const platformFee = toDecimal(finalInvoice.platformFee);
-        const priceForCommission = truncateDecimal(
-          totalPrice.minus(platformFee),
-        );
+      // Use Decimal for precision calculations
+      // totalPrice = full service cost including platform fee
+      // Commission should be calculated ONLY on (totalPrice - platformFee)
+      const totalPrice = toDecimal(finalInvoice.totalPrice);
+      const platformFee = toDecimal(finalInvoice.platformFee);
+      const priceForCommission = truncateDecimal(totalPrice.minus(platformFee));
+      // Use stored commission rate from assignment if available, fallback to env config
+      const storedRate = assignment.commissionRate;
+      const commissionRate = storedRate
+        ? toDecimal(storedRate)
+        : toDecimal(this.configService.get<number>('COMMISSION_RATE')!);
+      const commission = truncateDecimal(priceForCommission.mul(commissionRate));
 
-        // Use stored commission rate from assignment if available, fallback to env config
-        const storedRate = assignment.commissionRate;
-        const commissionRate = storedRate
-          ? toDecimal(storedRate)
-          : toDecimal(this.configService.get<number>('COMMISSION_RATE')!);
-        const commission = truncateDecimal(
-          priceForCommission.mul(commissionRate),
-        );
+      // Check payment type
+      const isCashPayment = finalInvoice.paymentMethod === PaymentMethod.CASH;
 
-        // Check payment type
-        const isCashPayment = finalInvoice.paymentMethod === PaymentMethod.CASH;
+      // Get current driver wallet balance
+      const driver = assignment.driver;
+      const currentBalance = toDecimal(driver.walletBalance);
+      let newBalance: number;
+      let walletLogReason: string;
+      let walletChange: number;
 
-        // Get current driver wallet balance
-        const driver = assignment.driver;
-        const currentBalance = toDecimal(driver.walletBalance);
-        let newBalance: number;
-        let walletLogReason: string;
-        let walletChange: number;
+      if (isCashPayment) {
+        // Cash payment: Driver collected finalAmount in cash
+        // Driver should pay platform fee separately (deducted from wallet)
+        // walletChange = driverEarnings - cashCollected - platformFee
+        //              = (totalPrice - platformFee - commission) - finalAmount - platformFee
+        //              = (totalPrice - commission) - finalAmount - platformFee
+        // Simplifies to: walletChange = walletApplied - commission - platformFee
+        // - If walletApplied > 0: Customer used wallet credit, driver got less cash → platform compensates
+        // - If walletApplied < 0: Customer had debt, driver collected extra → driver owes platform
+        // - Commission and platform fee are always deducted
+        const walletApplied = toDecimal(finalInvoice.walletApplied);
+        const walletChangeDecimal = truncateDecimal(walletApplied.minus(commission).minus(platformFee));
+        walletChange = toNumber(walletChangeDecimal);
+        newBalance = toNumber(truncateDecimal(currentBalance.plus(walletChangeDecimal)));
 
-        if (isCashPayment) {
-          // Cash payment: Driver collected finalAmount in cash
-          // Driver should pay platform fee separately (deducted from wallet)
-          // walletChange = driverEarnings - cashCollected - platformFee
-          //              = (totalPrice - platformFee - commission) - finalAmount - platformFee
-          //              = (totalPrice - commission) - finalAmount - platformFee
-          // Simplifies to: walletChange = walletApplied - commission - platformFee
-          // - If walletApplied > 0: Customer used wallet credit, driver got less cash → platform compensates
-          // - If walletApplied < 0: Customer had debt, driver collected extra → driver owes platform
-          // - Commission and platform fee are always deducted
-          const walletApplied = toDecimal(finalInvoice.walletApplied);
-          const walletChangeDecimal = truncateDecimal(
-            walletApplied.minus(commission).minus(platformFee),
-          );
-          walletChange = toNumber(walletChangeDecimal);
-          newBalance = toNumber(
-            truncateDecimal(currentBalance.plus(walletChangeDecimal)),
-          );
-
-          if (walletApplied.isZero()) {
-            // Simple case: no wallet adjustment, just commission + platform fee
-            walletLogReason = `Commission + Platform fee for cash payment - Booking #${assignment.booking.bookingNumber}`;
-          } else if (walletChangeDecimal.greaterThanOrEqualTo(0)) {
-            // Wallet credit compensated driver
-            walletLogReason = `Earnings adjustment for Booking #${assignment.booking.bookingNumber}`;
-          } else {
-            // Commission + platform fee + debt recovery deducted
-            walletLogReason = `Commission + Platform fee + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
-          }
+        if (walletApplied.isZero()) {
+          // Simple case: no wallet adjustment, just commission + platform fee
+          walletLogReason = `Commission + Platform fee for cash payment - Booking #${assignment.booking.bookingNumber}`;
+        } else if (walletChangeDecimal.greaterThanOrEqualTo(0)) {
+          // Wallet credit compensated driver
+          walletLogReason = `Earnings adjustment for Booking #${assignment.booking.bookingNumber}`;
         } else {
-          // Online payment: Driver gets net earnings (CREDIT)
-          // Driver earnings = totalPrice - platformFee - commission
-          const driverEarnings = truncateDecimal(
-            priceForCommission.minus(commission),
-          );
-          walletChange = toNumber(driverEarnings);
-          newBalance = toNumber(
-            truncateDecimal(currentBalance.plus(driverEarnings)),
-          );
-          walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber}`;
+          // Commission + platform fee + debt recovery deducted
+          walletLogReason = `Commission + Platform fee + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
         }
+      } else {
+        // Online payment: Driver gets net earnings (CREDIT)
+        // Driver earnings = totalPrice - platformFee - commission
+        const driverEarnings = truncateDecimal(priceForCommission.minus(commission));
+        walletChange = toNumber(driverEarnings);
+        newBalance = toNumber(truncateDecimal(currentBalance.plus(driverEarnings)));
+        walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber}`;
+      }
 
-        // Update driver status and wallet
-        await tx.driver.update({
-          where: { id: driverId },
-          data: {
-            driverStatus: DriverStatus.AVAILABLE,
-            walletBalance: newBalance,
-            rideCount: { increment: 1 },
-          },
-        });
-
-        // Log wallet change
-        await tx.driverWalletLog.create({
-          data: {
-            driverId,
-            beforeBalance: currentBalance,
-            afterBalance: newBalance,
-            amount: walletChange,
-            reason: walletLogReason,
-            bookingId: assignment.booking.id,
-          },
-        });
-
-        // Complete the booking
-        await tx.booking.update({
-          where: {
-            id: assignment.booking.id,
-            status: BookingStatus.DROP_VERIFIED,
-          },
-          data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
-        });
-
-        return {
-          walletChange,
-          isCashPayment,
-          customerId: assignment.booking.customerId,
-        };
+      // Update driver status and wallet
+      await tx.driver.update({
+        where: { id: driverId },
+        data: {
+          driverStatus: DriverStatus.AVAILABLE,
+          walletBalance: newBalance,
+          rideCount: { increment: 1 },
+        },
       });
+
+      // Log wallet change
+      await tx.driverWalletLog.create({
+        data: {
+          driverId,
+          beforeBalance: currentBalance,
+          afterBalance: newBalance,
+          amount: walletChange,
+          reason: walletLogReason,
+          bookingId: assignment.booking.id,
+        },
+      });
+
+      // Complete the booking
+      await tx.booking.update({
+        where: { id: assignment.booking.id, status: BookingStatus.DROP_VERIFIED },
+        data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
+      });
+
+      return { walletChange, isCashPayment, customerId: assignment.booking.customerId };
+    });
 
     // Send notifications (fire-and-forget, outside transaction)
     if (walletChange !== 0) {
@@ -577,15 +453,11 @@ export class BookingDriverService {
   async settleWithCash(driverId: string): Promise<void> {
     const assignment = await this.getDriverAssignment(driverId);
     if (!assignment) {
-      throw new NotFoundException(
-        `No pending assignment found for driver ${driverId}`,
-      );
+      throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
     }
 
     // Get final invoice
-    const finalInvoice = assignment.booking.invoices.find(
-      (invoice) => invoice.type === 'FINAL',
-    );
+    const finalInvoice = assignment.booking.invoices.find(invoice => invoice.type === 'FINAL');
 
     if (!finalInvoice) {
       throw new BadRequestException('Final invoice not found');
@@ -656,8 +528,7 @@ export class BookingDriverService {
     const endUTC = new Date(`${endDate}T23:59:59.999+05:30`);
 
     // Get default commission rate from config
-    const defaultCommissionRate =
-      this.configService.get<number>('COMMISSION_RATE')!;
+    const defaultCommissionRate = this.configService.get<number>('COMMISSION_RATE')!;
 
     // Query DB with UTC timestamps
     const completedAssignments = await this.prisma.bookingAssignment.findMany({
@@ -702,16 +573,11 @@ export class BookingDriverService {
       if (finalInvoice) {
         const grossAmount = toDecimal(finalInvoice.totalPrice);
         const platformFee = toDecimal(finalInvoice.platformFee);
-        const priceForCommission = truncateDecimal(
-          grossAmount.minus(platformFee),
-        );
-
+        const priceForCommission = truncateDecimal(grossAmount.minus(platformFee));
         const assignmentCommissionRate = assignment.commissionRate
           ? toDecimal(assignment.commissionRate)
           : toDecimal(defaultCommissionRate);
-        const commission = truncateDecimal(
-          priceForCommission.mul(assignmentCommissionRate),
-        );
+        const commission = truncateDecimal(priceForCommission.mul(assignmentCommissionRate));
         const netAmount = truncateDecimal(priceForCommission.minus(commission));
         totalNetEarnings = totalNetEarnings.plus(netAmount);
       }
@@ -721,51 +587,50 @@ export class BookingDriverService {
     // Only include bookings that:
     // 1. Booking is CANCELLED
     // 2. Has a wallet log with positive cancellation compensation for this driver
-    const cancelledAssignmentsData =
-      await this.prisma.bookingAssignment.findMany({
-        where: {
-          driverId,
-          booking: {
-            status: BookingStatus.CANCELLED,
-            cancelledAt: {
-              gte: startUTC,
-              lte: endUTC,
+    const cancelledAssignmentsData = await this.prisma.bookingAssignment.findMany({
+      where: {
+        driverId,
+        booking: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: {
+            gte: startUTC,
+            lte: endUTC,
+          },
+          // Filter for bookings with compensation - must have positive wallet log
+          driverWalletLogs: {
+            some: {
+              driverId,
+              amount: { gt: 0 }, // Only positive credits (compensation)
             },
-            // Filter for bookings with compensation - must have positive wallet log
+          },
+        },
+      },
+      include: {
+        booking: {
+          include: {
+            package: true,
+            pickupAddress: true,
+            dropAddress: true,
             driverWalletLogs: {
-              some: {
+              where: {
                 driverId,
-                amount: { gt: 0 }, // Only positive credits (compensation)
+                amount: { gt: 0 },
               },
+              take: 1,
             },
           },
         },
-        include: {
-          booking: {
-            include: {
-              package: true,
-              pickupAddress: true,
-              dropAddress: true,
-              driverWalletLogs: {
-                where: {
-                  driverId,
-                  amount: { gt: 0 },
-                },
-                take: 1,
-              },
-            },
-          },
+      },
+      orderBy: {
+        booking: {
+          cancelledAt: 'desc',
         },
-        orderBy: {
-          booking: {
-            cancelledAt: 'desc',
-          },
-        },
-      });
+      },
+    });
 
     // Map cancelled assignments and calculate total compensation
     let totalCompensation = toDecimal(0);
-    const cancelledAssignments = cancelledAssignmentsData.map((assignment) => {
+    const cancelledAssignments = cancelledAssignmentsData.map(assignment => {
       const walletLog = assignment.booking.driverWalletLogs[0];
       const compensationAmount = toDecimal(walletLog.amount);
       totalCompensation = totalCompensation.plus(compensationAmount);
@@ -796,10 +661,7 @@ export class BookingDriverService {
   /**
    * Get ride summary for a single date (backward compatible)
    */
-  async getRideSummary(
-    driverId: string,
-    date?: string,
-  ): Promise<{
+  async getRideSummary(driverId: string, date?: string): Promise<{
     totalRides: number;
     netEarnings: number;
     commissionRate: number;
@@ -818,9 +680,7 @@ export class BookingDriverService {
       package: any;
     }>;
   }> {
-    const inputDate =
-      date ||
-      new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const inputDate = date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const result = await this._getEarningsCore(driverId, inputDate, inputDate);
     return {
       ...result,
@@ -855,9 +715,7 @@ export class BookingDriverService {
       package: any;
     }>;
   }> {
-    const todayIST = new Date().toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Kolkata',
-    });
+    const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const start = startDate || todayIST;
     const end = endDate || start;
     const result = await this._getEarningsCore(driverId, start, end);
