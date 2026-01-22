@@ -348,8 +348,6 @@ export class BookingDriverService {
       }
 
       // Use Decimal for precision calculations
-      // totalPrice = full service cost including platform fee
-      // Commission should be calculated ONLY on (totalPrice - platformFee)
       const totalPrice = toDecimal(finalInvoice.totalPrice);
       const platformFee = toDecimal(finalInvoice.platformFee);
       const priceForCommission = truncateDecimal(totalPrice.minus(platformFee));
@@ -372,32 +370,24 @@ export class BookingDriverService {
 
       if (isCashPayment) {
         // Cash payment: Driver collected finalAmount in cash
-        // Driver should pay platform fee separately (deducted from wallet)
-        // walletChange = driverEarnings - cashCollected - platformFee
-        //              = (totalPrice - platformFee - commission) - finalAmount - platformFee
-        //              = (totalPrice - commission) - finalAmount - platformFee
         // Simplifies to: walletChange = walletApplied - commission - platformFee
         // - If walletApplied > 0: Customer used wallet credit, driver got less cash → platform compensates
         // - If walletApplied < 0: Customer had debt, driver collected extra → driver owes platform
-        // - Commission and platform fee are always deducted
         const walletApplied = toDecimal(finalInvoice.walletApplied);
         const walletChangeDecimal = truncateDecimal(walletApplied.minus(commission).minus(platformFee));
         walletChange = toNumber(walletChangeDecimal);
         newBalance = toNumber(truncateDecimal(currentBalance.plus(walletChangeDecimal)));
 
         if (walletApplied.isZero()) {
-          // Simple case: no wallet adjustment, just commission + platform fee
           walletLogReason = `Commission + Platform fee for cash payment - Booking #${assignment.booking.bookingNumber}`;
         } else if (walletChangeDecimal.greaterThanOrEqualTo(0)) {
           // Wallet credit compensated driver
           walletLogReason = `Earnings adjustment for Booking #${assignment.booking.bookingNumber}`;
         } else {
-          // Commission + platform fee + debt recovery deducted
           walletLogReason = `Commission + Platform fee + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
         }
       } else {
         // Online payment: Driver gets net earnings (CREDIT)
-        // Driver earnings = totalPrice - platformFee - commission
         const driverEarnings = truncateDecimal(priceForCommission.minus(commission));
         walletChange = toNumber(driverEarnings);
         newBalance = toNumber(truncateDecimal(currentBalance.plus(driverEarnings)));
