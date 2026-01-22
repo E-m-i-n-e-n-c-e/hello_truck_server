@@ -379,12 +379,16 @@ export class BookingDriverService {
         newBalance = toNumber(truncateDecimal(currentBalance.plus(walletChangeDecimal)));
 
         if (walletApplied.isZero()) {
-          walletLogReason = `Commission + Platform fee for cash payment - Booking #${assignment.booking.bookingNumber}`;
+          walletLogReason = platformFee.greaterThan(0)
+            ? `Commission + Platform fee for cash payment - Booking #${assignment.booking.bookingNumber}`
+            : `Commission for cash payment - Booking #${assignment.booking.bookingNumber}`;
         } else if (walletChangeDecimal.greaterThanOrEqualTo(0)) {
           // Wallet credit compensated driver
           walletLogReason = `Earnings adjustment for Booking #${assignment.booking.bookingNumber}`;
         } else {
-          walletLogReason = `Commission + Platform fee + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
+          walletLogReason = platformFee.greaterThan(0)
+            ? `Commission + Platform fee + wallet adjustment for Booking #${assignment.booking.bookingNumber}`
+            : `Commission + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
         }
       } else {
         // Online payment: Driver gets net earnings (CREDIT)
