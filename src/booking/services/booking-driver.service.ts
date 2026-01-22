@@ -348,14 +348,15 @@ export class BookingDriverService {
       }
 
       // Use Decimal for precision calculations
-      // totalPrice = full service cost (commission calculated on this)
       const totalPrice = toDecimal(finalInvoice.totalPrice);
+      const platformFee = toDecimal(finalInvoice.platformFee);
+      const priceForCommission = truncateDecimal(totalPrice.minus(platformFee));
       // Use stored commission rate from assignment if available, fallback to env config
       const storedRate = assignment.commissionRate;
       const commissionRate = storedRate
         ? toDecimal(storedRate)
         : toDecimal(this.configService.get<number>('COMMISSION_RATE')!);
-      const commission = truncateDecimal(totalPrice.mul(commissionRate));
+      const commission = truncateDecimal(priceForCommission.mul(commissionRate));
 
       // Check payment type
       const isCashPayment = finalInvoice.paymentMethod === PaymentMethod.CASH;
@@ -369,29 +370,29 @@ export class BookingDriverService {
 
       if (isCashPayment) {
         // Cash payment: Driver collected finalAmount in cash
-        // walletChange = driverEarnings - cashCollected = (totalPrice - commission) - finalAmount
-        // Simplifies to: walletChange = walletApplied - commission
+        // Simplifies to: walletChange = walletApplied - commission - platformFee
         // - If walletApplied > 0: Customer used wallet credit, driver got less cash → platform compensates
         // - If walletApplied < 0: Customer had debt, driver collected extra → driver owes platform
-        // - If walletApplied = 0: Simple commission deduction
         const walletApplied = toDecimal(finalInvoice.walletApplied);
-        const walletChangeDecimal = truncateDecimal(walletApplied.minus(commission));
+        const walletChangeDecimal = truncateDecimal(walletApplied.minus(commission).minus(platformFee));
         walletChange = toNumber(walletChangeDecimal);
         newBalance = toNumber(truncateDecimal(currentBalance.plus(walletChangeDecimal)));
 
         if (walletApplied.isZero()) {
-          // Simple case: no wallet adjustment, just commission
-          walletLogReason = `Commission for cash payment - Booking #${assignment.booking.bookingNumber}`;
+          walletLogReason = platformFee.greaterThan(0)
+            ? `Commission + Platform fee for cash payment - Booking #${assignment.booking.bookingNumber}`
+            : `Commission for cash payment - Booking #${assignment.booking.bookingNumber}`;
         } else if (walletChangeDecimal.greaterThanOrEqualTo(0)) {
           // Wallet credit compensated driver
           walletLogReason = `Earnings adjustment for Booking #${assignment.booking.bookingNumber}`;
         } else {
-          // Commission + debt recovery deducted
-          walletLogReason = `Commission + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
+          walletLogReason = platformFee.greaterThan(0)
+            ? `Commission + Platform fee + wallet adjustment for Booking #${assignment.booking.bookingNumber}`
+            : `Commission + wallet adjustment for Booking #${assignment.booking.bookingNumber}`;
         }
       } else {
         // Online payment: Driver gets net earnings (CREDIT)
-        const driverEarnings = truncateDecimal(totalPrice.minus(commission));
+        const driverEarnings = truncateDecimal(priceForCommission.minus(commission));
         walletChange = toNumber(driverEarnings);
         newBalance = toNumber(truncateDecimal(currentBalance.plus(driverEarnings)));
         walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber}`;
@@ -565,11 +566,13 @@ export class BookingDriverService {
       const finalInvoice = assignment.booking.invoices[0];
       if (finalInvoice) {
         const grossAmount = toDecimal(finalInvoice.totalPrice);
+        const platformFee = toDecimal(finalInvoice.platformFee);
+        const priceForCommission = truncateDecimal(grossAmount.minus(platformFee));
         const assignmentCommissionRate = assignment.commissionRate
           ? toDecimal(assignment.commissionRate)
           : toDecimal(defaultCommissionRate);
-        const commission = truncateDecimal(grossAmount.mul(assignmentCommissionRate));
-        const netAmount = truncateDecimal(grossAmount.minus(commission));
+        const commission = truncateDecimal(priceForCommission.mul(assignmentCommissionRate));
+        const netAmount = truncateDecimal(priceForCommission.minus(commission));
         totalNetEarnings = totalNetEarnings.plus(netAmount);
       }
     });
