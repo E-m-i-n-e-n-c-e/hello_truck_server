@@ -1,12 +1,26 @@
-import { Controller, UseGuards, Get, Put, Delete, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Query,
+} from '@nestjs/common';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { User } from 'src/token/decorators/user.decorator';
 import { DocumentsService } from '../documents/documents.service';
-import { DriverDocumentsResponseDto, UpdateDriverDocumentsDto } from '../dtos/documents.dto';
-import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
+import {
+  DriverDocumentsResponseDto,
+  UpdateDriverDocumentsDto,
+} from '../dtos/documents.dto';
+import {
+  UploadUrlResponseDto,
+  uploadUrlDto,
+} from 'src/common/dtos/upload-url.dto';
 
 @Controller('driver/documents')
 @UseGuards(AccessTokenGuard, RolesGuard)

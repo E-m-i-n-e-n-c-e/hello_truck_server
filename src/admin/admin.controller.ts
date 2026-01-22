@@ -10,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
-import { DriverResponseDto, AdminDriverListResponseDto, UpdateDriverVerificationDto } from './dtos/admin.dto';
+import {
+  DriverResponseDto,
+  AdminDriverListResponseDto,
+  UpdateDriverVerificationDto,
+} from './dtos/admin.dto';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 
 @Controller('admin')
@@ -47,9 +51,12 @@ export class AdminController {
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
   ) {
-    return this.adminService.getDriversWithPendingDocuments(page, limit, search);
+    return this.adminService.getDriversWithPendingDocuments(
+      page,
+      limit,
+      search,
+    );
   }
-
 
   /**
    * Get specific driver details

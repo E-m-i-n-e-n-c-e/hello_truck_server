@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerModuleOptions, ThrottlerStorage } from '@nestjs/throttler';
+import {
+  ThrottlerGuard,
+  ThrottlerModuleOptions,
+  ThrottlerStorage,
+} from '@nestjs/throttler';
 import { TokenService } from '../token.service';
 import { UserToken } from '../../common/types/user-session.types';
 import { Reflector } from '@nestjs/core';
@@ -26,7 +30,8 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.split(' ')[1];
-        const user: UserToken = await this.tokenService.validateAccessToken(token);
+        const user: UserToken =
+          await this.tokenService.validateAccessToken(token);
         if (user?.userId) {
           userId = user.userId;
         }

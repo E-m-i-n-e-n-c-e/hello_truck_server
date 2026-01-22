@@ -13,7 +13,7 @@ export class BookingCleanupService {
       where: {
         status: BookingStatus.PENDING,
         createdAt: {
-          lt: new Date(Date.now() - 10 * 60 * 1000),  // 10 minutes(assignment service uses 5 minutes)
+          lt: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes(assignment service uses 5 minutes)
         },
       },
       data: {
@@ -27,9 +27,15 @@ export class BookingCleanupService {
     // Delete expired or completed bookings older than 6 months
     const result = await this.prisma.booking.deleteMany({
       where: {
-        status: { in: [BookingStatus.EXPIRED, BookingStatus.COMPLETED, BookingStatus.CANCELLED] },
+        status: {
+          in: [
+            BookingStatus.EXPIRED,
+            BookingStatus.COMPLETED,
+            BookingStatus.CANCELLED,
+          ],
+        },
         createdAt: {
-          lt: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),  // 6 months
+          lt: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000), // 6 months
         },
       },
     });
@@ -42,7 +48,9 @@ export class BookingCleanupService {
         dropBooking: null,
       },
     });
-    this.logger.log(`Cleaned up ${bookingAddressResult.count} orphaned booking addresses`);
+    this.logger.log(
+      `Cleaned up ${bookingAddressResult.count} orphaned booking addresses`,
+    );
 
     // Delete packages that are not associated with any booking (orphaned packages)
     const packageResult = await this.prisma.package.deleteMany({

@@ -23,7 +23,7 @@ export class CustomerAuthController {
   @Post('verify-otp')
   @Serialize(TokenResponseDto)
   @HttpCode(HttpStatus.OK)
-  verifyCustomerOtp(@Body() body: VerifyOtpDto) : Promise<TokenResponseDto> {
+  verifyCustomerOtp(@Body() body: VerifyOtpDto): Promise<TokenResponseDto> {
     return this.authService.verifyCustomerOtp(body);
   }
 
@@ -39,7 +39,9 @@ export class CustomerAuthController {
   @Post('refresh-token')
   @Serialize(TokenResponseDto)
   @HttpCode(HttpStatus.OK)
-  refreshCustomerToken(@Body() body: refreshTokenDto): Promise<TokenResponseDto> {
+  refreshCustomerToken(
+    @Body() body: refreshTokenDto,
+  ): Promise<TokenResponseDto> {
     return this.authService.refreshToken(body.refreshToken, 'customer');
   }
 }

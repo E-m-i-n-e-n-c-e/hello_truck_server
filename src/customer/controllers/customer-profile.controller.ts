@@ -1,5 +1,9 @@
 import { Controller, Get, Put, Post, Body, UseGuards } from '@nestjs/common';
-import { CreateProfileDto, GetProfileResponseDto, UpdateProfileDto } from '../dtos/profile.dto';
+import {
+  CreateProfileDto,
+  GetProfileResponseDto,
+  UpdateProfileDto,
+} from '../dtos/profile.dto';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { User } from 'src/token/decorators/user.decorator';
 import { Roles } from 'src/token/decorators/roles.decorator';
@@ -52,7 +56,10 @@ export class CustomerProfileController {
     @User('sessionId') sessionId: string,
     @Body() upsertFcmTokenDto: UsertFcmTokenDto,
   ) {
-    return this.profileService.upsertFcmToken(sessionId, upsertFcmTokenDto.fcmToken);
+    return this.profileService.upsertFcmToken(
+      sessionId,
+      upsertFcmTokenDto.fcmToken,
+    );
   }
 
   @Get('wallet-logs')

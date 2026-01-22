@@ -1,15 +1,38 @@
-import { Controller, Post, Body, UseGuards, Get, Query, Param, Delete, Put, Res, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Query,
+  Param,
+  Delete,
+  Put,
+  Res,
+  Req,
+} from '@nestjs/common';
 import { User } from 'src/token/decorators/user.decorator';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingCustomerService } from '../services/booking-customer.service';
-import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-invoice.dto';
-import { CreateBookingRequestDto, BookingResponseDto, CancelBookingDto, CancellationConfigResponseDto } from '../dtos/booking.dto';
+import {
+  BookingEstimateRequestDto,
+  BookingEstimateResponseDto,
+} from '../dtos/booking-invoice.dto';
+import {
+  CreateBookingRequestDto,
+  BookingResponseDto,
+  CancelBookingDto,
+  CancellationConfigResponseDto,
+} from '../dtos/booking.dto';
 import { seconds } from '@nestjs/throttler';
 import { Throttle } from '@nestjs/throttler';
-import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
+import {
+  UploadUrlResponseDto,
+  uploadUrlDto,
+} from 'src/common/dtos/upload-url.dto';
 import { Response, Request } from 'express';
 import { BookingInvoiceService } from '../services/booking-invoice.service';
 
@@ -97,7 +120,12 @@ export class BookingCustomerController {
     @Res() response: Response,
     @Req() request: Request,
   ) {
-    return this.bookingCustomerService.getDriverNavigationUpdates(userId, bookingId, response, request);
+    return this.bookingCustomerService.getDriverNavigationUpdates(
+      userId,
+      bookingId,
+      response,
+      request,
+    );
   }
 
   @Get(':id')

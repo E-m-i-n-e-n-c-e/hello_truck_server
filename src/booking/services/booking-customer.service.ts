@@ -1,15 +1,42 @@
-import { Injectable, BadRequestException, NotFoundException, Logger, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { BookingInvoiceService } from './booking-invoice.service';
-import { CancellationConfigResponseDto, CreateBookingRequestDto } from '../dtos/booking.dto';
-import { Booking, BookingStatus, Customer, Driver, Invoice } from '@prisma/client';
+import {
+  CancellationConfigResponseDto,
+  CreateBookingRequestDto,
+} from '../dtos/booking.dto';
+import {
+  Booking,
+  BookingStatus,
+  Customer,
+  Driver,
+  Invoice,
+} from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
-import { UploadUrlResponseDto, uploadUrlDto } from 'src/common/dtos/upload-url.dto';
+import {
+  UploadUrlResponseDto,
+  uploadUrlDto,
+} from 'src/common/dtos/upload-url.dto';
 import { AssignmentService } from '../assignment/assignment.service';
-import { REALTIME_BUS, RealtimeBus } from 'src/redis/interfaces/realtime-bus.interface';
+import {
+  REALTIME_BUS,
+  RealtimeBus,
+} from 'src/redis/interfaces/realtime-bus.interface';
 import { Response, Request } from 'express';
-import { toPackageDetailsDto, toPackageCreateData } from '../utils/package.utils';
-import { toAddressCreateData, toBookingAddressDto } from '../utils/address.utils';
+import {
+  toPackageDetailsDto,
+  toPackageCreateData,
+} from '../utils/package.utils';
+import {
+  toAddressCreateData,
+  toBookingAddressDto,
+} from '../utils/address.utils';
 import { BookingPaymentService } from './booking-payment.service';
 import { BookingRefundService } from './booking-refund.service';
 import { BookingNotificationService } from './booking-notification.service';
@@ -33,8 +60,13 @@ export class BookingCustomerService {
     BookingStatus.EXPIRED,
   ];
 
-  private isAtOrAfter(current: BookingStatus, threshold: BookingStatus): boolean {
-    return this.STATUS_ORDER.indexOf(current) >= this.STATUS_ORDER.indexOf(threshold);
+  private isAtOrAfter(
+    current: BookingStatus,
+    threshold: BookingStatus,
+  ): boolean {
+    return (
+      this.STATUS_ORDER.indexOf(current) >= this.STATUS_ORDER.indexOf(threshold)
+    );
   }
 
   constructor(
@@ -57,7 +89,6 @@ export class BookingCustomerService {
     userId: string,
     createRequest: CreateBookingRequestDto,
   ): Promise<Booking> {
-
     // Validate GST number if provided
     if (createRequest.gstNumber) {
       const gstDetails = await this.prisma.customerGstDetails.findFirst({
@@ -174,7 +205,11 @@ export class BookingCustomerService {
       where: {
         customerId: userId,
         status: {
-          in: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.EXPIRED],
+          in: [
+            BookingStatus.COMPLETED,
+            BookingStatus.CANCELLED,
+            BookingStatus.EXPIRED,
+          ],
         },
       },
       include: {
@@ -226,7 +261,6 @@ export class BookingCustomerService {
     bookingId: string,
     reason: string,
   ): Promise<void> {
-
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -242,7 +276,7 @@ export class BookingCustomerService {
       throw new NotFoundException('Booking not found');
     }
 
-    if(!booking.customer){
+    if (!booking.customer) {
       throw new NotFoundException('Customer not found');
     }
 
@@ -255,16 +289,18 @@ export class BookingCustomerService {
     }
 
     // Check if cancellable
-    if (
-      this.isAtOrAfter(booking.status, BookingStatus.PICKUP_VERIFIED)
-    ) {
-      throw new BadRequestException('Booking cannot be cancelled after pickup verification');
+    if (this.isAtOrAfter(booking.status, BookingStatus.PICKUP_VERIFIED)) {
+      throw new BadRequestException(
+        'Booking cannot be cancelled after pickup verification',
+      );
     }
 
     // Check if a cash payment was made(non returnable)
     const finalInvoice = booking.invoices[0];
-    if (finalInvoice?.isPaid && finalInvoice?.paymentMethod=='CASH') {
-      throw new BadRequestException('Booking cannot be cancelled after cash payment has been collected');
+    if (finalInvoice?.isPaid && finalInvoice?.paymentMethod == 'CASH') {
+      throw new BadRequestException(
+        'Booking cannot be cancelled after cash payment has been collected',
+      );
     }
 
     // If no final invoice exists (PENDING or DRIVER_ASSIGNED booking), just cancel without refund processing
@@ -277,7 +313,11 @@ export class BookingCustomerService {
       bookingId,
       userId,
       reason,
-      { ...booking, assignedDriver: booking.assignedDriver, customer: booking.customer },
+      {
+        ...booking,
+        assignedDriver: booking.assignedDriver,
+        customer: booking.customer,
+      },
       finalInvoice,
     );
     return;
@@ -315,8 +355,12 @@ export class BookingCustomerService {
 
         // Also mark assignment as rejected/cancelled so it doesn't linger
         await tx.bookingAssignment.updateMany({
-          where: { bookingId, driverId: booking.assignedDriverId, status: 'OFFERED' },
-          data: { status: 'AUTO_REJECTED', respondedAt: new Date() }
+          where: {
+            bookingId,
+            driverId: booking.assignedDriverId,
+            status: 'OFFERED',
+          },
+          data: { status: 'AUTO_REJECTED', respondedAt: new Date() },
         });
       }
     });
@@ -324,7 +368,9 @@ export class BookingCustomerService {
     // Send notification and cleanup
     this.notificationService.notifyCustomerBookingCancelled(userId);
     if (booking.assignedDriverId) {
-      this.notificationService.notifyDriverRideCancelled(booking.assignedDriverId);
+      this.notificationService.notifyDriverRideCancelled(
+        booking.assignedDriverId,
+      );
     }
     await this.bookingAssignmentService.onBookingCancelled(bookingId);
   }
@@ -337,7 +383,7 @@ export class BookingCustomerService {
     bookingId: string,
     userId: string,
     reason: string,
-    booking: Booking & {assignedDriver: Driver, customer: Customer},
+    booking: Booking & { assignedDriver: Driver; customer: Customer },
     finalInvoice: Invoice,
   ): Promise<void> {
     const logger = new Logger('BookingCustomerService');
@@ -364,8 +410,8 @@ export class BookingCustomerService {
       // Reset driver status if assigned
       if (booking.assignedDriverId) {
         await tx.bookingAssignment.updateMany({
-          where: { bookingId, driverId: booking.assignedDriverId},
-          data: { status: 'CANCELLED' }
+          where: { bookingId, driverId: booking.assignedDriverId },
+          data: { status: 'CANCELLED' },
         });
 
         await tx.driver.update({
@@ -378,22 +424,32 @@ export class BookingCustomerService {
     });
 
     // Cancel payment link (use setImmediate to avoid blocking)
-    if (finalInvoice.rzpPaymentLinkId && !finalInvoice.isPaid ) {
-      this.razorpayService.cancelPaymentLink(finalInvoice.rzpPaymentLinkId!).catch(err => {
-        logger.error(`Async payment link cancel failed for ${finalInvoice.rzpPaymentLinkId}: ${err.message}`);
-      });
+    if (finalInvoice.rzpPaymentLinkId && !finalInvoice.isPaid) {
+      this.razorpayService
+        .cancelPaymentLink(finalInvoice.rzpPaymentLinkId)
+        .catch((err) => {
+          logger.error(
+            `Async payment link cancel failed for ${finalInvoice.rzpPaymentLinkId}: ${err.message}`,
+          );
+        });
     }
 
     // Trigger async refund processing (fire-and-forget)
-    this.bookingRefundService.processRefundIntent(refundIntentId).catch(err => {
-      logger.error(`Async refund trigger failed for ${refundIntentId}: ${err.message}`);
-    });
+    this.bookingRefundService
+      .processRefundIntent(refundIntentId)
+      .catch((err) => {
+        logger.error(
+          `Async refund trigger failed for ${refundIntentId}: ${err.message}`,
+        );
+      });
 
     // Send notifications
     this.notificationService.notifyCustomerBookingCancelled(userId);
 
     if (booking.assignedDriverId) {
-      this.notificationService.notifyDriverRideCancelled(booking.assignedDriverId);
+      this.notificationService.notifyDriverRideCancelled(
+        booking.assignedDriverId,
+      );
     }
 
     this.bookingAssignmentService.onBookingCancelled(bookingId);
@@ -401,9 +457,12 @@ export class BookingCustomerService {
 
   async getCancellationConfig(): Promise<CancellationConfigResponseDto> {
     return {
-      minChargePercent: this.configService.get('CANCELLATION_MIN_CHARGE_PERCENT') ?? 0.1,
-      maxChargePercent: this.configService.get('CANCELLATION_MAX_CHARGE_PERCENT') ?? 0.5,
-      incrementPerKm: this.configService.get('CANCELLATION_CHARGE_INCREMENT_PER_KM') ?? 0.05,
+      minChargePercent:
+        this.configService.get('CANCELLATION_MIN_CHARGE_PERCENT') ?? 0.1,
+      maxChargePercent:
+        this.configService.get('CANCELLATION_MAX_CHARGE_PERCENT') ?? 0.5,
+      incrementPerKm:
+        this.configService.get('CANCELLATION_CHARGE_INCREMENT_PER_KM') ?? 0.05,
     };
   }
 
@@ -458,20 +517,25 @@ export class BookingCustomerService {
     // Create payment link
     const result = await this.invoiceService.createPaymentLinkForInvoice(
       invoice,
-      { ...booking, customer: booking.customer }
+      { ...booking, customer: booking.customer },
     );
 
     if (!result) {
-      throw new BadRequestException('Failed to generate payment link. Please try again.');
+      throw new BadRequestException(
+        'Failed to generate payment link. Please try again.',
+      );
     }
 
     return { paymentLinkUrl: result.paymentLinkUrl };
   }
 
-  async getUploadUrl(userId: string, uploadUrlDto: uploadUrlDto): Promise<UploadUrlResponseDto> {
+  async getUploadUrl(
+    userId: string,
+    uploadUrlDto: uploadUrlDto,
+  ): Promise<UploadUrlResponseDto> {
     const uploadUrl = await this.firebaseService.generateSignedUploadUrl(
       uploadUrlDto.filePath,
-      uploadUrlDto.type
+      uploadUrlDto.type,
     );
     return uploadUrl;
   }
@@ -533,7 +597,9 @@ export class BookingCustomerService {
 
     // Heartbeat to keep connection alive through proxies
     const heartbeat = setInterval(() => {
-      try { response.write(`: ping\n\n`); } catch (_) {}
+      try {
+        response.write(`: ping\n\n`);
+      } catch (_) {}
     }, 25000); // 25 seconds
 
     const handler = (message: string) => {

@@ -1,6 +1,20 @@
-import { $Enums, DimensionUnit, Package, ProductType, WeightUnit } from "@prisma/client";
-import { Expose, Type } from "class-transformer";
-import { IsOptional, IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested, Min } from "class-validator";
+import {
+  $Enums,
+  DimensionUnit,
+  Package,
+  ProductType,
+  WeightUnit,
+} from '@prisma/client';
+import { Expose, Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  ValidateNested,
+  Min,
+} from 'class-validator';
 
 // Personal Product DTO (for PERSONAL product type)
 export class PersonalProductDto {

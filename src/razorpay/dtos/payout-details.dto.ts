@@ -1,8 +1,14 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  Matches,
+} from 'class-validator';
 
 export enum PayoutMethod {
   BANK_ACCOUNT = 'BANK_ACCOUNT',
-  VPA = 'VPA'
+  VPA = 'VPA',
 }
 
 export class CreateBankDetailsDto {
@@ -23,7 +29,9 @@ export class CreateBankDetailsDto {
 export class CreateVpaDetailsDto {
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[a-zA-Z0-9\.\-_]{2,256}@[a-zA-Z0-9\.\-_]{2,64}$/, { message: 'Invalid VPA' })
+  @Matches(/^[a-zA-Z0-9\.\-_]{2,256}@[a-zA-Z0-9\.\-_]{2,64}$/, {
+    message: 'Invalid VPA',
+  })
   vpa: string;
 }
 

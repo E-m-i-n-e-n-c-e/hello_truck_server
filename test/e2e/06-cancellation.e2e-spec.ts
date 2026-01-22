@@ -1,7 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp } from '../setup/test-app';
-import { setupTestDatabase, closeDatabaseConnection, prisma } from '../setup/database';
+import {
+  setupTestDatabase,
+  closeDatabaseConnection,
+  prisma,
+} from '../setup/database';
 import { loginAsCustomer, loginAsDriver } from '../setup/auth-helper';
 import { createBookingRequestDto } from '../factories';
 
@@ -108,7 +112,9 @@ describe('06 - Cancellation Flow (E2E)', () => {
       expect(res.body.message).toContain('cancelled');
 
       // Verify booking is cancelled
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
       expect(booking?.status).toBe('CANCELLED');
     });
   });
@@ -124,7 +130,8 @@ describe('06 - Cancellation Flow (E2E)', () => {
       });
 
       const bookingData = createBookingRequestDto();
-      bookingData.pickupAddress.formattedAddress = '150 Driver Assigned Cancel St';
+      bookingData.pickupAddress.formattedAddress =
+        '150 Driver Assigned Cancel St';
 
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
@@ -165,11 +172,15 @@ describe('06 - Cancellation Flow (E2E)', () => {
       expect(res.body.message).toContain('cancelled');
 
       // Verify booking is cancelled
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
       expect(booking?.status).toBe('CANCELLED');
 
       // Verify driver is released
-      const driver = await prisma.driver.findUnique({ where: { id: driverId } });
+      const driver = await prisma.driver.findUnique({
+        where: { id: driverId },
+      });
       expect(driver?.driverStatus).toBe('AVAILABLE');
 
       // Verify assignment is auto-rejected
@@ -231,7 +242,9 @@ describe('06 - Cancellation Flow (E2E)', () => {
       expect(res.body.message).toContain('cancelled');
 
       // Verify booking is cancelled
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
       expect(booking?.status).toBe('CANCELLED');
     });
   });
@@ -281,7 +294,9 @@ describe('06 - Cancellation Flow (E2E)', () => {
         .set('Authorization', `Bearer ${driverToken}`)
         .expect(201);
 
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
       expect(booking?.status).toBe('PICKUP_ARRIVED');
 
       // Settle cash payment before verifying pickup
@@ -297,7 +312,9 @@ describe('06 - Cancellation Flow (E2E)', () => {
         .expect(201);
 
       // Verify status is PICKUP_VERIFIED
-      const verifiedBooking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const verifiedBooking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
       expect(verifiedBooking?.status).toBe('PICKUP_VERIFIED');
     });
 
@@ -321,7 +338,8 @@ describe('06 - Cancellation Flow (E2E)', () => {
       });
 
       const bookingData = createBookingRequestDto();
-      bookingData.pickupAddress.formattedAddress = '350 Pickup Arrived Cancel St';
+      bookingData.pickupAddress.formattedAddress =
+        '350 Pickup Arrived Cancel St';
 
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
@@ -355,7 +373,9 @@ describe('06 - Cancellation Flow (E2E)', () => {
         .set('Authorization', `Bearer ${driverToken}`)
         .expect(201);
 
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
       expect(booking?.status).toBe('PICKUP_ARRIVED');
     });
 
@@ -369,11 +389,15 @@ describe('06 - Cancellation Flow (E2E)', () => {
       expect(res.body.message).toContain('cancelled');
 
       // Verify booking is cancelled
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
       expect(booking?.status).toBe('CANCELLED');
 
       // Verify driver is released
-      const driver = await prisma.driver.findUnique({ where: { id: driverId } });
+      const driver = await prisma.driver.findUnique({
+        where: { id: driverId },
+      });
       expect(driver?.driverStatus).toBe('AVAILABLE');
     });
   });

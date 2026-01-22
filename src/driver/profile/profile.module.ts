@@ -11,9 +11,18 @@ import { RazorpayModule } from 'src/razorpay/razorpay.module';
 import { ReferralModule } from 'src/referral/referral.module';
 
 @Module({
-  imports: [PrismaModule, FirebaseModule, DocumentsModule, VehicleModule, TokenModule, AddressModule, RazorpayModule, ReferralModule],
+  imports: [
+    PrismaModule,
+    FirebaseModule,
+    DocumentsModule,
+    VehicleModule,
+    TokenModule,
+    AddressModule,
+    RazorpayModule,
+    ReferralModule,
+  ],
   controllers: [DriverProfileController],
   providers: [ProfileService],
-  exports: [ProfileService]
+  exports: [ProfileService],
 })
 export class ProfileModule {}

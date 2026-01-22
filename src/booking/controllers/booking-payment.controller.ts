@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Headers, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { BookingPaymentService } from '../services/booking-payment.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { RazorpayWebhookPayload } from 'src/razorpay/types/razorpay-webhook.types';
@@ -23,7 +30,10 @@ export class BookingPaymentController {
 
     // Verify webhook signature
     const rawBody = JSON.stringify(body);
-    const isValid = this.razorpayService.verifyWebhookSignature(rawBody, signature);
+    const isValid = this.razorpayService.verifyWebhookSignature(
+      rawBody,
+      signature,
+    );
 
     if (!isValid) {
       this.logger.warn('Invalid webhook signature');
@@ -59,7 +69,10 @@ export class BookingPaymentController {
       }
 
       // Use payment link ID to find and update invoice
-      await this.bookingPaymentService.handlePaymentSuccess(rzpPaymentLinkId, rzpPaymentId);
+      await this.bookingPaymentService.handlePaymentSuccess(
+        rzpPaymentLinkId,
+        rzpPaymentId,
+      );
     }
 
     return { status: 'ok' };

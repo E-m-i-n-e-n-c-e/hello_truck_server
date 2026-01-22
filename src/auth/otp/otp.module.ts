@@ -5,6 +5,6 @@ import { RedisModule } from 'src/redis/redis.module';
 @Module({
   imports: [RedisModule],
   providers: [OtpService],
-  exports: [OtpService]
+  exports: [OtpService],
 })
 export class OtpModule {}

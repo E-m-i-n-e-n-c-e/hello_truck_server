@@ -10,9 +10,21 @@ describe('Redis Integration', () => {
   beforeAll(async () => {
     if (process.env.INTEGRATION_TESTS !== 'true') {
       const red = (text: string) => `\x1b[31m${text}\x1b[0m`;
-      console.log(red('🚨 FATAL ERROR: Integration tests require INTEGRATION_TESTS to be "true".'));
-      console.log(red(`Current INTEGRATION_TESTS value: "${process.env.INTEGRATION_TESTS || 'undefined'}".`));
-      console.log(red('Please ensure INTEGRATION_TESTS=true is set in your .env.test file or environment variables.'));
+      console.log(
+        red(
+          '🚨 FATAL ERROR: Integration tests require INTEGRATION_TESTS to be "true".',
+        ),
+      );
+      console.log(
+        red(
+          `Current INTEGRATION_TESTS value: "${process.env.INTEGRATION_TESTS || 'undefined'}".`,
+        ),
+      );
+      console.log(
+        red(
+          'Please ensure INTEGRATION_TESTS=true is set in your .env.test file or environment variables.',
+        ),
+      );
       console.log(red('Tests aborted.'));
       process.exit(1);
     }
@@ -86,26 +98,26 @@ describe('Redis Integration', () => {
 
     it('should fail to acquire existing lock', async () => {
       const lockKey = 'test-lock-2';
-      
+
       const first = await redisService.tryLock(lockKey, 10);
       expect(first).toBe(true);
-      
+
       const second = await redisService.tryLock(lockKey, 10);
       expect(second).toBe(false);
-      
+
       await redisService.releaseLock(lockKey);
     });
 
     it('should release lock', async () => {
       const lockKey = 'test-lock-3';
-      
+
       await redisService.tryLock(lockKey, 10);
       const released = await redisService.releaseLock(lockKey);
       expect(released).toBe(true);
-      
+
       const reacquired = await redisService.tryLock(lockKey, 10);
       expect(reacquired).toBe(true);
-      
+
       await redisService.releaseLock(lockKey);
     });
   });

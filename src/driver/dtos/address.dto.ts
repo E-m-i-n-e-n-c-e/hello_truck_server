@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsLatitude, IsLongitude, Matches, Length } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsLatitude,
+  IsLongitude,
+  Matches,
+  Length,
+} from 'class-validator';
 import { Expose } from 'class-transformer';
 import { DriverAddress } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';

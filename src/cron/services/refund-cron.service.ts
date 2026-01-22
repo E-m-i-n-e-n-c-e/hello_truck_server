@@ -40,13 +40,17 @@ export class RefundCronService {
         await this.bookingRefundService.processRefundIntent(intent.id);
         successCount++;
       } catch (error) {
-        this.logger.error(`Failed to process refund ${intent.id}: ${error.message}`);
+        this.logger.error(
+          `Failed to process refund ${intent.id}: ${error.message}`,
+        );
         failureCount++;
         // Continue to next refund
       }
     }
 
-    this.logger.log(`Refund processing complete: ${successCount} succeeded, ${failureCount} failed`);
+    this.logger.log(
+      `Refund processing complete: ${successCount} succeeded, ${failureCount} failed`,
+    );
   }
 
   /**

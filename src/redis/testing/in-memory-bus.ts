@@ -8,7 +8,7 @@ import { RealtimeBus } from 'src/redis/interfaces/realtime-bus.interface';
 @Injectable()
 export class InMemoryBus implements RealtimeBus {
   private readonly logger = new Logger(InMemoryBus.name);
-  
+
   private readonly channels = new Map<string, Set<(message: string) => void>>();
   private readonly cache = new Map<string, string>();
 
@@ -24,10 +24,15 @@ export class InMemoryBus implements RealtimeBus {
         }
       }
     }
-    this.logger.debug(`Published to ${channel} (${handlers?.size || 0} subscribers)`);
+    this.logger.debug(
+      `Published to ${channel} (${handlers?.size || 0} subscribers)`,
+    );
   }
 
-  async subscribe(channel: string, handler: (message: string) => void): Promise<void> {
+  async subscribe(
+    channel: string,
+    handler: (message: string) => void,
+  ): Promise<void> {
     let handlers = this.channels.get(channel);
     if (!handlers) {
       handlers = new Set();
@@ -37,7 +42,10 @@ export class InMemoryBus implements RealtimeBus {
     this.logger.debug(`Subscribed to ${channel}`);
   }
 
-  async unsubscribe(channel: string, handler: (message: string) => void): Promise<void> {
+  async unsubscribe(
+    channel: string,
+    handler: (message: string) => void,
+  ): Promise<void> {
     const handlers = this.channels.get(channel);
     if (handlers) {
       handlers.delete(handler);

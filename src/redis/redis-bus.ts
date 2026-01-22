@@ -17,12 +17,18 @@ export class RedisBus implements RealtimeBus {
     this.logger.debug(`Published to ${channel}`);
   }
 
-  async subscribe(channel: string, handler: (message: string) => void): Promise<void> {
+  async subscribe(
+    channel: string,
+    handler: (message: string) => void,
+  ): Promise<void> {
     await this.redisService.subscribeChannel(channel, handler);
     this.logger.debug(`Subscribed to ${channel}`);
   }
 
-  async unsubscribe(channel: string, handler: (message: string) => void): Promise<void> {
+  async unsubscribe(
+    channel: string,
+    handler: (message: string) => void,
+  ): Promise<void> {
     await this.redisService.unsubscribeChannel(channel, handler);
     this.logger.debug(`Unsubscribed from ${channel}`);
   }

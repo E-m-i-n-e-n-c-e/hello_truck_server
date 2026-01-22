@@ -16,7 +16,10 @@ export class RazorpayController {
 
   @Post('create-contact')
   async createContact(@Body() body: { phoneNumber: string; name?: string }) {
-    const contactId = await this.razorpayService.createContact(body.phoneNumber, body.name);
+    const contactId = await this.razorpayService.createContact(
+      body.phoneNumber,
+      body.name,
+    );
     return { contactId };
   }
 

@@ -42,7 +42,7 @@ describe('01 - Auth (E2E)', () => {
         .expect((res) => {
           expect(res.body.accessToken).toBeDefined();
           expect(res.body.refreshToken).toBeDefined();
-          
+
           // Save to shared state and local variable
           testState.customerPhone = customerPhone;
           testState.customerToken = res.body.accessToken;
@@ -105,7 +105,7 @@ describe('01 - Auth (E2E)', () => {
         .expect((res) => {
           expect(res.body.accessToken).toBeDefined();
           expect(res.body.refreshToken).toBeDefined();
-          
+
           // Save to shared state and local variable
           testState.driverPhone = driverPhone;
           testState.driverToken = res.body.accessToken;

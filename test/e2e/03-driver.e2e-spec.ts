@@ -15,7 +15,7 @@ describe('03 - Driver Profile (E2E)', () => {
   beforeAll(async () => {
     await setupTestDatabase();
     app = await createTestApp();
-    
+
     // Login as driver (creates a driver record with null firstName)
     const driverPhone = `88${Date.now().toString().slice(-8)}`;
     const tokens = await loginAsDriver(app, driverPhone);
@@ -147,23 +147,25 @@ describe('03 - Driver Profile (E2E)', () => {
     });
 
     it('should add vehicle', () => {
-      return request(app.getHttpServer())
-        .post('/driver/vehicle')
-        .set('Authorization', `Bearer ${driverToken}`)
-        .send({
-          vehicleNumber: 'TS01AB1234',
-          vehicleType: 'FOUR_WHEELER',
-          vehicleModelName: 'Tata Ace',
-          vehicleBodyLength: 8.5,
-          vehicleBodyType: 'CLOSED',
-          fuelType: 'DIESEL',
-          vehicleImageUrl: 'https://example.com/vehicle.jpg',
-        })
-        // POST typically returns 201 Created (NestJS default for @Post)
-        .expect(201)
-        .expect((res) => {
-          expect(res.body.vehicleNumber).toBe('TS01AB1234');
-        });
+      return (
+        request(app.getHttpServer())
+          .post('/driver/vehicle')
+          .set('Authorization', `Bearer ${driverToken}`)
+          .send({
+            vehicleNumber: 'TS01AB1234',
+            vehicleType: 'FOUR_WHEELER',
+            vehicleModelName: 'Tata Ace',
+            vehicleBodyLength: 8.5,
+            vehicleBodyType: 'CLOSED',
+            fuelType: 'DIESEL',
+            vehicleImageUrl: 'https://example.com/vehicle.jpg',
+          })
+          // POST typically returns 201 Created (NestJS default for @Post)
+          .expect(201)
+          .expect((res) => {
+            expect(res.body.vehicleNumber).toBe('TS01AB1234');
+          })
+      );
     });
 
     it('should get vehicle', () => {
@@ -212,7 +214,9 @@ describe('03 - Driver Profile (E2E)', () => {
         })
         .expect(200)
         .expect((res) => {
-          expect(res.body.licenseUrl).toBe('https://example.com/license-updated.jpg');
+          expect(res.body.licenseUrl).toBe(
+            'https://example.com/license-updated.jpg',
+          );
         });
     });
 
@@ -231,21 +235,23 @@ describe('03 - Driver Profile (E2E)', () => {
 
   describe('Address', () => {
     it('should create driver address', () => {
-      return request(app.getHttpServer())
-        .post('/driver/address')
-        .set('Authorization', `Bearer ${driverToken}`)
-        .send({
-          addressLine1: '123 Driver St',
-          pincode: '500001',
-          city: 'Hyderabad',
-          district: 'Hyderabad',
-          state: 'Telangana',
-        })
-        // POST typically returns 201 Created (NestJS default for @Post)
-        .expect(201)
-        .expect((res) => {
-          expect(res.body.city).toBe('Hyderabad');
-        });
+      return (
+        request(app.getHttpServer())
+          .post('/driver/address')
+          .set('Authorization', `Bearer ${driverToken}`)
+          .send({
+            addressLine1: '123 Driver St',
+            pincode: '500001',
+            city: 'Hyderabad',
+            district: 'Hyderabad',
+            state: 'Telangana',
+          })
+          // POST typically returns 201 Created (NestJS default for @Post)
+          .expect(201)
+          .expect((res) => {
+            expect(res.body.city).toBe('Hyderabad');
+          })
+      );
     });
 
     it('should get driver address', () => {

@@ -1,4 +1,9 @@
-import { CallHandler, ExecutionContext, NestInterceptor, UseInterceptors } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  NestInterceptor,
+  UseInterceptors,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { map, Observable } from 'rxjs';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -43,7 +48,7 @@ function convertDecimalsToNumbers(obj: any, seen = new WeakSet()): any {
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => convertDecimalsToNumbers(item, seen));
+    return obj.map((item) => convertDecimalsToNumbers(item, seen));
   }
 
   // Handle objects (check for circular references)
@@ -78,10 +83,12 @@ export class SerializeInterceptor implements NestInterceptor {
         const convertedData = convertDecimalsToNumbers(data);
 
         if (Array.isArray(convertedData)) {
-          return convertedData.map((item) => plainToInstance(this.dto, item, {
-            excludeExtraneousValues: true, // Exclude properties not decorated with @Expose()
-            enableImplicitConversion: true, // Enable implicit conversion for nested objects
-          }));
+          return convertedData.map((item) =>
+            plainToInstance(this.dto, item, {
+              excludeExtraneousValues: true, // Exclude properties not decorated with @Expose()
+              enableImplicitConversion: true, // Enable implicit conversion for nested objects
+            }),
+          );
         }
         //Run something before the response is sent out
         return plainToInstance(this.dto, convertedData, {

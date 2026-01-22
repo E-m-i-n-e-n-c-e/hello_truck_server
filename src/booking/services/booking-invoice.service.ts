@@ -1,6 +1,21 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { Booking, BookingAddress, Customer, Invoice, InvoiceType, Package, PaymentMethod, Prisma, ProductType, VehicleModel, WeightUnit } from '@prisma/client';
-import { BookingEstimateRequestDto, BookingEstimateResponseDto } from '../dtos/booking-invoice.dto';
+import {
+  Booking,
+  BookingAddress,
+  Customer,
+  Invoice,
+  InvoiceType,
+  Package,
+  PaymentMethod,
+  Prisma,
+  ProductType,
+  VehicleModel,
+  WeightUnit,
+} from '@prisma/client';
+import {
+  BookingEstimateRequestDto,
+  BookingEstimateResponseDto,
+} from '../dtos/booking-invoice.dto';
 import { PricingService } from '../pricing/pricing.service';
 import { PackageDetailsDto } from '../dtos/package.dto';
 import { CreateBookingAddressDto } from '../dtos/booking-address.dto';
@@ -8,8 +23,16 @@ import * as geolib from 'geolib';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
-import { truncateDecimal, toDecimal, toNumber, minDecimal } from '../utils/decimal.utils';
-import { PaymentLinkResponse, PaymentType } from 'src/razorpay/types/razorpay-payment-link.types';
+import {
+  truncateDecimal,
+  toDecimal,
+  toNumber,
+  minDecimal,
+} from '../utils/decimal.utils';
+import {
+  PaymentLinkResponse,
+  PaymentType,
+} from 'src/razorpay/types/razorpay-payment-link.types';
 
 @Injectable()
 export class BookingInvoiceService {
@@ -30,7 +53,7 @@ export class BookingInvoiceService {
     bookingEstimateRequest: BookingEstimateRequestDto,
     walletBalance: number,
     gstNumber: string | null | undefined,
-    tx: Prisma.TransactionClient = this.prisma
+    tx: Prisma.TransactionClient = this.prisma,
   ): Promise<Invoice> {
     const estimate = await this.calculateEstimate(bookingEstimateRequest);
     const idealVehicle = estimate.topVehicles[0];
@@ -54,7 +77,9 @@ export class BookingInvoiceService {
       walletApplied = walletBalanceDecimal; // Apply full debt
     }
 
-    const finalAmount = truncateDecimal(estimatedCostDecimal.minus(walletApplied));
+    const finalAmount = truncateDecimal(
+      estimatedCostDecimal.minus(walletApplied),
+    );
 
     return tx.invoice.create({
       data: {
@@ -82,11 +107,23 @@ export class BookingInvoiceService {
    * Applies wallet balance and updates customer wallet
    */
   async createFinalInvoice(
-    booking: Booking & { customer: Customer, pickupAddress: BookingAddress, dropAddress: BookingAddress, package: Package, gstNumber?: string | null },
+    booking: Booking & {
+      customer: Customer;
+      pickupAddress: BookingAddress;
+      dropAddress: BookingAddress;
+      package: Package;
+      gstNumber?: string | null;
+    },
     vehicleModel: VehicleModel,
-    tx: Prisma.TransactionClient
+    tx: Prisma.TransactionClient,
   ): Promise<Invoice> {
-    const { customer, pickupAddress, dropAddress, package: packageDetails, gstNumber } = booking;
+    const {
+      customer,
+      pickupAddress,
+      dropAddress,
+      package: packageDetails,
+      gstNumber,
+    } = booking;
     const distanceKm = this.calculateDistanceKm(pickupAddress, dropAddress);
     const weightInTons = this.calculateTotalWeightInTons(packageDetails);
 
@@ -118,7 +155,9 @@ export class BookingInvoiceService {
         : walletBalanceDecimal;
 
       finalAmount = truncateDecimal(totalPriceDecimal.minus(walletApplied));
-      const newBalance = truncateDecimal(walletBalanceDecimal.minus(walletApplied));
+      const newBalance = truncateDecimal(
+        walletBalanceDecimal.minus(walletApplied),
+      );
 
       await tx.customer.update({
         where: { id: customer.id },
@@ -173,11 +212,13 @@ export class BookingInvoiceService {
    */
   async createPaymentLinkForInvoice(
     invoice: Invoice,
-    booking: Booking & { customer: Customer }
+    booking: Booking & { customer: Customer },
   ): Promise<PaymentLinkResponse | null> {
     // Skip if already paid or no payment needed
     if (invoice.isPaid || Number(invoice.finalAmount) <= 0) {
-      this.logger.log(`Skipping payment link creation for invoice ${invoice.id}: isPaid=${invoice.isPaid}, finalAmount=${invoice.finalAmount}`);
+      this.logger.log(
+        `Skipping payment link creation for invoice ${invoice.id}: isPaid=${invoice.isPaid}, finalAmount=${invoice.finalAmount}`,
+      );
       return null;
     }
 
@@ -191,15 +232,19 @@ export class BookingInvoiceService {
     }
 
     // Create payment link via Razorpay
-    const customerName = (booking.customer.firstName ?? '') + ' ' + (booking.customer.lastName ?? '');
-    const { paymentLinkUrl, paymentLinkId } = await this.razorpayService.createPaymentLink({
-      amount: Number(invoice.finalAmount),
-      description: `Booking #${booking.bookingNumber} Payment`,
-      customerName,
-      customerContact: booking.customer.phoneNumber,
-      customerEmail: booking.customer.email ?? undefined,
-      paymentType: PaymentType.BOOKING_INVOICE,
-    });
+    const customerName =
+      (booking.customer.firstName ?? '') +
+      ' ' +
+      (booking.customer.lastName ?? '');
+    const { paymentLinkUrl, paymentLinkId } =
+      await this.razorpayService.createPaymentLink({
+        amount: Number(invoice.finalAmount),
+        description: `Booking #${booking.bookingNumber} Payment`,
+        customerName,
+        customerContact: booking.customer.phoneNumber,
+        customerEmail: booking.customer.email ?? undefined,
+        paymentType: PaymentType.BOOKING_INVOICE,
+      });
 
     // Update invoice with payment link details in a separate transaction
     await this.prisma.invoice.update({
@@ -210,7 +255,9 @@ export class BookingInvoiceService {
       },
     });
 
-    this.logger.log(`✓ Payment link created for invoice ${invoice.id}: ${paymentLinkId}`);
+    this.logger.log(
+      `✓ Payment link created for invoice ${invoice.id}: ${paymentLinkId}`,
+    );
 
     return { paymentLinkUrl, paymentLinkId };
   }
@@ -224,20 +271,33 @@ export class BookingInvoiceService {
     // Calculate distance
     const distanceKm = this.calculateDistanceKm(
       estimateRequest.pickupAddress,
-      estimateRequest.dropAddress
+      estimateRequest.dropAddress,
     );
 
     // Calculate total weight
-    const totalWeightInTons = this.calculateTotalWeightInTons(estimateRequest.packageDetails);
+    const totalWeightInTons = this.calculateTotalWeightInTons(
+      estimateRequest.packageDetails,
+    );
 
     // Use new PricingService to get estimate with top 3 vehicles
-    const estimate = await this.pricingService.calculateEstimate(distanceKm, totalWeightInTons);
+    const estimate = await this.pricingService.calculateEstimate(
+      distanceKm,
+      totalWeightInTons,
+    );
 
     return estimate;
   }
 
-  calculateTotalWeightInTons(packageDetails: {approximateWeight: number | Decimal, weightUnit: WeightUnit}): number {
-    return this.convertToKg(Number(packageDetails.approximateWeight), packageDetails.weightUnit) / 1000;
+  calculateTotalWeightInTons(packageDetails: {
+    approximateWeight: number | Decimal;
+    weightUnit: WeightUnit;
+  }): number {
+    return (
+      this.convertToKg(
+        Number(packageDetails.approximateWeight),
+        packageDetails.weightUnit,
+      ) / 1000
+    );
   }
 
   /**
@@ -248,13 +308,18 @@ export class BookingInvoiceService {
     this.validatePackageDetails(request.packageDetails);
   }
 
-  private validateAddresses(pickupAddress: CreateBookingAddressDto, dropAddress: CreateBookingAddressDto): void {
+  private validateAddresses(
+    pickupAddress: CreateBookingAddressDto,
+    dropAddress: CreateBookingAddressDto,
+  ): void {
     // Check if addresses are different
     if (
       pickupAddress.latitude === dropAddress.latitude &&
       pickupAddress.longitude === dropAddress.longitude
     ) {
-      throw new BadRequestException('Pickup and drop addresses cannot be the same');
+      throw new BadRequestException(
+        'Pickup and drop addresses cannot be the same',
+      );
     }
 
     // Validate latitude/longitude ranges
@@ -284,7 +349,9 @@ export class BookingInvoiceService {
     if (packageDetails.productType === ProductType.AGRICULTURAL) {
       // Validate AGRICULTURAL product type (commercial)
       if (!packageDetails.agricultural) {
-        throw new BadRequestException('Agricultural product details are required');
+        throw new BadRequestException(
+          'Agricultural product details are required',
+        );
       }
       return;
     }
@@ -292,18 +359,26 @@ export class BookingInvoiceService {
     if (packageDetails.productType === ProductType.NON_AGRICULTURAL) {
       // Validate NON_AGRICULTURAL product type (commercial)
       if (!packageDetails.nonAgricultural) {
-        throw new BadRequestException('Non-agricultural product details are required');
+        throw new BadRequestException(
+          'Non-agricultural product details are required',
+        );
       }
     }
   }
 
   private calculateDistanceKm(
-    pickupAddress: {latitude: number | Decimal, longitude: number | Decimal},
-    dropAddress: {latitude: number | Decimal, longitude: number | Decimal}
+    pickupAddress: { latitude: number | Decimal; longitude: number | Decimal },
+    dropAddress: { latitude: number | Decimal; longitude: number | Decimal },
   ): number {
     const distance = geolib.getDistance(
-      { latitude: Number(pickupAddress.latitude), longitude: Number(pickupAddress.longitude) },
-      { latitude: Number(dropAddress.latitude), longitude: Number(dropAddress.longitude) },
+      {
+        latitude: Number(pickupAddress.latitude),
+        longitude: Number(pickupAddress.longitude),
+      },
+      {
+        latitude: Number(dropAddress.latitude),
+        longitude: Number(dropAddress.longitude),
+      },
     );
     return distance / 1000; // Convert meters to km
   }

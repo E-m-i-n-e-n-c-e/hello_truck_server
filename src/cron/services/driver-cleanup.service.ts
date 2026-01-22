@@ -14,8 +14,8 @@ export class DriverCleanupService {
         driverStatus: DriverStatus.AVAILABLE,
       },
       data: {
-        driverStatus: DriverStatus.UNAVAILABLE
-      }
+        driverStatus: DriverStatus.UNAVAILABLE,
+      },
     });
     this.logger.log(`Reset ${result.count} drivers to UNAVAILABLE at midnight`);
   }

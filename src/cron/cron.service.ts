@@ -31,7 +31,9 @@ export class CronService {
     const acquired = await this.redisService.tryLock(lockKey, 1800); // 30 minutes
 
     if (!acquired) {
-      this.logger.log('[CRON] Another instance is already running daily payouts. Skipping.');
+      this.logger.log(
+        '[CRON] Another instance is already running daily payouts. Skipping.',
+      );
       return;
     }
 
@@ -47,7 +49,9 @@ export class CronService {
     const acquired = await this.redisService.tryLock(lockKey, 3600); // 1 hour
 
     if (!acquired) {
-      this.logger.log('[CRON] Another instance is already running daily cleanup. Skipping.');
+      this.logger.log(
+        '[CRON] Another instance is already running daily cleanup. Skipping.',
+      );
       return;
     }
 
@@ -70,7 +74,9 @@ export class CronService {
     const acquired = await this.redisService.tryLock(lockKey, 600); // 10 minutes
 
     if (!acquired) {
-      this.logger.log('[CRON] Another instance is already running hourly jobs. Skipping.');
+      this.logger.log(
+        '[CRON] Another instance is already running hourly jobs. Skipping.',
+      );
       return;
     }
 

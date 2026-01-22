@@ -1,7 +1,13 @@
-import { Address } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
-import { Expose } from "class-transformer";
-import { IsLatitude, IsLongitude, IsString, IsOptional, IsPhoneNumber } from "class-validator";
+import { Address } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
+import { Expose } from 'class-transformer';
+import {
+  IsLatitude,
+  IsLongitude,
+  IsString,
+  IsOptional,
+  IsPhoneNumber,
+} from 'class-validator';
 
 export class CreateBookingAddressDto {
   @IsString()

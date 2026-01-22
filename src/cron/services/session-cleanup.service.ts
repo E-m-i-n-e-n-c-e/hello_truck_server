@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class SessionCleanupService {
-  private readonly logger = new Logger(SessionCleanupService.name);   
+  private readonly logger = new Logger(SessionCleanupService.name);
   constructor(private prisma: PrismaService) {}
 
   async cleanupExpiredSessions() {
@@ -15,7 +15,9 @@ export class SessionCleanupService {
         },
       },
     });
-    this.logger.log(`Cleaned up ${customerResult.count} expired customer sessions`);
+    this.logger.log(
+      `Cleaned up ${customerResult.count} expired customer sessions`,
+    );
 
     const driverResult = await this.prisma.driverSession.deleteMany({
       where: {

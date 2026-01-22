@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -16,7 +20,10 @@ export class AdminService {
     private firebaseService: FirebaseService,
   ) {}
 
-  async login(username: string, pass: string): Promise<{ accessToken: string }> {
+  async login(
+    username: string,
+    pass: string,
+  ): Promise<{ accessToken: string }> {
     const adminUsername = this.configService.get<string>('ADMIN_USERNAME')!;
     const adminPassword = this.configService.get<string>('ADMIN_PASSWORD')!;
 
@@ -170,10 +177,7 @@ export class AdminService {
   /**
    * Verify or reject a driver and optionally set document expiry dates
    */
-  async updateDriverVerification(
-    id: string,
-    dto: UpdateDriverVerificationDto,
-  ) {
+  async updateDriverVerification(id: string, dto: UpdateDriverVerificationDto) {
     // Check if driver exists
     const driver = await this.prisma.driver.findUnique({
       where: { id },
@@ -186,9 +190,13 @@ export class AdminService {
 
     // Convert string dates to Date objects
     const expiryDates = {
-      licenseExpiry: dto.licenseExpiry ? new Date(dto.licenseExpiry) : undefined,
+      licenseExpiry: dto.licenseExpiry
+        ? new Date(dto.licenseExpiry)
+        : undefined,
       fcExpiry: dto.fcExpiry ? new Date(dto.fcExpiry) : undefined,
-      insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : undefined,
+      insuranceExpiry: dto.insuranceExpiry
+        ? new Date(dto.insuranceExpiry)
+        : undefined,
       rcBookExpiry: dto.rcBookExpiry ? new Date(dto.rcBookExpiry) : undefined,
     };
 

@@ -36,7 +36,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 if (process.env.SMOKE_TESTS !== 'true') {
-  console.error('❌ Smoke tests disabled. Set SMOKE_TESTS=true to run intentionally.');
+  console.error(
+    '❌ Smoke tests disabled. Set SMOKE_TESTS=true to run intentionally.',
+  );
   console.error('   Run: SMOKE_TESTS=true npm run smoke:razorpay');
   process.exit(1);
 }
@@ -96,7 +98,9 @@ function askQuestion(question: string): Promise<string> {
 async function run() {
   console.log('\n🚀 Starting Razorpay Smoke Tests');
   console.log(`   Key ID: ${process.env.RAZORPAY_KEY_ID?.substring(0, 12)}...`);
-  console.log(`   Webhook Secret: ${process.env.RAZORPAY_WEBHOOK_SECRET ? 'Configured' : 'Not set'}`);
+  console.log(
+    `   Webhook Secret: ${process.env.RAZORPAY_WEBHOOK_SECRET ? 'Configured' : 'Not set'}`,
+  );
 
   // Create config service that reads from process.env
   const configService = {
@@ -118,7 +122,10 @@ async function run() {
   /* ---------------------------------------------------------------------- */
 
   contactId = await service.createContact('9999999999', 'Smoke Test Driver');
-  assert(contactId.startsWith('cont_'), `Invalid contactId format: ${contactId}`);
+  assert(
+    contactId.startsWith('cont_'),
+    `Invalid contactId format: ${contactId}`,
+  );
   logSuccess(`Contact created: ${contactId}`);
 
   /* ---------------------------------------------------------------------- */
@@ -126,7 +133,10 @@ async function run() {
   /* ---------------------------------------------------------------------- */
 
   contactIdNoName = await service.createContact('8888888888');
-  assert(contactIdNoName.startsWith('cont_'), `Invalid contactId format: ${contactIdNoName}`);
+  assert(
+    contactIdNoName.startsWith('cont_'),
+    `Invalid contactId format: ${contactIdNoName}`,
+  );
   logSuccess(`Contact created: ${contactIdNoName}`);
 
   /* ---------------------------------------------------------------------- */
@@ -142,7 +152,10 @@ async function run() {
     },
   });
 
-  assert(bankFundAccountId.startsWith('fa_'), `Invalid fund account ID: ${bankFundAccountId}`);
+  assert(
+    bankFundAccountId.startsWith('fa_'),
+    `Invalid fund account ID: ${bankFundAccountId}`,
+  );
   logSuccess(`Bank fund account created: ${bankFundAccountId}`);
 
   /* ---------------------------------------------------------------------- */
@@ -156,7 +169,10 @@ async function run() {
     },
   });
 
-  assert(vpaFundAccountId.startsWith('fa_'), `Invalid fund account ID: ${vpaFundAccountId}`);
+  assert(
+    vpaFundAccountId.startsWith('fa_'),
+    `Invalid fund account ID: ${vpaFundAccountId}`,
+  );
   logSuccess(`VPA fund account created: ${vpaFundAccountId}`);
 
   /* ---------------------------------------------------------------------- */
@@ -177,8 +193,14 @@ async function run() {
   paymentLinkId = paymentLink.paymentLinkId;
   paymentLinkUrl = paymentLink.paymentLinkUrl;
 
-  assert(paymentLinkId.startsWith('plink_'), `Invalid paymentLinkId: ${paymentLinkId}`);
-  assert(paymentLinkUrl.includes('rzp.io'), `Invalid payment link URL: ${paymentLinkUrl}`);
+  assert(
+    paymentLinkId.startsWith('plink_'),
+    `Invalid paymentLinkId: ${paymentLinkId}`,
+  );
+  assert(
+    paymentLinkUrl.includes('rzp.io'),
+    `Invalid payment link URL: ${paymentLinkUrl}`,
+  );
 
   logSuccess(`Payment link created: ${paymentLinkId}`);
   logInfo(`URL: ${paymentLinkUrl}`);
@@ -196,8 +218,13 @@ async function run() {
     paymentType: PaymentType.BOOKING_INVOICE,
   });
 
-  assert(minimalPaymentLink.paymentLinkId.startsWith('plink_'), 'Invalid minimal payment link ID');
-  logSuccess(`Minimal payment link created: ${minimalPaymentLink.paymentLinkId}`);
+  assert(
+    minimalPaymentLink.paymentLinkId.startsWith('plink_'),
+    'Invalid minimal payment link ID',
+  );
+  logSuccess(
+    `Minimal payment link created: ${minimalPaymentLink.paymentLinkId}`,
+  );
 
   /* ---------------------------------------------------------------------- */
   logStep(7, 'Create Payment Link (+91 prefix)');
@@ -212,8 +239,13 @@ async function run() {
     paymentType: PaymentType.BOOKING_INVOICE,
   });
 
-  assert(prefixPaymentLink.paymentLinkId.startsWith('plink_'), 'Invalid prefix payment link ID');
-  logSuccess(`+91 prefix handled correctly: ${prefixPaymentLink.paymentLinkId}`);
+  assert(
+    prefixPaymentLink.paymentLinkId.startsWith('plink_'),
+    'Invalid prefix payment link ID',
+  );
+  logSuccess(
+    `+91 prefix handled correctly: ${prefixPaymentLink.paymentLinkId}`,
+  );
 
   /* ---------------------------------------------------------------------- */
   logStep(8, 'Webhook Signature Verification');
@@ -226,7 +258,10 @@ async function run() {
       amount: 10000,
     });
 
-    const validSignature = createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
+    const validSignature = createHmac(
+      'sha256',
+      process.env.RAZORPAY_WEBHOOK_SECRET,
+    )
       .update(payload)
       .digest('hex');
 
@@ -236,7 +271,10 @@ async function run() {
     logSuccess('Valid signature verified correctly');
 
     // Test invalid signature
-    const isInvalid = service.verifyWebhookSignature(payload, 'invalid_signature');
+    const isInvalid = service.verifyWebhookSignature(
+      payload,
+      'invalid_signature',
+    );
     assert(isInvalid === false, 'Invalid signature should be rejected');
     logSuccess('Invalid signature rejected correctly');
   } else {
@@ -274,14 +312,22 @@ async function run() {
   /* ---------------------------------------------------------------------- */
 
   console.log('\n📋 To test refunds, we need a completed payment.');
-  console.log(`\n🔗 Open this payment link in your browser and complete the test payment:`);
+  console.log(
+    `\n🔗 Open this payment link in your browser and complete the test payment:`,
+  );
   console.log(`   ${paymentLinkUrl}`);
-  console.log('\n   Use test card: 4111 1111 1111 1111, any future expiry, any CVV');
-  console.log('\n   After payment, copy the payment ID (format: pay_XXXXX) from:');
+  console.log(
+    '\n   Use test card: 4111 1111 1111 1111, any future expiry, any CVV',
+  );
+  console.log(
+    '\n   After payment, copy the payment ID (format: pay_XXXXX) from:',
+  );
   console.log('   - The Razorpay Dashboard, OR');
   console.log('   - The payment success page URL\n');
 
-  const paymentId = await askQuestion('Enter the Razorpay payment ID (or press Enter to skip): ');
+  const paymentId = await askQuestion(
+    'Enter the Razorpay payment ID (or press Enter to skip): ',
+  );
 
   if (paymentId && paymentId.startsWith('pay_')) {
     /* ---------------------------------------------------------------------- */
@@ -311,9 +357,11 @@ async function run() {
       const refunds = await service.fetchRefunds(paymentId);
       assert(Array.isArray(refunds), 'fetchRefunds should return an array');
       logSuccess(`fetchRefunds returned ${refunds.length} refund(s)`);
-      
+
       if (refunds.length > 0) {
-        logInfo(`First refund: ${refunds[0].refundId}, Amount: ₹${refunds[0].amount}`);
+        logInfo(
+          `First refund: ${refunds[0].refundId}, Amount: ₹${refunds[0].amount}`,
+        );
       } else {
         logInfo('No refunds found (this is expected for a new payment)');
       }
@@ -338,12 +386,30 @@ async function run() {
       });
 
       // Verify structure matches RefundResponse type
-      assert(partialRefund.refundId?.startsWith('rfnd_'), `Invalid refundId: ${partialRefund.refundId}`);
-      assert(partialRefund.paymentId === paymentId, 'paymentId mismatch in response');
-      assert(partialRefund.amount === 30, `Amount mismatch: expected 30, got ${partialRefund.amount}`);
-      assert(typeof partialRefund.currency === 'string', 'currency should be string');
-      assert(typeof partialRefund.status === 'string', 'status should be string');
-      assert(typeof partialRefund.createdAt === 'number', 'createdAt should be number');
+      assert(
+        partialRefund.refundId?.startsWith('rfnd_'),
+        `Invalid refundId: ${partialRefund.refundId}`,
+      );
+      assert(
+        partialRefund.paymentId === paymentId,
+        'paymentId mismatch in response',
+      );
+      assert(
+        partialRefund.amount === 30,
+        `Amount mismatch: expected 30, got ${partialRefund.amount}`,
+      );
+      assert(
+        typeof partialRefund.currency === 'string',
+        'currency should be string',
+      );
+      assert(
+        typeof partialRefund.status === 'string',
+        'status should be string',
+      );
+      assert(
+        typeof partialRefund.createdAt === 'number',
+        'createdAt should be number',
+      );
 
       partialRefundId = partialRefund.refundId;
       logSuccess(`Partial refund created: ${partialRefund.refundId}`);
@@ -371,7 +437,10 @@ async function run() {
       });
 
       // Verify structure
-      assert(fullRefund.refundId?.startsWith('rfnd_'), `Invalid refundId: ${fullRefund.refundId}`);
+      assert(
+        fullRefund.refundId?.startsWith('rfnd_'),
+        `Invalid refundId: ${fullRefund.refundId}`,
+      );
       assert(fullRefund.paymentId === paymentId, 'paymentId mismatch');
       assert(typeof fullRefund.amount === 'number', 'amount should be number');
       assert(fullRefund.amount > 0, 'amount should be positive');
@@ -382,7 +451,9 @@ async function run() {
       logInfo(`Status: ${fullRefund.status}`);
     } catch (error: any) {
       if (error.message?.includes('already been fully refunded')) {
-        logWarning('Payment already fully refunded (partial refund used full amount)');
+        logWarning(
+          'Payment already fully refunded (partial refund used full amount)',
+        );
       } else {
         logWarning(`Full refund failed: ${error.message}`);
       }
@@ -394,32 +465,42 @@ async function run() {
 
     try {
       const refunds = await service.fetchRefunds(paymentId);
-      
+
       assert(Array.isArray(refunds), 'fetchRefunds should return an array');
-      
+
       const expectedCount = (partialRefundId ? 1 : 0) + (fullRefundId ? 1 : 0);
       logSuccess(`fetchRefunds returned ${refunds.length} refund(s)`);
-      
+
       if (expectedCount > 0) {
         assert(
           refunds.length >= expectedCount,
           `Expected at least ${expectedCount} refunds, got ${refunds.length}`,
         );
       }
-      
+
       // Verify each refund has correct structure
       for (const refund of refunds) {
-        assert(refund.refundId?.startsWith('rfnd_'), 'Each refund should have valid refundId');
-        assert(refund.paymentId === paymentId, 'Each refund should reference correct paymentId');
-        assert(typeof refund.amount === 'number', 'Each refund should have numeric amount');
+        assert(
+          refund.refundId?.startsWith('rfnd_'),
+          'Each refund should have valid refundId',
+        );
+        assert(
+          refund.paymentId === paymentId,
+          'Each refund should reference correct paymentId',
+        );
+        assert(
+          typeof refund.amount === 'number',
+          'Each refund should have numeric amount',
+        );
         logInfo(`  - ${refund.refundId}: ₹${refund.amount} (${refund.status})`);
       }
 
-      logSuccess('All refunds have correct structure matching RefundResponse type');
+      logSuccess(
+        'All refunds have correct structure matching RefundResponse type',
+      );
     } catch (error: any) {
       logWarning(`Fetch refunds failed: ${error.message}`);
     }
-
   } else {
     logWarning('Skipping refund tests - no payment ID provided');
   }
@@ -463,4 +544,3 @@ run()
     console.error(error);
     process.exit(1);
   });
-

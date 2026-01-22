@@ -15,7 +15,7 @@ import { FirebaseModule } from 'src/firebase/firebase.module';
     }),
     FirebaseModule,
   ],
-  controllers: [AdminController,],
+  controllers: [AdminController],
   providers: [AdminService],
 })
 export class AdminModule {}

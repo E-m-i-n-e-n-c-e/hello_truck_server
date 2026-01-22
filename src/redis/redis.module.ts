@@ -16,4 +16,3 @@ import { REALTIME_BUS } from 'src/redis/interfaces/realtime-bus.interface';
   exports: [RedisService, REALTIME_BUS],
 })
 export class RedisModule {}
-

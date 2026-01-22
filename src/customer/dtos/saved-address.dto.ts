@@ -1,4 +1,15 @@
-import { IsString, IsOptional, IsBoolean, IsLatitude, IsLongitude, IsPhoneNumber, Matches, Length, IsNotEmpty, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsLatitude,
+  IsLongitude,
+  IsPhoneNumber,
+  Matches,
+  Length,
+  IsNotEmpty,
+  ValidateNested,
+} from 'class-validator';
 import { Expose, Type } from 'class-transformer';
 import { Address, SavedAddress } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -129,7 +140,3 @@ export class SavedAddressResponseDto implements SavedAddress {
   @Expose()
   updatedAt: Date;
 }
-
-
-
-

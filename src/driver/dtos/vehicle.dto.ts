@@ -1,10 +1,30 @@
-import { Vehicle, VehicleOwner, VehicleType, VehicleBodyType, FuelType } from "@prisma/client";
-import { Expose, Type } from "class-transformer";
-import { IsOptional, IsString, IsUrl, IsEnum, IsNumber, IsDecimal, ValidateNested, IsPositive, Max, Min } from "class-validator";
-import { Transform } from "class-transformer";
-import { Decimal } from "@prisma/client/runtime/library";
-import { CreateVehicleOwnerDto, VehicleOwnerResponseDto } from "./vehicle-owner.dto";
-import { VehicleModelResponseDto } from "./vehicle-model.dto";
+import {
+  Vehicle,
+  VehicleOwner,
+  VehicleType,
+  VehicleBodyType,
+  FuelType,
+} from '@prisma/client';
+import { Expose, Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsUrl,
+  IsEnum,
+  IsNumber,
+  IsDecimal,
+  ValidateNested,
+  IsPositive,
+  Max,
+  Min,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
+import { Decimal } from '@prisma/client/runtime/library';
+import {
+  CreateVehicleOwnerDto,
+  VehicleOwnerResponseDto,
+} from './vehicle-owner.dto';
+import { VehicleModelResponseDto } from './vehicle-model.dto';
 
 export class CreateVehicleDto implements Partial<Vehicle> {
   @IsString()

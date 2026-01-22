@@ -6,7 +6,8 @@ import Redis from 'ioredis';
 export class RedisService extends Redis implements OnModuleDestroy {
   private bullRedisInstance: Redis | null = null;
   private subscriberInstance: Redis | null = null;
-  private channelToListeners: Map<string, Set<(message: string) => void>> = new Map();
+  private channelToListeners: Map<string, Set<(message: string) => void>> =
+    new Map();
 
   constructor(private readonly configService: ConfigService) {
     const redisUrl = configService.get<string>('REDIS_URL')!; // Validated on startup
@@ -34,7 +35,7 @@ export class RedisService extends Redis implements OnModuleDestroy {
       const redisUrl = this.configService.get<string>('REDIS_URL')!; // Validated on startup
       this.bullRedisInstance = new Redis(redisUrl, {
         maxRetriesPerRequest: null, // Important for Bull queues - null means infinite retries
-        enableReadyCheck: false,    // Prevents some connection issues
+        enableReadyCheck: false, // Prevents some connection issues
         lazyConnect: true,
       });
     }
@@ -82,7 +83,10 @@ export class RedisService extends Redis implements OnModuleDestroy {
     return result === 1;
   }
 
-  async subscribeChannel(channel: string, handler: (message: string) => void): Promise<void> {
+  async subscribeChannel(
+    channel: string,
+    handler: (message: string) => void,
+  ): Promise<void> {
     const sub = await this.ensureSubscriber();
     let listeners = this.channelToListeners.get(channel);
     const isFirst = !listeners || listeners.size === 0;
@@ -96,7 +100,10 @@ export class RedisService extends Redis implements OnModuleDestroy {
     }
   }
 
-  async unsubscribeChannel(channel: string, handler: (message: string) => void): Promise<void> {
+  async unsubscribeChannel(
+    channel: string,
+    handler: (message: string) => void,
+  ): Promise<void> {
     const sub = await this.ensureSubscriber();
     const listeners = this.channelToListeners.get(channel);
     if (!listeners) return;
