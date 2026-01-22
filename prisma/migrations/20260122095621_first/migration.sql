@@ -2,7 +2,7 @@
 CREATE TYPE "public"."VerificationStatus" AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
 
 -- CreateEnum
-CREATE TYPE "public"."VehicleType" AS ENUM ('TWO_WHEELER', 'THREE_WHEELER', 'FOUR_WHEELER');
+CREATE TYPE "public"."VehicleType" AS ENUM ('THREE_WHEELER', 'FOUR_WHEELER');
 
 -- CreateEnum
 CREATE TYPE "public"."VehicleBodyType" AS ENUM ('OPEN', 'CLOSED');
@@ -23,7 +23,7 @@ CREATE TYPE "public"."DimensionUnit" AS ENUM ('CM', 'INCHES');
 CREATE TYPE "public"."BookingStatus" AS ENUM ('PENDING', 'DRIVER_ASSIGNED', 'CONFIRMED', 'PICKUP_ARRIVED', 'PICKUP_VERIFIED', 'IN_TRANSIT', 'DROP_ARRIVED', 'DROP_VERIFIED', 'COMPLETED', 'CANCELLED', 'EXPIRED');
 
 -- CreateEnum
-CREATE TYPE "public"."AssignmentStatus" AS ENUM ('OFFERED', 'ACCEPTED', 'REJECTED', 'AUTO_REJECTED');
+CREATE TYPE "public"."AssignmentStatus" AS ENUM ('OFFERED', 'ACCEPTED', 'REJECTED', 'AUTO_REJECTED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "public"."DriverStatus" AS ENUM ('AVAILABLE', 'UNAVAILABLE', 'ON_RIDE', 'RIDE_OFFERED');
@@ -38,10 +38,22 @@ CREATE TYPE "public"."ReferralStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED')
 CREATE TYPE "public"."TransactionType" AS ENUM ('CREDIT', 'DEBIT');
 
 -- CreateEnum
-CREATE TYPE "public"."TransactionCategory" AS ENUM ('BOOKING_PAYMENT', 'BOOKING_REFUND', 'DRIVER_PAYOUT', 'PENALTY');
+CREATE TYPE "public"."TransactionCategory" AS ENUM ('BOOKING_PAYMENT', 'BOOKING_REFUND', 'DRIVER_PAYOUT', 'DRIVER_PAYMENT');
 
 -- CreateEnum
 CREATE TYPE "public"."PayoutStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "public"."InvoiceType" AS ENUM ('ESTIMATE', 'FINAL');
+
+-- CreateEnum
+CREATE TYPE "public"."PaymentMethod" AS ENUM ('ONLINE', 'CASH');
+
+-- CreateEnum
+CREATE TYPE "public"."PayoutMethodType" AS ENUM ('BANK_ACCOUNT', 'VPA');
+
+-- CreateEnum
+CREATE TYPE "public"."RefundStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'NOT_REQUIRED');
 
 -- CreateTable
 CREATE TABLE "public"."Customer" (
@@ -126,11 +138,10 @@ CREATE TABLE "public"."Driver" (
     "lastName" TEXT,
     "email" TEXT,
     "alternatePhone" TEXT,
-    "referalCode" TEXT,
     "photo" TEXT,
     "contactId" TEXT,
     "fundAccountId" TEXT,
-    "score" INTEGER NOT NULL DEFAULT 0,
+    "score" INTEGER NOT NULL DEFAULT 100,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "verificationStatus" "public"."VerificationStatus" NOT NULL DEFAULT 'PENDING',
     "driverStatus" "public"."DriverStatus" NOT NULL DEFAULT 'UNAVAILABLE',
@@ -138,6 +149,9 @@ CREATE TABLE "public"."Driver" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastSeenAt" TIMESTAMP(3),
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "payoutMethod" "public"."PayoutMethodType",
+    "referralCode" TEXT,
+    "rideCount" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "Driver_pkey" PRIMARY KEY ("id")
 );
@@ -161,6 +175,15 @@ CREATE TABLE "public"."DriverDocuments" (
     "ebBillUrl" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "rcBookExpiry" TIMESTAMP(3),
+    "rcBookStatus" "public"."VerificationStatus" NOT NULL DEFAULT 'PENDING',
+    "selfieUrl" TEXT,
+    "suggestedFcExpiry" TIMESTAMP(3),
+    "suggestedInsuranceExpiry" TIMESTAMP(3),
+    "suggestedLicenseExpiry" TIMESTAMP(3),
+    "suggestedRcBookExpiry" TIMESTAMP(3),
+    "aadharNumberEncrypted" TEXT NOT NULL DEFAULT 'RandomHash',
+    "aadharNumberHash" TEXT NOT NULL DEFAULT 'RandomHash',
 
     CONSTRAINT "DriverDocuments_pkey" PRIMARY KEY ("id")
 );
@@ -192,8 +215,20 @@ CREATE TABLE "public"."Vehicle" (
     "vehicleImageUrl" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "vehicleModelName" TEXT NOT NULL,
 
     CONSTRAINT "Vehicle_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."VehicleModel" (
+    "name" TEXT NOT NULL,
+    "perKm" DECIMAL(10,2) NOT NULL,
+    "baseKm" INTEGER NOT NULL,
+    "baseFare" DECIMAL(10,2) NOT NULL,
+    "maxWeightTons" DECIMAL(10,2) NOT NULL,
+
+    CONSTRAINT "VehicleModel_pkey" PRIMARY KEY ("name")
 );
 
 -- CreateTable
@@ -248,9 +283,8 @@ CREATE TABLE "public"."Package" (
     "id" TEXT NOT NULL,
     "productType" "public"."ProductType" NOT NULL,
     "productName" TEXT,
-    "approximateWeight" DECIMAL(10,2),
+    "approximateWeight" DECIMAL(10,2) NOT NULL,
     "weightUnit" "public"."WeightUnit" NOT NULL DEFAULT 'KG',
-    "averageWeight" DECIMAL(10,2),
     "bundleWeight" DECIMAL(10,2),
     "numberOfProducts" INTEGER,
     "length" DECIMAL(10,2),
@@ -288,23 +322,12 @@ CREATE TABLE "public"."BookingAddress" (
 CREATE TABLE "public"."Booking" (
     "id" TEXT NOT NULL,
     "bookingNumber" BIGSERIAL NOT NULL,
-    "customerId" TEXT NOT NULL,
+    "customerId" TEXT,
     "packageId" TEXT NOT NULL,
     "pickupAddressId" TEXT NOT NULL,
     "dropAddressId" TEXT NOT NULL,
-    "estimatedCost" DECIMAL(10,2) NOT NULL,
-    "finalCost" DECIMAL(10,2),
-    "distanceKm" DECIMAL(10,2) NOT NULL,
-    "baseFare" DECIMAL(10,2) NOT NULL,
-    "distanceCharge" DECIMAL(10,2) NOT NULL,
-    "weightMultiplier" DECIMAL(3,2) NOT NULL DEFAULT 1.0,
-    "vehicleMultiplier" DECIMAL(3,2) NOT NULL DEFAULT 1.0,
-    "suggestedVehicleType" "public"."VehicleType" NOT NULL,
-    "pickupOtp" TEXT,
-    "dropOtp" TEXT,
-    "paymentLinkUrl" TEXT,
-    "rzpOrderId" TEXT,
-    "rzpPaymentId" TEXT,
+    "pickupOtp" TEXT NOT NULL,
+    "dropOtp" TEXT NOT NULL,
     "acceptedAt" TIMESTAMP(3),
     "pickupArrivedAt" TIMESTAMP(3),
     "pickupVerifiedAt" TIMESTAMP(3),
@@ -316,6 +339,9 @@ CREATE TABLE "public"."Booking" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "scheduledAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
+    "cancellationReason" TEXT,
+    "gstNumber" TEXT,
 
     CONSTRAINT "Booking_pkey" PRIMARY KEY ("id")
 );
@@ -328,6 +354,7 @@ CREATE TABLE "public"."BookingAssignment" (
     "status" "public"."AssignmentStatus" NOT NULL DEFAULT 'OFFERED',
     "offeredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "respondedAt" TIMESTAMP(3),
+    "commissionRate" DECIMAL(5,4),
 
     CONSTRAINT "BookingAssignment_pkey" PRIMARY KEY ("id")
 );
@@ -343,6 +370,35 @@ CREATE TABLE "public"."BookingStatusLog" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."Invoice" (
+    "id" TEXT NOT NULL,
+    "bookingId" TEXT NOT NULL,
+    "type" "public"."InvoiceType" NOT NULL,
+    "vehicleModelName" TEXT NOT NULL,
+    "basePrice" DECIMAL(10,2) NOT NULL,
+    "perKmPrice" DECIMAL(10,2) NOT NULL,
+    "baseKm" INTEGER NOT NULL,
+    "distanceKm" DECIMAL(10,2) NOT NULL,
+    "weightInTons" DECIMAL(10,2) NOT NULL,
+    "effectiveBasePrice" DECIMAL(10,2) NOT NULL,
+    "totalPrice" DECIMAL(10,2) NOT NULL,
+    "walletApplied" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "finalAmount" DECIMAL(10,2) NOT NULL,
+    "paymentLinkUrl" TEXT,
+    "rzpPaymentId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "isPaid" BOOLEAN NOT NULL DEFAULT false,
+    "paidAt" TIMESTAMP(3),
+    "rzpPaymentLinkId" TEXT,
+    "paymentMethod" "public"."PaymentMethod",
+    "platformFee" DECIMAL(10,2) NOT NULL DEFAULT 20,
+    "gstNumber" TEXT,
+
+    CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."Transaction" (
     "id" TEXT NOT NULL,
     "customerId" TEXT,
@@ -355,6 +411,8 @@ CREATE TABLE "public"."Transaction" (
     "payoutId" TEXT,
     "metadata" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "paymentMethod" "public"."PaymentMethod" NOT NULL,
+    "refundIntentId" TEXT,
 
     CONSTRAINT "Transaction_pkey" PRIMARY KEY ("id")
 );
@@ -375,15 +433,92 @@ CREATE TABLE "public"."Payout" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."DriverWalletLog" (
+    "id" TEXT NOT NULL,
+    "driverId" TEXT NOT NULL,
+    "beforeBalance" DECIMAL(10,2) NOT NULL,
+    "afterBalance" DECIMAL(10,2) NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "reason" TEXT NOT NULL,
+    "bookingId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DriverWalletLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."DriverPaymentLink" (
+    "id" TEXT NOT NULL,
+    "driverId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "referenceId" TEXT NOT NULL,
+
+    CONSTRAINT "DriverPaymentLink_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."CustomerWalletLog" (
+    "id" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "beforeBalance" DECIMAL(10,2) NOT NULL,
+    "afterBalance" DECIMAL(10,2) NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "reason" TEXT NOT NULL,
+    "bookingId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "refundIntentId" TEXT,
+
+    CONSTRAINT "CustomerWalletLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."RefundIntent" (
+    "id" TEXT NOT NULL,
+    "bookingId" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "walletRefundAmount" DECIMAL(10,2) NOT NULL,
+    "razorpayRefundAmount" DECIMAL(10,2) NOT NULL,
+    "cancellationCharge" DECIMAL(10,2) NOT NULL,
+    "rzpPaymentId" TEXT,
+    "rzpRefundId" TEXT,
+    "status" "public"."RefundStatus" NOT NULL DEFAULT 'PENDING',
+    "failureReason" TEXT,
+    "retryCount" INTEGER NOT NULL DEFAULT 0,
+    "maxRetries" INTEGER NOT NULL DEFAULT 3,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "processedAt" TIMESTAMP(3),
+    "wasPaid" BOOLEAN NOT NULL,
+    "refundFactor" DECIMAL(10,2),
+
+    CONSTRAINT "RefundIntent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."CustomerReferral" (
+    "id" TEXT NOT NULL,
+    "referrerId" TEXT NOT NULL,
+    "referredId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CustomerReferral_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."DriverReferral" (
+    "id" TEXT NOT NULL,
+    "referrerId" TEXT NOT NULL,
+    "referredId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DriverReferral_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."WebhookLog" (
     "id" TEXT NOT NULL,
     "event" TEXT NOT NULL,
-    "razorpayOrderId" TEXT NOT NULL,
     "payload" JSONB NOT NULL,
     "signature" TEXT NOT NULL,
-    "processed" BOOLEAN NOT NULL DEFAULT false,
-    "processedAt" TIMESTAMP(3),
-    "error" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "WebhookLog_pkey" PRIMARY KEY ("id")
@@ -393,7 +528,13 @@ CREATE TABLE "public"."WebhookLog" (
 CREATE UNIQUE INDEX "Customer_phoneNumber_key" ON "public"."Customer"("phoneNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Customer_referralCode_key" ON "public"."Customer"("referralCode");
+
+-- CreateIndex
 CREATE INDEX "Customer_isActive_idx" ON "public"."Customer"("isActive");
+
+-- CreateIndex
+CREATE INDEX "Customer_referralCode_idx" ON "public"."Customer"("referralCode");
 
 -- CreateIndex
 CREATE INDEX "Address_latitude_longitude_idx" ON "public"."Address"("latitude", "longitude");
@@ -435,6 +576,9 @@ CREATE INDEX "CustomerSession_fcmToken_idx" ON "public"."CustomerSession"("fcmTo
 CREATE UNIQUE INDEX "Driver_phoneNumber_key" ON "public"."Driver"("phoneNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Driver_referralCode_key" ON "public"."Driver"("referralCode");
+
+-- CreateIndex
 CREATE INDEX "Driver_isActive_verificationStatus_idx" ON "public"."Driver"("isActive", "verificationStatus");
 
 -- CreateIndex
@@ -444,16 +588,22 @@ CREATE INDEX "Driver_lastSeenAt_driverStatus_idx" ON "public"."Driver"("lastSeen
 CREATE UNIQUE INDEX "DriverDocuments_driverId_key" ON "public"."DriverDocuments"("driverId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "DriverDocuments_panNumber_key" ON "public"."DriverDocuments"("panNumber");
+CREATE INDEX "DriverDocuments_licenseExpiry_idx" ON "public"."DriverDocuments"("licenseExpiry");
 
 -- CreateIndex
-CREATE INDEX "DriverDocuments_licenseExpiry_idx" ON "public"."DriverDocuments"("licenseExpiry");
+CREATE INDEX "DriverDocuments_rcBookExpiry_idx" ON "public"."DriverDocuments"("rcBookExpiry");
 
 -- CreateIndex
 CREATE INDEX "DriverDocuments_fcExpiry_idx" ON "public"."DriverDocuments"("fcExpiry");
 
 -- CreateIndex
 CREATE INDEX "DriverDocuments_insuranceExpiry_idx" ON "public"."DriverDocuments"("insuranceExpiry");
+
+-- CreateIndex
+CREATE INDEX "DriverDocuments_aadharNumberHash_idx" ON "public"."DriverDocuments"("aadharNumberHash");
+
+-- CreateIndex
+CREATE INDEX "DriverDocuments_panNumber_idx" ON "public"."DriverDocuments"("panNumber");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DriverSession_token_key" ON "public"."DriverSession"("token");
@@ -474,10 +624,13 @@ CREATE INDEX "DriverSession_fcmToken_idx" ON "public"."DriverSession"("fcmToken"
 CREATE UNIQUE INDEX "Vehicle_driverId_key" ON "public"."Vehicle"("driverId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Vehicle_vehicleNumber_key" ON "public"."Vehicle"("vehicleNumber");
+CREATE INDEX "Vehicle_vehicleNumber_idx" ON "public"."Vehicle"("vehicleNumber");
 
 -- CreateIndex
-CREATE INDEX "Vehicle_vehicleNumber_idx" ON "public"."Vehicle"("vehicleNumber");
+CREATE INDEX "Vehicle_vehicleModelName_idx" ON "public"."Vehicle"("vehicleModelName");
+
+-- CreateIndex
+CREATE INDEX "Vehicle_vehicleType_idx" ON "public"."Vehicle"("vehicleType");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "VehicleOwner_vehicleId_key" ON "public"."VehicleOwner"("vehicleId");
@@ -537,6 +690,18 @@ CREATE INDEX "BookingStatusLog_bookingId_status_idx" ON "public"."BookingStatusL
 CREATE INDEX "BookingStatusLog_statusChangedAt_idx" ON "public"."BookingStatusLog"("statusChangedAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Invoice_rzpPaymentLinkId_key" ON "public"."Invoice"("rzpPaymentLinkId");
+
+-- CreateIndex
+CREATE INDEX "Invoice_bookingId_idx" ON "public"."Invoice"("bookingId");
+
+-- CreateIndex
+CREATE INDEX "Invoice_gstNumber_idx" ON "public"."Invoice"("gstNumber");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Invoice_bookingId_type_key" ON "public"."Invoice"("bookingId", "type");
+
+-- CreateIndex
 CREATE INDEX "Transaction_customerId_createdAt_idx" ON "public"."Transaction"("customerId", "createdAt");
 
 -- CreateIndex
@@ -561,16 +726,46 @@ CREATE INDEX "Payout_driverId_status_idx" ON "public"."Payout"("driverId", "stat
 CREATE INDEX "Payout_status_createdAt_idx" ON "public"."Payout"("status", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "WebhookLog_razorpayOrderId_idx" ON "public"."WebhookLog"("razorpayOrderId");
+CREATE INDEX "DriverWalletLog_driverId_createdAt_idx" ON "public"."DriverWalletLog"("driverId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "WebhookLog_processed_createdAt_idx" ON "public"."WebhookLog"("processed", "createdAt");
+CREATE INDEX "DriverWalletLog_createdAt_idx" ON "public"."DriverWalletLog"("createdAt");
 
--- AddForeignKey
-ALTER TABLE "public"."SavedAddress" ADD CONSTRAINT "SavedAddress_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+-- CreateIndex
+CREATE UNIQUE INDEX "DriverPaymentLink_referenceId_key" ON "public"."DriverPaymentLink"("referenceId");
+
+-- CreateIndex
+CREATE INDEX "CustomerWalletLog_customerId_createdAt_idx" ON "public"."CustomerWalletLog"("customerId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "CustomerWalletLog_createdAt_idx" ON "public"."CustomerWalletLog"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RefundIntent_bookingId_key" ON "public"."RefundIntent"("bookingId");
+
+-- CreateIndex
+CREATE INDEX "RefundIntent_status_idx" ON "public"."RefundIntent"("status");
+
+-- CreateIndex
+CREATE INDEX "RefundIntent_bookingId_idx" ON "public"."RefundIntent"("bookingId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CustomerReferral_referredId_key" ON "public"."CustomerReferral"("referredId");
+
+-- CreateIndex
+CREATE INDEX "CustomerReferral_referrerId_idx" ON "public"."CustomerReferral"("referrerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DriverReferral_referredId_key" ON "public"."DriverReferral"("referredId");
+
+-- CreateIndex
+CREATE INDEX "DriverReferral_referrerId_idx" ON "public"."DriverReferral"("referrerId");
 
 -- AddForeignKey
 ALTER TABLE "public"."SavedAddress" ADD CONSTRAINT "SavedAddress_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."Address"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."SavedAddress" ADD CONSTRAINT "SavedAddress_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."CustomerGstDetails" ADD CONSTRAINT "CustomerGstDetails_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -588,6 +783,9 @@ ALTER TABLE "public"."DriverSession" ADD CONSTRAINT "DriverSession_driverId_fkey
 ALTER TABLE "public"."Vehicle" ADD CONSTRAINT "Vehicle_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "public"."Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."Vehicle" ADD CONSTRAINT "Vehicle_vehicleModelName_fkey" FOREIGN KEY ("vehicleModelName") REFERENCES "public"."VehicleModel"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."VehicleOwner" ADD CONSTRAINT "VehicleOwner_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "public"."Vehicle"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -597,19 +795,19 @@ ALTER TABLE "public"."DriverAddress" ADD CONSTRAINT "DriverAddress_driverId_fkey
 ALTER TABLE "public"."DriverStatusLog" ADD CONSTRAINT "DriverStatusLog_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "public"."Driver"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_assignedDriverId_fkey" FOREIGN KEY ("assignedDriverId") REFERENCES "public"."Driver"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_dropAddressId_fkey" FOREIGN KEY ("dropAddressId") REFERENCES "public"."BookingAddress"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_packageId_fkey" FOREIGN KEY ("packageId") REFERENCES "public"."Package"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_pickupAddressId_fkey" FOREIGN KEY ("pickupAddressId") REFERENCES "public"."BookingAddress"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_dropAddressId_fkey" FOREIGN KEY ("dropAddressId") REFERENCES "public"."BookingAddress"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Booking" ADD CONSTRAINT "Booking_assignedDriverId_fkey" FOREIGN KEY ("assignedDriverId") REFERENCES "public"."Driver"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."BookingAssignment" ADD CONSTRAINT "BookingAssignment_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -621,16 +819,58 @@ ALTER TABLE "public"."BookingAssignment" ADD CONSTRAINT "BookingAssignment_drive
 ALTER TABLE "public"."BookingStatusLog" ADD CONSTRAINT "BookingStatusLog_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."Invoice" ADD CONSTRAINT "Invoice_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "public"."Driver"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_payoutId_fkey" FOREIGN KEY ("payoutId") REFERENCES "public"."Payout"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_refundIntentId_fkey" FOREIGN KEY ("refundIntentId") REFERENCES "public"."RefundIntent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "public"."Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."DriverWalletLog" ADD CONSTRAINT "DriverWalletLog_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."DriverWalletLog" ADD CONSTRAINT "DriverWalletLog_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "public"."Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."DriverPaymentLink" ADD CONSTRAINT "DriverPaymentLink_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "public"."Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CustomerWalletLog" ADD CONSTRAINT "CustomerWalletLog_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CustomerWalletLog" ADD CONSTRAINT "CustomerWalletLog_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CustomerWalletLog" ADD CONSTRAINT "CustomerWalletLog_refundIntentId_fkey" FOREIGN KEY ("refundIntentId") REFERENCES "public"."RefundIntent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."RefundIntent" ADD CONSTRAINT "RefundIntent_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "public"."Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."RefundIntent" ADD CONSTRAINT "RefundIntent_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CustomerReferral" ADD CONSTRAINT "CustomerReferral_referredId_fkey" FOREIGN KEY ("referredId") REFERENCES "public"."Customer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CustomerReferral" ADD CONSTRAINT "CustomerReferral_referrerId_fkey" FOREIGN KEY ("referrerId") REFERENCES "public"."Customer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."DriverReferral" ADD CONSTRAINT "DriverReferral_referredId_fkey" FOREIGN KEY ("referredId") REFERENCES "public"."Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."DriverReferral" ADD CONSTRAINT "DriverReferral_referrerId_fkey" FOREIGN KEY ("referrerId") REFERENCES "public"."Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
