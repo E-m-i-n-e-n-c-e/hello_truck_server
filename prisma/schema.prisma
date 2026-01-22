@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,43 +8,40 @@ datasource db {
 }
 
 model Customer {
-  id            String               @id @default(uuid())
-  phoneNumber   String               @unique
-  firstName     String?
-  lastName      String?
-  email         String?
-  isBusiness    Boolean              @default(false)
-  referralCode  String?              @unique
-  isActive      Boolean              @default(true)
-  walletBalance Decimal              @default(0) @db.Decimal(10, 2)
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  sessions      CustomerSession[]
-  gstDetails    CustomerGstDetails[]
-  addresses     SavedAddress[]
-  bookings      Booking[]
-  transactions  Transaction[]
-  walletLogs    CustomerWalletLog[]
-  refundIntents RefundIntent[]
-  referrals     CustomerReferral[]   @relation("CustomerReferrer")
-  appliedReferral CustomerReferral?  @relation("CustomerReferred")
+  id              String               @id @default(uuid())
+  phoneNumber     String               @unique
+  firstName       String?
+  lastName        String?
+  email           String?
+  isBusiness      Boolean              @default(false)
+  referralCode    String?              @unique
+  isActive        Boolean              @default(true)
+  walletBalance   Decimal              @default(0) @db.Decimal(10, 2)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  bookings        Booking[]
+  gstDetails      CustomerGstDetails[]
+  appliedReferral CustomerReferral?    @relation("CustomerReferred")
+  referrals       CustomerReferral[]   @relation("CustomerReferrer")
+  sessions        CustomerSession[]
+  walletLogs      CustomerWalletLog[]
+  refundIntents   RefundIntent[]
+  addresses       SavedAddress[]
+  transactions    Transaction[]
 
   @@index([isActive])
   @@index([referralCode])
 }
 
 model Address {
-  id               String  @id @default(uuid())
+  id               String        @id @default(uuid())
   formattedAddress String
   addressDetails   String?
-  latitude         Decimal @db.Decimal(10, 8)
-  longitude        Decimal @db.Decimal(11, 8)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  savedAddresses SavedAddress?
+  latitude         Decimal       @db.Decimal(10, 8)
+  longitude        Decimal       @db.Decimal(11, 8)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  savedAddresses   SavedAddress?
 
   @@index([latitude, longitude])
 }
@@ -59,12 +53,12 @@ model SavedAddress {
   contactPhone String
   noteToDriver String?
   customerId   String
-  customer     Customer @relation(fields: [customerId], references: [id])
   addressId    String   @unique
-  address      Address  @relation(fields: [addressId], references: [id])
   isDefault    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  address      Address  @relation(fields: [addressId], references: [id])
+  customer     Customer @relation(fields: [customerId], references: [id])
 
   @@unique([name, customerId], name: "unique_name_per_customer")
   @@index([customerId])
@@ -73,31 +67,29 @@ model SavedAddress {
 model CustomerGstDetails {
   id              String   @id @default(uuid())
   customerId      String
-  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   gstNumber       String   @unique
   businessName    String
   businessAddress String
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId, isActive])
   @@index([createdAt])
 }
 
 model CustomerSession {
-  id         String   @id @default(uuid())
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  token      String   @unique
-  oldToken   String?  @unique
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // FCM & device metadata
+  id             String    @id @default(uuid())
+  customerId     String
+  token          String    @unique
+  oldToken       String?   @unique
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   fcmToken       String?
   lastNotifiedAt DateTime?
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
   @@index([customerId])
@@ -105,41 +97,39 @@ model CustomerSession {
 }
 
 model Driver {
-  id                 String             @id @default(uuid())
-  phoneNumber        String             @unique
+  id                 String              @id @default(uuid())
+  phoneNumber        String              @unique
   firstName          String?
   lastName           String?
   email              String?
   alternatePhone     String?
-  referralCode       String?            @unique
   photo              String?
   contactId          String?
   fundAccountId      String?
-  payoutMethod       PayoutMethodType?
-  score              Int                @default(100)
-  rideCount          Int                @default(0)
-  isActive           Boolean            @default(true)
-  verificationStatus VerificationStatus @default(PENDING)
-  driverStatus       DriverStatus       @default(UNAVAILABLE)
-  walletBalance      Decimal            @default(0) @db.Decimal(10, 2)
-  createdAt          DateTime           @default(now())
+  score              Int                 @default(100)
+  isActive           Boolean             @default(true)
+  verificationStatus VerificationStatus  @default(PENDING)
+  driverStatus       DriverStatus        @default(UNAVAILABLE)
+  walletBalance      Decimal             @default(0) @db.Decimal(10, 2)
+  createdAt          DateTime            @default(now())
   lastSeenAt         DateTime?
-  updatedAt          DateTime           @updatedAt
-
-  // Relations
-  sessions     DriverSession[]
-  address      DriverAddress?
-  documents    DriverDocuments?
-  vehicle      Vehicle?
-  bookings     Booking[]
-  assignments  BookingAssignment[]
-  statusLogs   DriverStatusLog[]
-  transactions Transaction[]
-  payouts      Payout[]
-  walletLogs   DriverWalletLog[]
-  paymentLinks DriverPaymentLink[]
-  referrals    DriverReferral[]     @relation("DriverReferrer")
-  appliedReferral DriverReferral?   @relation("DriverReferred")
+  updatedAt          DateTime            @updatedAt
+  payoutMethod       PayoutMethodType?
+  referralCode       String?             @unique
+  rideCount          Int                 @default(0)
+  bookings           Booking[]
+  assignments        BookingAssignment[]
+  address            DriverAddress?
+  documents          DriverDocuments?
+  paymentLinks       DriverPaymentLink[]
+  appliedReferral    DriverReferral?     @relation("DriverReferred")
+  referrals          DriverReferral[]    @relation("DriverReferrer")
+  sessions           DriverSession[]
+  statusLogs         DriverStatusLog[]
+  walletLogs         DriverWalletLog[]
+  payouts            Payout[]
+  transactions       Transaction[]
+  vehicle            Vehicle?
 
   @@index([isActive, verificationStatus])
   @@index([lastSeenAt, driverStatus])
@@ -148,31 +138,31 @@ model Driver {
 model DriverDocuments {
   id                       String             @id @default(uuid())
   driverId                 String             @unique
-  driver                   Driver             @relation(fields: [driverId], references: [id], onDelete: Cascade)
   licenseUrl               String
   licenseExpiry            DateTime?
-  suggestedLicenseExpiry   DateTime?
   licenseStatus            VerificationStatus @default(PENDING)
   rcBookUrl                String
-  rcBookExpiry             DateTime?
-  suggestedRcBookExpiry    DateTime?
-  rcBookStatus             VerificationStatus @default(PENDING)
   fcUrl                    String
   fcExpiry                 DateTime?
-  suggestedFcExpiry        DateTime?
   fcStatus                 VerificationStatus @default(PENDING)
   insuranceUrl             String
   insuranceExpiry          DateTime?
-  suggestedInsuranceExpiry DateTime?
   insuranceStatus          VerificationStatus @default(PENDING)
   aadharUrl                String
-  aadharNumberHash         String             @default("RandomHash")
-  aadharNumberEncrypted    String             @default("RandomHash")
   panNumber                String
   ebBillUrl                String
-  selfieUrl                String?
   createdAt                DateTime           @default(now())
   updatedAt                DateTime           @updatedAt
+  rcBookExpiry             DateTime?
+  rcBookStatus             VerificationStatus @default(PENDING)
+  selfieUrl                String?
+  suggestedFcExpiry        DateTime?
+  suggestedInsuranceExpiry DateTime?
+  suggestedLicenseExpiry   DateTime?
+  suggestedRcBookExpiry    DateTime?
+  aadharNumberEncrypted    String             @default("RandomHash")
+  aadharNumberHash         String             @default("RandomHash")
+  driver                   Driver             @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@index([licenseExpiry])
   @@index([rcBookExpiry])
@@ -183,18 +173,16 @@ model DriverDocuments {
 }
 
 model DriverSession {
-  id        String   @id @default(uuid())
-  driverId  String
-  driver    Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  token     String   @unique
-  oldToken  String?  @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // FCM & device metadata
+  id             String    @id @default(uuid())
+  driverId       String
+  token          String    @unique
+  oldToken       String?   @unique
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   fcmToken       String?
   lastNotifiedAt DateTime?
+  driver         Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
   @@index([driverId])
@@ -202,23 +190,20 @@ model DriverSession {
 }
 
 model Vehicle {
-  id            String      @id @default(uuid())
-  driverId      String      @unique
-  driver        Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  vehicleNumber String
-  vehicleType   VehicleType
-
-  // Add specific model reference
-  vehicleModelName String
-  vehicleModel     VehicleModel @relation(fields: [vehicleModelName], references: [name])
-
+  id                String          @id @default(uuid())
+  driverId          String          @unique
+  vehicleNumber     String
+  vehicleType       VehicleType
   vehicleBodyLength Decimal         @db.Decimal(3, 1)
   vehicleBodyType   VehicleBodyType
   fuelType          FuelType
   vehicleImageUrl   String
-  owner             VehicleOwner?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  vehicleModelName  String
+  driver            Driver          @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicleModel      VehicleModel    @relation(fields: [vehicleModelName], references: [name])
+  owner             VehicleOwner?
 
   @@index([vehicleNumber])
   @@index([vehicleModelName])
@@ -237,7 +222,6 @@ model VehicleModel {
 model VehicleOwner {
   id            String   @id @default(uuid())
   vehicleId     String   @unique
-  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   name          String
   aadharUrl     String
   contactNumber String
@@ -249,12 +233,12 @@ model VehicleOwner {
   state         String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
 
 model DriverAddress {
   id           String   @id @default(uuid())
   driverId     String   @unique
-  driver       Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
   addressLine1 String
   landmark     String?
   pincode      String
@@ -265,6 +249,7 @@ model DriverAddress {
   longitude    Decimal? @db.Decimal(11, 8)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  driver       Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@index([driverId])
 }
@@ -272,130 +257,88 @@ model DriverAddress {
 model DriverStatusLog {
   id              String       @id @default(uuid())
   driverId        String
-  driver          Driver       @relation(fields: [driverId], references: [id])
   status          DriverStatus
   statusChangedAt DateTime     @default(now())
+  driver          Driver       @relation(fields: [driverId], references: [id])
 
   @@index([driverId, status])
   @@index([statusChangedAt])
 }
 
 model Package {
-  id String @id @default(uuid())
-
-  // Product Type (PERSONAL, AGRICULTURAL, NON_AGRICULTURAL)
+  id                String         @id @default(uuid())
   productType       ProductType
-  approximateWeight Decimal     @db.Decimal(10, 2)
-  weightUnit        WeightUnit  @default(KG)
-
-  // Personal/Agricultural Product Fields
-  productName String?
-
-  // Non-Agricultural Product Fields
-  bundleWeight     Decimal?       @db.Decimal(10, 2)
-  numberOfProducts Int?
-  length           Decimal?       @db.Decimal(10, 2)
-  width            Decimal?       @db.Decimal(10, 2)
-  height           Decimal?       @db.Decimal(10, 2)
-  dimensionUnit    DimensionUnit? @default(CM)
-  description      String?
-  packageImageUrl  String?
-
-  // Commercial Use Documents (for AGRICULTURAL and NON_AGRICULTURAL)
-  gstBillUrl       String?
-  transportDocUrls String[]
-
-  // Relations
-  booking Booking?
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  productName       String?
+  approximateWeight Decimal        @db.Decimal(10, 2)
+  weightUnit        WeightUnit     @default(KG)
+  bundleWeight      Decimal?       @db.Decimal(10, 2)
+  numberOfProducts  Int?
+  length            Decimal?       @db.Decimal(10, 2)
+  width             Decimal?       @db.Decimal(10, 2)
+  height            Decimal?       @db.Decimal(10, 2)
+  dimensionUnit     DimensionUnit? @default(CM)
+  description       String?
+  packageImageUrl   String?
+  gstBillUrl        String?
+  transportDocUrls  String[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  booking           Booking?
 }
 
 model BookingAddress {
-  id String @id @default(uuid())
-
-  addressName  String?
-  noteToDriver String?
-
-  // Contact fields for bookings
-  contactName  String
-  contactPhone String
-
-  // Address
+  id               String   @id @default(uuid())
+  addressName      String?
+  noteToDriver     String?
+  contactName      String
+  contactPhone     String
   formattedAddress String
   addressDetails   String?
-  latitude         Decimal @db.Decimal(10, 8)
-  longitude        Decimal @db.Decimal(11, 8)
-
-  // Relations
-  pickupBooking Booking? @relation("PickupAddress")
-  dropBooking   Booking? @relation("DropAddress")
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  latitude         Decimal  @db.Decimal(10, 8)
+  longitude        Decimal  @db.Decimal(11, 8)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  dropBooking      Booking? @relation("DropAddress")
+  pickupBooking    Booking? @relation("PickupAddress")
 
   @@index([latitude, longitude])
 }
 
 model Booking {
-  id            String    @id @default(uuid())
-  bookingNumber BigInt    @unique @default(autoincrement())
-  customerId    String?
-  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  // Package Details
-  packageId String  @unique
-  package   Package @relation(fields: [packageId], references: [id])
-
-  // Address References (with contact info embedded)
-  pickupAddressId String         @unique
-  pickupAddress   BookingAddress @relation("PickupAddress", fields: [pickupAddressId], references: [id])
-  dropAddressId   String         @unique
-  dropAddress     BookingAddress @relation("DropAddress", fields: [dropAddressId], references: [id])
-
-  // OTPs
-  pickupOtp String
-  dropOtp   String
-
-  // Invoices (Pricing & Payment)
-  invoices Invoice[]
-
-  // time stats
+  id                 String              @id @default(uuid())
+  bookingNumber      BigInt              @unique @default(autoincrement())
+  customerId         String?
+  packageId          String              @unique
+  pickupAddressId    String              @unique
+  dropAddressId      String              @unique
+  pickupOtp          String
+  dropOtp            String
   acceptedAt         DateTime?
   pickupArrivedAt    DateTime?
   pickupVerifiedAt   DateTime?
   dropArrivedAt      DateTime?
   dropVerifiedAt     DateTime?
   completedAt        DateTime?
+  status             BookingStatus       @default(PENDING)
+  assignedDriverId   String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  scheduledAt        DateTime?
   cancelledAt        DateTime?
   cancellationReason String?
-
-  // Booking Status & Assignment
-  status           BookingStatus       @default(PENDING)
-  assignments      BookingAssignment[]
-  assignedDriver   Driver?             @relation(fields: [assignedDriverId], references: [id], onDelete: SetNull)
-  assignedDriverId String?
-
-  // Status logs
-  statusLogs BookingStatusLog[]
-
-  // Transactions
-  transactions Transaction[]
-
-  // Wallet logs
-  driverWalletLogs   DriverWalletLog[]
+  gstNumber          String?
+  assignedDriver     Driver?             @relation(fields: [assignedDriverId], references: [id])
+  customer           Customer?           @relation(fields: [customerId], references: [id])
+  dropAddress        BookingAddress      @relation("DropAddress", fields: [dropAddressId], references: [id])
+  package            Package             @relation(fields: [packageId], references: [id])
+  pickupAddress      BookingAddress      @relation("PickupAddress", fields: [pickupAddressId], references: [id])
+  assignments        BookingAssignment[]
+  statusLogs         BookingStatusLog[]
   customerWalletLogs CustomerWalletLog[]
-
-  // Refund intents
-  refundIntents RefundIntent[]
-
-  // Timestamps
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  scheduledAt DateTime?
+  driverWalletLogs   DriverWalletLog[]
+  invoices           Invoice[]
+  refundIntents      RefundIntent?
+  transactions       Transaction[]
 
   @@index([customerId, status])
   @@index([assignedDriverId, status])
@@ -405,13 +348,13 @@ model Booking {
 model BookingAssignment {
   id             String           @id @default(uuid())
   bookingId      String
-  booking        Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   driverId       String
-  driver         Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
   status         AssignmentStatus @default(OFFERED)
-  commissionRate Decimal?         @db.Decimal(5, 4)
   offeredAt      DateTime         @default(now())
   respondedAt    DateTime?
+  commissionRate Decimal?         @db.Decimal(5, 4)
+  booking        Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver         Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@unique([bookingId, driverId])
   @@index([bookingId, status])
@@ -422,86 +365,64 @@ model BookingAssignment {
 model BookingStatusLog {
   id              String        @id @default(uuid())
   bookingId       String
-  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   status          BookingStatus
   statusChangedAt DateTime      @default(now())
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId, status])
   @@index([statusChangedAt])
 }
 
 model Invoice {
-  id        String  @id @default(uuid())
-  bookingId String
-  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  id                 String         @id @default(uuid())
+  bookingId          String
+  type               InvoiceType
+  vehicleModelName   String
+  basePrice          Decimal        @db.Decimal(10, 2)
+  perKmPrice         Decimal        @db.Decimal(10, 2)
+  baseKm             Int
+  distanceKm         Decimal        @db.Decimal(10, 2)
+  weightInTons       Decimal        @db.Decimal(10, 2)
+  effectiveBasePrice Decimal        @db.Decimal(10, 2)
+  totalPrice         Decimal        @db.Decimal(10, 2)
+  walletApplied      Decimal        @default(0) @db.Decimal(10, 2)
+  finalAmount        Decimal        @db.Decimal(10, 2)
+  paymentLinkUrl     String?
+  rzpPaymentId       String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  isPaid             Boolean        @default(false)
+  paidAt             DateTime?
+  rzpPaymentLinkId   String?        @unique
+  paymentMethod      PaymentMethod?
+  platformFee        Decimal        @default(20) @db.Decimal(10, 2)
+  gstNumber          String?
+  booking            Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  type InvoiceType
-
-  // Snapshot of pricing details at time of generation
-  vehicleModelName String
-  basePrice        Decimal @db.Decimal(10, 2)
-  perKmPrice       Decimal @db.Decimal(10, 2)
-  baseKm           Int
-
-  distanceKm   Decimal @db.Decimal(10, 2)
-  weightInTons Decimal @db.Decimal(10, 2)
-
-  // Calculation Results
-  effectiveBasePrice Decimal @db.Decimal(10, 2)
-  totalPrice         Decimal @db.Decimal(10, 2)
-
-  // Payment Details (Only relevant for FINAL invoice)
-  walletApplied    Decimal @default(0) @db.Decimal(10, 2)
-  finalAmount      Decimal @db.Decimal(10, 2)
-  paymentLinkUrl   String?
-  rzpPaymentLinkId String? @unique
-  rzpPaymentId     String?
-
-  // Payment status
-  isPaid        Boolean        @default(false)
-  paidAt        DateTime?
-  paymentMethod PaymentMethod?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([bookingId, type]) // One estimate and one final per booking
+  @@unique([bookingId, type])
   @@index([bookingId])
+  @@index([gstNumber])
 }
 
-// Central transaction ledger for ALL financial transactions on the platform
-// Transactions are immutable audit records and should NEVER be deleted
 model Transaction {
-  id String @id @default(uuid())
-
-  // Parties involved (at least one must be set)
-  // No cascade delete - transactions are preserved for audit even if users are deleted
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  driverId   String?
-  driver     Driver?   @relation(fields: [driverId], references: [id], onDelete: SetNull)
-
-  // Transaction details
-  amount      Decimal             @db.Decimal(10, 2)
-  type        TransactionType // CREDIT or DEBIT
-  category    TransactionCategory // What kind of transaction
-  description String
-
-  // References to related entities
+  id             String              @id @default(uuid())
+  customerId     String?
+  driverId       String?
+  amount         Decimal             @db.Decimal(10, 2)
+  type           TransactionType
+  category       TransactionCategory
+  description    String
   bookingId      String?
-  booking        Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   payoutId       String?
-  payout         Payout?       @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  paymentMethod  PaymentMethod
   refundIntentId String?
-  refundIntent   RefundIntent? @relation(fields: [refundIntentId], references: [id], onDelete: SetNull)
-
-  // Metadata
-  metadata Json? // For storing additional context
-
-  // payment method
-  paymentMethod PaymentMethod
-
-  createdAt DateTime @default(now())
+  booking        Booking?            @relation(fields: [bookingId], references: [id])
+  customer       Customer?           @relation(fields: [customerId], references: [id])
+  driver         Driver?             @relation(fields: [driverId], references: [id])
+  payout         Payout?             @relation(fields: [payoutId], references: [id])
+  refundIntent   RefundIntent?       @relation(fields: [refundIntentId], references: [id])
 
   @@index([customerId, createdAt])
   @@index([driverId, createdAt])
@@ -511,157 +432,120 @@ model Transaction {
 }
 
 model Payout {
-  id       String @id @default(uuid())
-  driverId String
-  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
-
-  amount           Decimal      @db.Decimal(10, 2)
-  razorpayPayoutId String?      @unique
-  status           PayoutStatus @default(PENDING)
+  id               String        @id @default(uuid())
+  driverId         String
+  amount           Decimal       @db.Decimal(10, 2)
+  razorpayPayoutId String?       @unique
+  status           PayoutStatus  @default(PENDING)
   failureReason    String?
-  retryCount       Int          @default(0)
-
-  transactions Transaction[] // Link to transaction records
-
-  createdAt   DateTime  @default(now())
-  processedAt DateTime?
+  retryCount       Int           @default(0)
+  createdAt        DateTime      @default(now())
+  processedAt      DateTime?
+  driver           Driver        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
 
   @@index([driverId, status])
   @@index([status, createdAt])
 }
 
 model DriverWalletLog {
-  id       String @id @default(uuid())
-  driverId String
-  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
-
-  // Wallet change details
-  beforeBalance Decimal @db.Decimal(10, 2)
-  afterBalance  Decimal @db.Decimal(10, 2)
-  amount        Decimal @db.Decimal(10, 2) // Change amount (+ or -)
-  reason        String // e.g., "Booking earnings", "Commission deduction"
-
-  // Optional reference
-  bookingId String?
-  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  driverId      String
+  beforeBalance Decimal  @db.Decimal(10, 2)
+  afterBalance  Decimal  @db.Decimal(10, 2)
+  amount        Decimal  @db.Decimal(10, 2)
+  reason        String
+  bookingId     String?
+  createdAt     DateTime @default(now())
+  booking       Booking? @relation(fields: [bookingId], references: [id])
+  driver        Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@index([driverId, createdAt])
   @@index([createdAt])
 }
 
-// Driver payment links - lookup table for webhook (referenceId → driverId)
 model DriverPaymentLink {
   id          String   @id @default(uuid())
-  referenceId String   @unique // Sent to Razorpay, used for webhook lookup
   driverId    String
-  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  referenceId String   @unique
+  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
 }
 
 model CustomerWalletLog {
-  id         String   @id @default(uuid())
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  // Wallet change details
-  beforeBalance Decimal @db.Decimal(10, 2)
-  afterBalance  Decimal @db.Decimal(10, 2)
-  amount        Decimal @db.Decimal(10, 2) // Change amount (+ or -)
-  reason        String // e.g., "Applied to booking", "Refund"
-
-  // Optional reference
+  id             String        @id @default(uuid())
+  customerId     String
+  beforeBalance  Decimal       @db.Decimal(10, 2)
+  afterBalance   Decimal       @db.Decimal(10, 2)
+  amount         Decimal       @db.Decimal(10, 2)
+  reason         String
   bookingId      String?
-  booking        Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
   refundIntentId String?
-  refundIntent   RefundIntent? @relation(fields: [refundIntentId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
+  booking        Booking?      @relation(fields: [bookingId], references: [id])
+  customer       Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  refundIntent   RefundIntent? @relation(fields: [refundIntentId], references: [id])
 
   @@index([customerId, createdAt])
   @@index([createdAt])
 }
 
 model RefundIntent {
-  id         String   @id @default(uuid())
-  bookingId  String   @unique
-  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  // Refund breakdown
-  walletRefundAmount   Decimal  @db.Decimal(10, 2)
-  razorpayRefundAmount Decimal  @db.Decimal(10, 2)
-  cancellationCharge   Decimal  @db.Decimal(10, 2)
-  refundFactor         Decimal? @db.Decimal(10, 2)
-  wasPaid              Boolean // Track if invoice was paid at cancellation time
-
-  // Razorpay metadata
-  rzpPaymentId String?
-  rzpRefundId  String?
-
-  // Status tracking
-  status        RefundStatus @default(PENDING)
-  failureReason String?
-  retryCount    Int          @default(0)
-  maxRetries    Int          @default(3)
-
-  // Transactions
-  transactions       Transaction[]
-  customerWalletLogs CustomerWalletLog[]
-
-  // Timestamps
-  createdAt   DateTime  @default(now())
-  processedAt DateTime?
+  id                   String              @id @default(uuid())
+  bookingId            String              @unique
+  customerId           String
+  walletRefundAmount   Decimal             @db.Decimal(10, 2)
+  razorpayRefundAmount Decimal             @db.Decimal(10, 2)
+  cancellationCharge   Decimal             @db.Decimal(10, 2)
+  rzpPaymentId         String?
+  rzpRefundId          String?
+  status               RefundStatus        @default(PENDING)
+  failureReason        String?
+  retryCount           Int                 @default(0)
+  maxRetries           Int                 @default(3)
+  createdAt            DateTime            @default(now())
+  processedAt          DateTime?
+  wasPaid              Boolean
+  refundFactor         Decimal?            @db.Decimal(10, 2)
+  customerWalletLogs   CustomerWalletLog[]
+  booking              Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer             Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]
 
   @@index([status])
   @@index([bookingId])
 }
 
-// Customer referral tracking table
 model CustomerReferral {
   id         String   @id @default(uuid())
-
-  // Referrer (customer who shared the code)
   referrerId String
-  referrer   Customer @relation("CustomerReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
-
-  // Referred (customer who used the code)
   referredId String   @unique
+  createdAt  DateTime @default(now())
   referred   Customer @relation("CustomerReferred", fields: [referredId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
+  referrer   Customer @relation("CustomerReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
 
   @@index([referrerId])
 }
 
-// Driver referral tracking table
 model DriverReferral {
   id         String   @id @default(uuid())
-
-  // Referrer (driver who shared the code)
   referrerId String
-  referrer   Driver   @relation("DriverReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
-
-  // Referred (driver who used the code)
   referredId String   @unique
+  createdAt  DateTime @default(now())
   referred   Driver   @relation("DriverReferred", fields: [referredId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
+  referrer   Driver   @relation("DriverReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
 
   @@index([referrerId])
 }
 
 model WebhookLog {
   id        String   @id @default(uuid())
-  event     String // e.g., "payment_link.paid"
+  event     String
   payload   Json
   signature String
   createdAt DateTime @default(now())
 }
 
-// Enums
 enum VerificationStatus {
   PENDING
   VERIFIED
@@ -753,10 +637,10 @@ enum TransactionType {
 }
 
 enum TransactionCategory {
-  BOOKING_PAYMENT // Customer pays for booking
-  BOOKING_REFUND // Refund to customer (Razorpay)
-  DRIVER_PAYOUT // Payout to driver (Razorpay)
-  DRIVER_PAYMENT // Driver pays platform (clears negative balance)
+  BOOKING_PAYMENT
+  BOOKING_REFUND
+  DRIVER_PAYOUT
+  DRIVER_PAYMENT
 }
 
 enum PayoutStatus {
@@ -783,9 +667,9 @@ enum PayoutMethodType {
 }
 
 enum RefundStatus {
-  PENDING // Created, waiting for processing
-  PROCESSING // Razorpay call in progress
-  COMPLETED // Fully processed
-  FAILED // Failed after max retries
-  NOT_REQUIRED // No refund needed
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  NOT_REQUIRED
 }

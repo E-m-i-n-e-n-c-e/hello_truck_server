@@ -22,6 +22,10 @@ export class CreateBookingRequestDto {
   @ValidateNested()
   @Type(() => PackageDetailsDto)
   package: PackageDetailsDto;
+
+  @IsOptional()
+  @IsString()
+  gstNumber?: string;
 }
 
 class DriverResponseDto implements Partial<Driver> {

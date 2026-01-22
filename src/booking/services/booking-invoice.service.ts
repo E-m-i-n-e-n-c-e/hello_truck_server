@@ -14,6 +14,7 @@ import { PaymentLinkResponse, PaymentType } from 'src/razorpay/types/razorpay-pa
 @Injectable()
 export class BookingInvoiceService {
   private readonly logger = new Logger(BookingInvoiceService.name);
+  private readonly PLATFORM_FEE = 20; // ₹20 platform fee
 
   constructor(
     private readonly pricingService: PricingService,
@@ -28,14 +29,21 @@ export class BookingInvoiceService {
     bookingId: string,
     bookingEstimateRequest: BookingEstimateRequestDto,
     walletBalance: number,
+    gstNumber: string | null | undefined,
     tx: Prisma.TransactionClient = this.prisma
   ): Promise<Invoice> {
     const estimate = await this.calculateEstimate(bookingEstimateRequest);
     const idealVehicle = estimate.topVehicles[0];
 
+    // Calculate platform fee: ₹20 if no GST, ₹0 if GST provided
+    const platformFee = gstNumber ? 0 : this.PLATFORM_FEE;
+
+    // Add platform fee to estimated cost
+    const estimatedCostWithFee = idealVehicle.estimatedCost + platformFee;
+
     // Support both positive (credits) and negative (debt) balances
     const walletBalanceDecimal = toDecimal(walletBalance);
-    const estimatedCostDecimal = toDecimal(idealVehicle.estimatedCost);
+    const estimatedCostDecimal = toDecimal(estimatedCostWithFee);
 
     let walletApplied: Decimal;
     if (walletBalanceDecimal.isZero()) {
@@ -59,7 +67,9 @@ export class BookingInvoiceService {
         distanceKm: idealVehicle.breakdown.distanceKm,
         weightInTons: idealVehicle.breakdown.weightInTons,
         effectiveBasePrice: idealVehicle.breakdown.effectiveBasePrice,
-        totalPrice: idealVehicle.estimatedCost,
+        platformFee,
+        totalPrice: estimatedCostWithFee,
+        gstNumber: gstNumber || null,
         walletApplied: toNumber(walletApplied),
         finalAmount: toNumber(finalAmount),
       },
@@ -72,11 +82,11 @@ export class BookingInvoiceService {
    * Applies wallet balance and updates customer wallet
    */
   async createFinalInvoice(
-    booking: Booking & { customer: Customer, pickupAddress: BookingAddress, dropAddress: BookingAddress, package: Package },
+    booking: Booking & { customer: Customer, pickupAddress: BookingAddress, dropAddress: BookingAddress, package: Package, gstNumber?: string | null },
     vehicleModel: VehicleModel,
     tx: Prisma.TransactionClient
   ): Promise<Invoice> {
-    const { customer, pickupAddress, dropAddress, package: packageDetails } = booking;
+    const { customer, pickupAddress, dropAddress, package: packageDetails, gstNumber } = booking;
     const distanceKm = this.calculateDistanceKm(pickupAddress, dropAddress);
     const weightInTons = this.calculateTotalWeightInTons(packageDetails);
 
@@ -87,9 +97,15 @@ export class BookingInvoiceService {
       weightInTons,
     );
 
+    // Calculate platform fee: ₹20 if no GST, ₹0 if GST provided
+    const platformFee = gstNumber ? 0 : this.PLATFORM_FEE;
+
+    // Add platform fee to total price
+    const totalPriceWithFee = pricing.totalPrice + platformFee;
+
     // Support both positive (credits) and negative (debt) balances
     const walletBalanceDecimal = toDecimal(customer.walletBalance);
-    const totalPriceDecimal = toDecimal(pricing.totalPrice);
+    const totalPriceDecimal = toDecimal(totalPriceWithFee);
 
     let walletApplied: Decimal = new Decimal(0);
     let finalAmount = totalPriceDecimal;
@@ -136,7 +152,9 @@ export class BookingInvoiceService {
         distanceKm,
         weightInTons,
         effectiveBasePrice: pricing.effectiveBasePrice,
-        totalPrice: pricing.totalPrice,
+        platformFee,
+        totalPrice: totalPriceWithFee,
+        gstNumber: gstNumber || null,
         walletApplied: toNumber(walletApplied),
         finalAmount: toNumber(finalAmount),
         // paymentLinkUrl and rzpPaymentLinkId are NULL

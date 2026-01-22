@@ -249,6 +249,158 @@
         ]
       }
     },
+    "/customer/referral/apply": {
+      "post": {
+        "operationId": "applyReferralCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyCustomerReferralDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerReferral"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/referral/stats": {
+      "get": {
+        "operationId": "getReferralStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerReferral"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/customer/referral/validate": {
+      "get": {
+        "operationId": "validateReferralCode",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomerReferral"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/referral/apply": {
+      "post": {
+        "operationId": "applyReferralCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyDriverReferralDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverReferral"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/referral/stats": {
+      "get": {
+        "operationId": "getReferralStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverReferral"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/referral/validate": {
+      "get": {
+        "operationId": "validateReferralCode",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverReferral"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/bookings/customer/estimate": {
       "post": {
         "operationId": "getBookingEstimate",
@@ -1054,6 +1206,34 @@
         ]
       }
     },
+    "/webhook/razorpay": {
+      "post": {
+        "operationId": "handleRazorpayWebhook",
+        "parameters": [
+          {
+            "name": "x-razorpay-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Webhook"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/": {
       "get": {
         "operationId": "getRoot",
@@ -1065,6 +1245,92 @@
         },
         "tags": [
           "App"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/payment/link": {
+      "post": {
+        "operationId": "generatePaymentLink",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePaymentLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverPayment"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/payment/withdraw": {
+      "post": {
+        "operationId": "requestWithdrawal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawalRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverPayment"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/payment/webhook": {
+      "post": {
+        "operationId": "handleWebhook",
+        "parameters": [
+          {
+            "name": "x-razorpay-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverPayment"
         ],
         "security": [
           {
@@ -1989,6 +2255,62 @@
         ]
       }
     },
+    "/driver/documents/validate-aadhar": {
+      "get": {
+        "operationId": "validateAadhar",
+        "parameters": [
+          {
+            "name": "aadharNumber",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverDocuments"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
+    "/driver/documents/validate-pan": {
+      "get": {
+        "operationId": "validatePan",
+        "parameters": [
+          {
+            "name": "panNumber",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DriverDocuments"
+        ],
+        "security": [
+          {
+            "access-token": []
+          }
+        ]
+      }
+    },
     "/driver/vehicle/models": {
       "get": {
         "operationId": "getAllVehicleModels",
@@ -2285,63 +2607,6 @@
           }
         ]
       }
-    },
-    "/driver/payment/link": {
-      "post": {
-        "operationId": "generatePaymentLink",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GeneratePaymentLinkDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "DriverPayment"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
-    },
-    "/driver/payment/webhook": {
-      "post": {
-        "operationId": "handleWebhook",
-        "parameters": [
-          {
-            "name": "x-razorpay-signature",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "DriverPayment"
-        ],
-        "security": [
-          {
-            "access-token": []
-          }
-        ]
-      }
     }
   },
   "info": {
@@ -2435,6 +2700,30 @@
         },
         "required": [
           "refreshToken"
+        ]
+      },
+      "ApplyCustomerReferralDto": {
+        "type": "object",
+        "properties": {
+          "referralCode": {
+            "type": "string",
+            "pattern": "/^CUS-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/"
+          }
+        },
+        "required": [
+          "referralCode"
+        ]
+      },
+      "ApplyDriverReferralDto": {
+        "type": "object",
+        "properties": {
+          "referralCode": {
+            "type": "string",
+            "pattern": "/^DRI-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/"
+          }
+        },
+        "required": [
+          "referralCode"
         ]
       },
       "CreateBookingAddressDto": {
@@ -2775,6 +3064,30 @@
           "status"
         ]
       },
+      "GeneratePaymentLinkDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
+      "WithdrawalRequestDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
       "CreateGstDetailsDto": {
         "type": "object",
         "properties": {
@@ -3012,7 +3325,7 @@
           "googleIdToken": {
             "type": "string"
           },
-          "referralCode": {
+          "appliedReferralCode": {
             "type": "string"
           },
           "gstDetails": {
@@ -3100,6 +3413,10 @@
             "type": "string",
             "format": "uri"
           },
+          "aadharNumber": {
+            "type": "string",
+            "pattern": "/^[0-9]{12}$/"
+          },
           "panNumber": {
             "type": "string",
             "pattern": "/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/"
@@ -3111,6 +3428,18 @@
           "selfieUrl": {
             "type": "string",
             "format": "uri"
+          },
+          "suggestedLicenseExpiry": {
+            "type": "string"
+          },
+          "suggestedRcBookExpiry": {
+            "type": "string"
+          },
+          "suggestedFcExpiry": {
+            "type": "string"
+          },
+          "suggestedInsuranceExpiry": {
+            "type": "string"
           }
         },
         "required": [
@@ -3119,6 +3448,7 @@
           "fcUrl",
           "insuranceUrl",
           "aadharUrl",
+          "aadharNumber",
           "panNumber",
           "ebBillUrl"
         ]
@@ -3317,7 +3647,7 @@
           "alternatePhone": {
             "type": "string"
           },
-          "referalCode": {
+          "appliedReferralCode": {
             "type": "string"
           },
           "photo": {
@@ -3414,10 +3744,21 @@
           "driverId": {
             "type": "string"
           },
+          "aadharNumberHash": {
+            "type": "string"
+          },
+          "aadharNumberEncrypted": {
+            "type": "string"
+          },
           "licenseUrl": {
             "type": "string"
           },
           "licenseExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "suggestedLicenseExpiry": {
             "format": "date-time",
             "type": "string",
             "nullable": true
@@ -3433,6 +3774,11 @@
             "type": "string",
             "nullable": true
           },
+          "suggestedRcBookExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
           "rcBookStatus": {
             "type": "object"
           },
@@ -3444,6 +3790,11 @@
             "type": "string",
             "nullable": true
           },
+          "suggestedFcExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
           "fcStatus": {
             "type": "object"
           },
@@ -3451,6 +3802,11 @@
             "type": "string"
           },
           "insuranceExpiry": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "suggestedInsuranceExpiry": {
             "format": "date-time",
             "type": "string",
             "nullable": true
@@ -3483,17 +3839,23 @@
         "required": [
           "id",
           "driverId",
+          "aadharNumberHash",
+          "aadharNumberEncrypted",
           "licenseUrl",
           "licenseExpiry",
+          "suggestedLicenseExpiry",
           "licenseStatus",
           "rcBookUrl",
           "rcBookExpiry",
+          "suggestedRcBookExpiry",
           "rcBookStatus",
           "fcUrl",
           "fcExpiry",
+          "suggestedFcExpiry",
           "fcStatus",
           "insuranceUrl",
           "insuranceExpiry",
+          "suggestedInsuranceExpiry",
           "insuranceStatus",
           "aadharUrl",
           "panNumber",
@@ -3526,10 +3888,6 @@
             "type": "string",
             "format": "uri"
           },
-          "panNumber": {
-            "type": "string",
-            "pattern": "/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/"
-          },
           "ebBillUrl": {
             "type": "string",
             "format": "uri"
@@ -3537,6 +3895,18 @@
           "selfieUrl": {
             "type": "string",
             "format": "uri"
+          },
+          "suggestedLicenseExpiry": {
+            "type": "string"
+          },
+          "suggestedRcBookExpiry": {
+            "type": "string"
+          },
+          "suggestedFcExpiry": {
+            "type": "string"
+          },
+          "suggestedInsuranceExpiry": {
+            "type": "string"
           }
         }
       },
@@ -3698,18 +4068,6 @@
             "$ref": "#/components/schemas/i"
           }
         }
-      },
-      "GeneratePaymentLinkDto": {
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "minimum": 1
-          }
-        },
-        "required": [
-          "amount"
-        ]
       }
     }
   }

@@ -58,6 +58,21 @@ export class BookingCustomerService {
     createRequest: CreateBookingRequestDto,
   ): Promise<Booking> {
 
+    // Validate GST number if provided
+    if (createRequest.gstNumber) {
+      const gstDetails = await this.prisma.customerGstDetails.findFirst({
+        where: {
+          gstNumber: createRequest.gstNumber,
+          customerId: userId,
+          isActive: true,
+        },
+      });
+
+      if (!gstDetails) {
+        throw new BadRequestException('Invalid or inactive GST number');
+      }
+    }
+
     // Generate OTPs
     // const isTest = this.configService.get('NODE_ENV') !== 'production';
     const isTest = this.configService.get('NODE_ENV') === 'test';
@@ -81,6 +96,7 @@ export class BookingCustomerService {
           dropAddress: {
             create: toAddressCreateData(createRequest.dropAddress),
           },
+          gstNumber: createRequest.gstNumber || null,
           status: BookingStatus.PENDING,
           pickupOtp,
           dropOtp,
@@ -103,6 +119,7 @@ export class BookingCustomerService {
           dropAddress: toBookingAddressDto(createdBooking.dropAddress),
         },
         Number(createdBooking.customer?.walletBalance),
+        createRequest.gstNumber,
         tx,
       );
 

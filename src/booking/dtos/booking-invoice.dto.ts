@@ -98,7 +98,13 @@ export class InvoiceResponseDto {
   effectiveBasePrice: number;
 
   @Expose()
+  platformFee: number;
+
+  @Expose()
   totalPrice: number;
+
+  @Expose()
+  gstNumber: string | null;
 
   @Expose()
   walletApplied: number;
