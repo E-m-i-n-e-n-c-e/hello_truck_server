@@ -1,19 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { User } from 'src/token/decorators/user.decorator';
-import {
-  CreateSavedAddressDto,
-  UpdateSavedAddressDto,
-  SavedAddressResponseDto,
-} from '../dtos/saved-address.dto';
+import { CreateSavedAddressDto, UpdateSavedAddressDto, SavedAddressResponseDto } from '../dtos/saved-address.dto';
 import { AddressService } from '../address/address.service';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { seconds } from '@nestjs/throttler';
@@ -35,22 +22,23 @@ export class CustomerAddressController {
   async createSavedAddress(
     @User('userId') userId: string,
     @Body() createSavedAddressDto: CreateSavedAddressDto,
-  ) {
-    return this.addressService.createSavedAddress(
-      userId,
-      createSavedAddressDto,
-    );
+  )  {
+    return this.addressService.createSavedAddress(userId, createSavedAddressDto);
   }
 
   @Get()
   @Serialize(SavedAddressResponseDto)
-  async getSavedAddresses(@User('userId') userId: string) {
+  async getSavedAddresses(
+    @User('userId') userId: string,
+  ) {
     return this.addressService.getSavedAddresses(userId);
   }
 
   @Get('default')
   @Serialize(SavedAddressResponseDto)
-  async getDefaultSavedAddress(@User('userId') userId: string) {
+  async getDefaultSavedAddress(
+    @User('userId') userId: string,
+  ) {
     return this.addressService.getDefaultSavedAddress(userId);
   }
 
@@ -70,11 +58,7 @@ export class CustomerAddressController {
     @Param('id') id: string,
     @Body() updateSavedAddressDto: UpdateSavedAddressDto,
   ) {
-    return this.addressService.updateSavedAddress(
-      userId,
-      id,
-      updateSavedAddressDto,
-    );
+    return this.addressService.updateSavedAddress(userId, id, updateSavedAddressDto);
   }
 
   @Delete(':id')

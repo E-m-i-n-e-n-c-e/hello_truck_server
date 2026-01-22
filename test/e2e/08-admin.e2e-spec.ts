@@ -1,11 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp } from '../setup/test-app';
-import {
-  setupTestDatabase,
-  closeDatabaseConnection,
-  prisma,
-} from '../setup/database';
+import { setupTestDatabase, closeDatabaseConnection, prisma } from '../setup/database';
 
 /**
  * @doc test/docs/flows/08-admin.md
@@ -105,19 +101,13 @@ describe('08 - Admin (E2E)', () => {
         .expect(200)
         .expect((res) => {
           expect(Array.isArray(res.body.data)).toBe(true);
-          const found = res.body.data.some(
-            (d: any) => d.id === pendingDriverId,
-          );
+          const found = res.body.data.some((d: any) => d.id === pendingDriverId);
           expect(found).toBe(true);
-
+          
           // Verify we get document data too
-          const driver = res.body.data.find(
-            (d: any) => d.id === pendingDriverId,
-          );
+          const driver = res.body.data.find((d: any) => d.id === pendingDriverId);
           expect(driver.documents).toBeDefined();
-          expect(driver.documents.licenseUrl).toBe(
-            'http://example.com/license.jpg',
-          );
+          expect(driver.documents.licenseUrl).toBe('http://example.com/license.jpg');
         });
     });
 
@@ -152,7 +142,7 @@ describe('08 - Admin (E2E)', () => {
         .get('/admin/drivers/pending-verification')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-
+      
       const found = res.body.data.some((d: any) => d.id === pendingDriverId);
       expect(found).toBe(false);
     });
@@ -165,9 +155,7 @@ describe('08 - Admin (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200)
         .expect((res) => {
-          const found = res.body.data.some(
-            (d: any) => d.id === reuploadDriverId,
-          );
+          const found = res.body.data.some((d: any) => d.id === reuploadDriverId);
           expect(found).toBe(true);
         });
     });
@@ -190,13 +178,13 @@ describe('08 - Admin (E2E)', () => {
         where: { id: reuploadDriverId },
         include: { documents: true },
       });
-
+      
       expect(updatedDriver?.documents?.licenseStatus).toBe('VERIFIED');
       expect(updatedDriver?.documents?.licenseExpiry).toEqual(newExpiry);
     });
-
+    
     it('should no longer appear in pending documents list', async () => {
-      const res = await request(app.getHttpServer())
+       const res = await request(app.getHttpServer())
         .get('/admin/drivers/pending-documents')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);

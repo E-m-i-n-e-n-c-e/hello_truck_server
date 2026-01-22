@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
@@ -22,9 +18,7 @@ export class OtpService {
   ) {}
 
   // Send OTP
-  async sendOtp(
-    phoneNumber: string,
-  ): Promise<{ success: boolean; message: string }> {
+  async sendOtp(phoneNumber: string): Promise<{ success: boolean; message: string }> {
     // Generate OTP
     // const otp = randomInt(100000, 999999).toString(); // 6-digit OTP
     // const isTest = this.configService.get('NODE_ENV') !== 'production';
@@ -41,12 +35,7 @@ export class OtpService {
     };
 
     // Store in Redis with expiration
-    await this.redisService.set(
-      `otp:${phoneNumber}`,
-      JSON.stringify(otpData),
-      'EX',
-      this.OTP_EXPIRY_SECONDS,
-    );
+    await this.redisService.set(`otp:${phoneNumber}`, JSON.stringify(otpData), 'EX', this.OTP_EXPIRY_SECONDS);
 
     // Send OTP via SMS using 2Factor API
     const apiKey = this.configService.get<string>('TWO_FACTOR_API_KEY');
@@ -66,7 +55,7 @@ export class OtpService {
 
     return {
       success: true,
-      message: 'OTP sent successfully',
+      message: 'OTP sent successfully'
     };
   }
 
@@ -82,11 +71,9 @@ export class OtpService {
     }
 
     const retryCount = otpData.retryCount || 0;
-    if (retryCount >= this.MAX_RETRY_COUNT) {
+    if(retryCount >= this.MAX_RETRY_COUNT) {
       await this.redisService.del(key);
-      throw new BadRequestException(
-        'Too many attempts, please request a new OTP',
-      );
+      throw new BadRequestException('Too many attempts, please request a new OTP');
     }
 
     const isValidOtp = await bcrypt.compare(otp, otpData.otp);
@@ -96,7 +83,7 @@ export class OtpService {
         key,
         JSON.stringify({ ...otpData, retryCount: retryCount + 1 }),
         'EX',
-        typeof ttl === 'number' && ttl > 0 ? ttl : this.OTP_EXPIRY_SECONDS,
+        (typeof ttl === 'number' && ttl > 0) ? ttl : this.OTP_EXPIRY_SECONDS
       );
       throw new BadRequestException('Invalid OTP');
     }

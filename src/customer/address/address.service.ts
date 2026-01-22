@@ -1,24 +1,13 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import {
-  CreateSavedAddressDto,
-  UpdateSavedAddressDto,
-} from '../dtos/saved-address.dto';
+import { CreateSavedAddressDto, UpdateSavedAddressDto } from '../dtos/saved-address.dto';
 import { Prisma, SavedAddress } from '@prisma/client';
 
 @Injectable()
 export class AddressService {
   constructor(private prisma: PrismaService) {}
 
-  async createSavedAddress(
-    userId: string,
-    createSavedAddressDto: CreateSavedAddressDto,
-    tx: Prisma.TransactionClient = this.prisma,
-  ): Promise<SavedAddress> {
+  async createSavedAddress(userId: string, createSavedAddressDto: CreateSavedAddressDto, tx: Prisma.TransactionClient = this.prisma): Promise<SavedAddress> {
     // If this is the first address or isDefault is true, handle default address setting
     if (createSavedAddressDto.isDefault) {
       await tx.savedAddress.updateMany({
@@ -33,24 +22,21 @@ export class AddressService {
     });
     const { address: addressData, ...savedAddressData } = createSavedAddressDto;
     try {
-      const address = await tx.savedAddress.create({
-        data: {
-          ...savedAddressData,
-          isDefault:
-            addressCount === 0
-              ? true
-              : (createSavedAddressDto.isDefault ?? false),
-          customer: {
-            connect: { id: userId },
-          },
-          address: {
-            create: addressData,
-          },
+    const address = await tx.savedAddress.create({
+      data: {
+        ...savedAddressData,
+        isDefault: addressCount === 0 ? true : createSavedAddressDto.isDefault ?? false,
+        customer: {
+          connect: { id: userId },
         },
-        include: {
-          address: true,
+        address: {
+          create: addressData,
         },
-      });
+      },
+      include: {
+        address: true,
+      },
+    });
 
       return address;
     } catch (error) {
@@ -58,9 +44,7 @@ export class AddressService {
         if (error.code === 'P2002') {
           const target = error.meta?.target as string[];
           if (target?.includes('name')) {
-            throw new BadRequestException(
-              'Address name already exists for this customer',
-            );
+            throw new BadRequestException('Address name already exists for this customer');
           }
         }
       }
@@ -71,7 +55,10 @@ export class AddressService {
   async getSavedAddresses(userId: string): Promise<SavedAddress[]> {
     return this.prisma.savedAddress.findMany({
       where: { customerId: userId },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [
+        { isDefault: 'desc' },
+        { createdAt: 'desc' },
+      ],
       include: {
         address: true,
       },
@@ -119,27 +106,25 @@ export class AddressService {
 
     const { address: addressData, ...savedAddressData } = updateSavedAddressDto;
     try {
-      const updatedAddress = await this.prisma.savedAddress.update({
-        where: { id },
-        data: {
-          ...savedAddressData,
-          address: {
-            update: addressData,
-          },
+    const updatedAddress = await this.prisma.savedAddress.update({
+      where: { id },
+      data: {
+        ...savedAddressData,
+        address: {
+          update: addressData,
         },
-        include: {
-          address: true,
-        },
-      });
-      return updatedAddress;
+      },
+      include: {
+        address: true,
+      },
+    });
+    return updatedAddress;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           const target = error.meta?.target as string[];
           if (target?.includes('name')) {
-            throw new BadRequestException(
-              'Address name already exists for this customer',
-            );
+            throw new BadRequestException('Address name already exists for this customer');
           }
         }
       }

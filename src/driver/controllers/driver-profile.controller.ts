@@ -1,14 +1,4 @@
-import {
-  Controller,
-  UseGuards,
-  Post,
-  Get,
-  Put,
-  Body,
-  UseInterceptors,
-  UploadedFile,
-  Query,
-} from '@nestjs/common';
+import { Controller, UseGuards, Post, Get, Put, Body, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
@@ -16,20 +6,11 @@ import { RolesGuard } from 'src/token/guards/roles.guard';
 import { ProfileService } from '../profile/profile.service';
 import { User } from 'src/token/decorators/user.decorator';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
-import {
-  ProfileResponseDto,
-  UpdateDriverProfileDto,
-  CreateDriverProfileDto,
-  GetQueryDto,
-  UpdateDriverStatusDto,
-} from '../dtos/profile.dto';
+import { ProfileResponseDto, UpdateDriverProfileDto, CreateDriverProfileDto, GetQueryDto, UpdateDriverStatusDto } from '../dtos/profile.dto';
 import { UsertFcmTokenDto } from 'src/common/dtos/upsert-fcmToken.dto';
 import { UpdatePayoutDetailsDto } from 'src/razorpay/dtos/payout-details.dto';
 import { DriverWalletLogResponseDto } from '../dtos/wallet-log.dto';
-import {
-  DriverTransactionLogResponseDto,
-  GetTransactionLogsDto,
-} from '../dtos/transaction-log.dto';
+import { DriverTransactionLogResponseDto, GetTransactionLogsDto } from '../dtos/transaction-log.dto';
 
 @Controller('driver/profile')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -39,10 +20,7 @@ export class DriverProfileController {
 
   @Get()
   @Serialize(ProfileResponseDto)
-  async getProfile(
-    @User('userId') userId: string,
-    @Query() getQueryDto: GetQueryDto,
-  ) {
+  async getProfile(@User('userId') userId: string, @Query() getQueryDto: GetQueryDto) {
     return this.profileService.getProfile(userId, getQueryDto);
   }
 
@@ -70,10 +48,7 @@ export class DriverProfileController {
     @User('userId') userId: string,
     @Body() updateDriverStatusDto: UpdateDriverStatusDto,
   ) {
-    return this.profileService.updateDriverStatus(
-      userId,
-      updateDriverStatusDto.status,
-    );
+    return this.profileService.updateDriverStatus(userId, updateDriverStatusDto.status);
   }
 
   @Put('fcm-token')
@@ -82,10 +57,7 @@ export class DriverProfileController {
     @User('sessionId') sessionId: string,
     @Body() upsertFcmTokenDto: UsertFcmTokenDto,
   ) {
-    return this.profileService.upsertFcmToken(
-      sessionId,
-      upsertFcmTokenDto.fcmToken,
-    );
+    return this.profileService.upsertFcmToken(sessionId, upsertFcmTokenDto.fcmToken);
   }
 
   @Put('payout-details')
@@ -111,9 +83,6 @@ export class DriverProfileController {
     @User('userId') userId: string,
     @Query() query: GetTransactionLogsDto,
   ) {
-    return this.profileService.getTransactionLogs(
-      userId,
-      query.includePayments,
-    );
+    return this.profileService.getTransactionLogs(userId, query.includePayments);
   }
 }

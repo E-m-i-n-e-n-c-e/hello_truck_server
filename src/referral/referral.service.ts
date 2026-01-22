@@ -153,8 +153,8 @@ export class ReferralService {
           customerId: referrer.id,
           amount: 100,
           reason: 'Referral Bonus',
-          beforeBalance: referrer.walletBalance, // Assuming fetched by findUnique
-          afterBalance: updatedReferrer.walletBalance,
+          beforeBalance: referrer.walletBalance!, // Assuming fetched by findUnique
+          afterBalance: updatedReferrer.walletBalance!,
         },
       });
 
@@ -174,8 +174,8 @@ export class ReferralService {
             customerId: newCustomerId,
             amount: 50,
             reason: 'Referral Bonus',
-            beforeBalance: newCustomer.walletBalance,
-            afterBalance: updatedNewCustomer.walletBalance,
+            beforeBalance: newCustomer.walletBalance!,
+            afterBalance: updatedNewCustomer.walletBalance!,
           },
         });
       }
@@ -256,8 +256,8 @@ export class ReferralService {
           driverId: referrer.id,
           amount: 300,
           reason: 'Referral Bonus',
-          beforeBalance: referrer.walletBalance,
-          afterBalance: updatedReferrer.walletBalance,
+          beforeBalance: referrer.walletBalance!,
+          afterBalance: updatedReferrer.walletBalance!,
         },
       });
 
@@ -277,8 +277,8 @@ export class ReferralService {
             driverId: newDriverId,
             amount: 50,
             reason: 'Referral Bonus',
-            beforeBalance: newDriver.walletBalance,
-            afterBalance: updatedNewDriver.walletBalance,
+            beforeBalance: newDriver.walletBalance!,
+            afterBalance: updatedNewDriver.walletBalance!,
           },
         });
       }
@@ -419,17 +419,12 @@ export class ReferralService {
       });
 
       if (referralCount >= this.MAX_REFERRALS) {
-        return {
-          isValid: false,
-          reason: 'Referral limit reached for this code',
-        };
+        return { isValid: false, reason: 'Referral limit reached for this code' };
       }
 
       return { isValid: true };
     } catch (error) {
-      this.logger.error(
-        `Error validating customer referral code: ${error.message}`,
-      );
+      this.logger.error(`Error validating customer referral code: ${error.message}`);
       return { isValid: false, reason: 'Validation error' };
     }
   }
@@ -470,17 +465,12 @@ export class ReferralService {
       });
 
       if (referralCount >= this.MAX_REFERRALS) {
-        return {
-          isValid: false,
-          reason: 'Referral limit reached for this code',
-        };
+        return { isValid: false, reason: 'Referral limit reached for this code' };
       }
 
       return { isValid: true };
     } catch (error) {
-      this.logger.error(
-        `Error validating driver referral code: ${error.message}`,
-      );
+      this.logger.error(`Error validating driver referral code: ${error.message}`);
       return { isValid: false, reason: 'Validation error' };
     }
   }

@@ -1,28 +1,12 @@
-import {
-  Controller,
-  UseGuards,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-} from '@nestjs/common';
+import { Controller, UseGuards, Get, Post, Put, Delete, Body } from '@nestjs/common';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { User } from 'src/token/decorators/user.decorator';
 import { VehicleService } from '../vehicle/vehicle.service';
-import {
-  VehicleResponseDto,
-  CreateVehicleDto,
-  UpdateVehicleDto,
-} from '../dtos/vehicle.dto';
-import {
-  CreateVehicleOwnerDto,
-  UpdateVehicleOwnerDto,
-  VehicleOwnerResponseDto,
-} from '../dtos/vehicle-owner.dto';
+import { VehicleResponseDto, CreateVehicleDto, UpdateVehicleDto } from '../dtos/vehicle.dto';
+import { CreateVehicleOwnerDto, UpdateVehicleOwnerDto, VehicleOwnerResponseDto } from '../dtos/vehicle-owner.dto';
 import { SuccessResponseDto } from 'src/common/dtos/success.dto';
 import { VehicleModelResponseDto } from '../dtos/vehicle-model.dto';
 
@@ -40,7 +24,7 @@ export class DriverVehicleController {
 
   @Get()
   @Serialize(VehicleResponseDto)
-  async getVehicle(@User('userId') userId: string) {
+  async getVehicle(@User('userId') userId: string){
     return this.vehicleService.getVehicle(userId);
   }
 
@@ -64,9 +48,7 @@ export class DriverVehicleController {
 
   @Delete()
   @Serialize(SuccessResponseDto)
-  async deleteVehicle(
-    @User('userId') userId: string,
-  ): Promise<SuccessResponseDto> {
+  async deleteVehicle(@User('userId') userId: string): Promise<SuccessResponseDto> {
     await this.vehicleService.deleteVehicle(userId);
     return { success: true, message: 'Vehicle deleted successfully' };
   }

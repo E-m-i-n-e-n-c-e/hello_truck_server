@@ -16,10 +16,7 @@ export interface RealtimeBus {
   /**
    * Unsubscribe a handler from a channel
    */
-  unsubscribe(
-    channel: string,
-    handler: (message: string) => void,
-  ): Promise<void>;
+  unsubscribe(channel: string, handler: (message: string) => void): Promise<void>;
 
   /**
    * Get cached data by key (optional, for navigation caching)

@@ -1,20 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  UseGuards,
-  Param,
-  Put,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Param, Put } from '@nestjs/common';
 import { User } from 'src/token/decorators/user.decorator';
-import {
-  CreateGstDetailsDto,
-  DeactivateGstDetailsDto,
-  GstDetailsResponseDto,
-  ReactivateGstDetailsDto,
-  UpdateGstDetailsDto,
-} from '../dtos/gst-details.dto';
+import { CreateGstDetailsDto, DeactivateGstDetailsDto, GstDetailsResponseDto, ReactivateGstDetailsDto, UpdateGstDetailsDto } from '../dtos/gst-details.dto';
 import { GstService } from '../gst/gst.service';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { seconds } from '@nestjs/throttler';
@@ -42,9 +28,7 @@ export class CustomerGstController {
 
   @Get()
   @Serialize(GstDetailsResponseDto)
-  async getGstDetails(
-    @User('userId') userId: string,
-  ): Promise<GstDetailsResponseDto[]> {
+  async getGstDetails(@User('userId') userId: string): Promise<GstDetailsResponseDto[]> {
     return this.gstService.getGstDetails(userId);
   }
 
@@ -73,10 +57,7 @@ export class CustomerGstController {
     @User('userId') userId: string,
     @Body() deactivateGstDetailsDto: DeactivateGstDetailsDto,
   ): Promise<SuccessResponseDto> {
-    return this.gstService.deactivateGstDetails(
-      userId,
-      deactivateGstDetailsDto.id,
-    );
+    return this.gstService.deactivateGstDetails(userId, deactivateGstDetailsDto.id);
   }
 
   @Post('reactivate')
@@ -85,9 +66,6 @@ export class CustomerGstController {
     @User('userId') userId: string,
     @Body() reactivateGstDetailsDto: ReactivateGstDetailsDto,
   ): Promise<SuccessResponseDto> {
-    return this.gstService.reactivateGstDetails(
-      userId,
-      reactivateGstDetailsDto.gstNumber,
-    );
+    return this.gstService.reactivateGstDetails(userId, reactivateGstDetailsDto.gstNumber);
   }
 }

@@ -2,22 +2,10 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { createHmac } from 'crypto';
-import {
-  CreatePayoutDetailsDto,
-  PayoutMethod,
-} from './dtos/payout-details.dto';
+import { CreatePayoutDetailsDto, PayoutMethod } from './dtos/payout-details.dto';
 import { PaymentLinks } from 'razorpay/dist/types/paymentLink';
-import {
-  RazorpayFundAccountData,
-  RazorpayRefundData,
-  CreateRefundParams,
-  RefundResponse,
-  RazorpayRefundResponse,
-} from './types/razorpay-fund-account.types';
-import {
-  CreatePaymentLinkParams,
-  PaymentLinkResponse,
-} from './types/razorpay-payment-link.types';
+import { RazorpayFundAccountData, RazorpayRefundData, CreateRefundParams, RefundResponse, RazorpayRefundResponse } from './types/razorpay-fund-account.types';
+import { CreatePaymentLinkParams, PaymentLinkResponse } from './types/razorpay-payment-link.types';
 
 @Injectable()
 export class RazorpayService {
@@ -29,9 +17,7 @@ export class RazorpayService {
   constructor(private readonly configService: ConfigService) {
     const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
     const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
-    this.webhookSecret = this.configService.get<string>(
-      'RAZORPAY_WEBHOOK_SECRET',
-    )!;
+    this.webhookSecret = this.configService.get<string>('RAZORPAY_WEBHOOK_SECRET')!;
 
     if (!keyId || !keySecret) {
       throw new Error('Razorpay credentials not configured');
@@ -58,10 +44,7 @@ export class RazorpayService {
         type: 'employee', // Default type for drivers
       };
 
-      const response: AxiosResponse = await this.axiosInstance.post(
-        '/contacts',
-        contactData,
-      );
+      const response: AxiosResponse = await this.axiosInstance.post('/contacts', contactData);
 
       const contactId = response.data.id;
       this.logger.log(`Created Razorpay contact with ID: ${contactId}`);
@@ -78,11 +61,9 @@ export class RazorpayService {
     payoutDetails: CreatePayoutDetailsDto,
   ): Promise<string> {
     try {
-      this.logger.log(
-        `Creating Razorpay fund account for contact: ${contactId}`,
-      );
+      this.logger.log(`Creating Razorpay fund account for contact: ${contactId}`);
 
-      const fundAccountData: any = {
+      const fundAccountData : any = {
         contact_id: contactId,
       };
 
@@ -110,39 +91,24 @@ export class RazorpayService {
         };
 
         // Log the exact payload being sent
-        this.logger.log(
-          `VPA Fund Account Payload: ${JSON.stringify(fundAccountData, null, 2)}`,
-        );
+        this.logger.log(`VPA Fund Account Payload: ${JSON.stringify(fundAccountData, null, 2)}`);
       } else {
-        throw new Error(
-          `Unsupported payout method: ${payoutDetails.payoutMethod}`,
-        );
+        throw new Error(`Unsupported payout method: ${payoutDetails.payoutMethod}`);
       }
 
-      const response: AxiosResponse = await this.axiosInstance.post(
-        '/fund_accounts',
-        fundAccountData,
-      );
+      const response: AxiosResponse = await this.axiosInstance.post('/fund_accounts', fundAccountData);
 
       const fundAccountId = response.data.id;
-      this.logger.log(
-        `Created Razorpay fund account with ID: ${fundAccountId}`,
-      );
+      this.logger.log(`Created Razorpay fund account with ID: ${fundAccountId}`);
 
       return fundAccountId;
     } catch (error) {
       // Enhanced error logging
       if (error.response) {
-        this.logger.error(
-          `Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        );
+        this.logger.error(`Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
       }
-      this.logger.error(
-        `Failed to create Razorpay fund account: ${error.message}`,
-      );
-      throw new Error(
-        `Failed to create Razorpay fund account: ${error.message}`,
-      );
+      this.logger.error(`Failed to create Razorpay fund account: ${error.message}`);
+      throw new Error(`Failed to create Razorpay fund account: ${error.message}`);
     }
   }
 
@@ -151,70 +117,54 @@ export class RazorpayService {
    * @param params Payment link parameters
    * @returns Promise<PaymentLinkResponse> - the payment link details
    */
-  async createPaymentLink(
-    params: CreatePaymentLinkParams,
-  ): Promise<PaymentLinkResponse> {
+  async createPaymentLink(params: CreatePaymentLinkParams): Promise<PaymentLinkResponse> {
     try {
       const currency = params.currency || 'INR';
-      this.logger.log(
-        `Creating Razorpay payment link for amount: ${params.amount} ${currency}`,
-      );
+      this.logger.log(`Creating Razorpay payment link for amount: ${params.amount} ${currency}`);
 
       // Razorpay requires amount in paisa (smallest currency unit)
       const amountInPaise = Math.round(params.amount * 100);
 
-      const paymentLinkData: PaymentLinks.RazorpayPaymentLinkCreateRequestBody =
-        {
-          amount: amountInPaise,
-          currency: currency,
-          description: params.description,
-          reference_id: params.referenceId,
-          customer: {
-            name: params.customerName,
-            contact: params.customerContact.startsWith('+91')
-              ? params.customerContact
-              : `+91${params.customerContact}`,
-            email: params.customerEmail || undefined,
-          },
-          notify: {
-            email: params.disableNotifications ? false : !!params.customerEmail,
-            sms: params.disableNotifications ? false : !!params.customerContact,
-          },
-          accept_partial: params.acceptPartial ?? false,
-          first_min_partial_amount: params.firstMinPartialAmount
-            ? Math.round(params.firstMinPartialAmount * 100)
-            : undefined,
-          expire_by: params.expireBy,
-          notes: {
-            paymentType: params.paymentType,
-          },
-        };
+      const paymentLinkData: PaymentLinks.RazorpayPaymentLinkCreateRequestBody = {
+        amount: amountInPaise,
+        currency: currency,
+        description: params.description,
+        reference_id: params.referenceId,
+        customer: {
+          name: params.customerName,
+          contact: params.customerContact.startsWith('+91')
+            ? params.customerContact
+            : `+91${params.customerContact}`,
+          email: params.customerEmail || undefined,
+        },
+        notify: {
+          email: params.disableNotifications ? false : !!params.customerEmail,
+          sms: params.disableNotifications ? false : !!params.customerContact,
+        },
+        accept_partial: params.acceptPartial ?? false,
+        first_min_partial_amount: params.firstMinPartialAmount
+          ? Math.round(params.firstMinPartialAmount * 100)
+          : undefined,
+        expire_by: params.expireBy,
+        notes: {
+          paymentType: params.paymentType,
+        },
+      };
 
-      const response: AxiosResponse = await this.axiosInstance.post(
-        '/payment_links',
-        paymentLinkData,
-      );
+      const response: AxiosResponse = await this.axiosInstance.post('/payment_links', paymentLinkData);
 
       const paymentLinkId = response.data.id;
       const paymentLinkUrl = response.data.short_url;
 
-      this.logger.log(
-        `Created Razorpay payment link with ID: ${paymentLinkId}, URL: ${paymentLinkUrl}`,
-      );
+      this.logger.log(`Created Razorpay payment link with ID: ${paymentLinkId}, URL: ${paymentLinkUrl}`);
 
       return { paymentLinkUrl, paymentLinkId };
     } catch (error) {
       if (error.response) {
-        this.logger.error(
-          `Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        );
+        this.logger.error(`Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
       }
-      this.logger.error(
-        `Failed to create Razorpay payment link: ${error.message}`,
-      );
-      throw new Error(
-        `Failed to create Razorpay payment link: ${error.message}`,
-      );
+      this.logger.error(`Failed to create Razorpay payment link: ${error.message}`);
+      throw new Error(`Failed to create Razorpay payment link: ${error.message}`);
     }
   }
 
@@ -232,9 +182,7 @@ export class RazorpayService {
       this.logger.log(`Successfully cancelled payment link: ${paymentLinkId}`);
     } catch (error) {
       if (error.response) {
-        this.logger.error(
-          `Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        );
+        this.logger.error(`Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
       }
       this.logger.error(`Failed to cancel payment link: ${error.message}`);
       // Don't throw - cancellation failure shouldn't break the main flow
@@ -255,16 +203,12 @@ export class RazorpayService {
       // Use the configured webhook secret
       const secret = this.webhookSecret;
       if (!secret) {
-        this.logger.warn(
-          'Webhook secret not configured, signature verification will fail',
-        );
+        this.logger.warn('Webhook secret not configured, signature verification will fail');
         return false;
       }
 
       // Generate expected signature using HMAC SHA256
-      const expectedSignature = createHmac('sha256', secret)
-        .update(payload)
-        .digest('hex');
+      const expectedSignature = createHmac('sha256', secret).update(payload).digest('hex');
 
       // Compare signatures using timing-safe comparison
       const isValid = expectedSignature === signature;
@@ -285,9 +229,7 @@ export class RazorpayService {
    */
   async createRefund(params: CreateRefundParams): Promise<RefundResponse> {
     try {
-      this.logger.log(
-        `Creating Razorpay refund for payment: ${params.paymentId}`,
-      );
+      this.logger.log(`Creating Razorpay refund for payment: ${params.paymentId}`);
 
       const refundData: RazorpayRefundData = {
         payment_id: params.paymentId,
@@ -298,9 +240,7 @@ export class RazorpayService {
         const amountInPaise = Math.round(params.amount * 100);
         refundData.amount = amountInPaise;
 
-        this.logger.log(
-          `Partial refund amount: ₹${params.amount} (${amountInPaise} paise)`,
-        );
+        this.logger.log(`Partial refund amount: ₹${params.amount} (${amountInPaise} paise)`);
       } else {
         this.logger.log('Full refund requested');
       }
@@ -357,11 +297,11 @@ export class RazorpayService {
     try {
       this.logger.log(`Fetching refunds for payment: ${paymentId}`);
 
-      const response = await this.axiosInstance.get<{
-        items: RazorpayRefundResponse[];
-      }>(`/payments/${paymentId}/refunds`);
+      const response = await this.axiosInstance.get<{ items: RazorpayRefundResponse[] }>(
+        `/payments/${paymentId}/refunds`,
+      );
 
-      return response.data.items.map((refund) => ({
+      return response.data.items.map(refund => ({
         refundId: refund.id,
         paymentId: refund.payment_id,
         amount: refund.amount / 100, // Convert to rupees

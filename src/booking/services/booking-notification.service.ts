@@ -22,8 +22,7 @@ export class BookingNotificationService {
     driverFirstName: string | null,
     driverLastName: string | null,
   ): void {
-    const driverName =
-      `${driverFirstName ?? ''} ${driverLastName ?? ''}`.trim();
+    const driverName = `${driverFirstName ?? ''} ${driverLastName ?? ''}`.trim();
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
         title: 'Booking Confirmed',
@@ -194,10 +193,7 @@ export class BookingNotificationService {
   }
 
   // May update refund intent, transaction, and wallet balance/wallet logs
-  notifyCustomerRefundProcessed(
-    customerId: string,
-    bookingNumber: bigint,
-  ): void {
+  notifyCustomerRefundProcessed(customerId: string, bookingNumber: bigint): void {
     this.firebaseService.notifyAllSessions(customerId, 'customer', {
       notification: {
         title: 'Refund Processed',
@@ -326,11 +322,7 @@ export class BookingNotificationService {
   // Standalone events. Only use when none of the above apply and the assosciated entity changes
 
   // Changes booking status
-  notifyBookingStatusChange(
-    userId: string,
-    userType: UserType,
-    newStatus: BookingStatus,
-  ): void {
+  notifyBookingStatusChange(userId: string, userType: UserType, newStatus: BookingStatus): void {
     this.firebaseService.notifyAllSessions(userId, userType, {
       data: {
         event: FcmEventType.BookingStatusChange,
@@ -348,3 +340,5 @@ export class BookingNotificationService {
     });
   }
 }
+
+

@@ -3,23 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { BookingNotificationService } from './booking-notification.service';
-import {
-  Booking,
-  BookingStatus,
-  Customer,
-  Invoice,
-  PaymentMethod,
-  Prisma,
-  RefundIntent,
-  TransactionCategory,
-  TransactionType,
-} from '@prisma/client';
+import { Booking, BookingStatus, Customer, Invoice, PaymentMethod, Prisma, RefundIntent, TransactionCategory, TransactionType } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { truncateDecimal, toDecimal, toNumber } from '../utils/decimal.utils';
-import {
-  REALTIME_BUS,
-  RealtimeBus,
-} from 'src/redis/interfaces/realtime-bus.interface';
+import { REALTIME_BUS, RealtimeBus } from 'src/redis/interfaces/realtime-bus.interface';
 
 /**
  * Service for handling all refund operations
@@ -67,7 +54,7 @@ export class BookingRefundService {
         wasPaid: finalInvoice.isPaid,
         rzpPaymentId: finalInvoice.rzpPaymentId ?? undefined,
         status: hasPendingAction ? 'PENDING' : 'NOT_REQUIRED',
-      },
+      }
     });
   }
 
@@ -86,9 +73,7 @@ export class BookingRefundService {
     });
 
     if (claimed.count === 0) {
-      this.logger.log(
-        `Refund intent ${intentId} already claimed by another instance`,
-      );
+      this.logger.log(`Refund intent ${intentId} already claimed by another instance`);
       return;
     }
 
@@ -100,8 +85,8 @@ export class BookingRefundService {
           include: {
             customer: true,
             assignedDriver: true,
-          },
-        },
+          }
+        }
       },
     });
 
@@ -141,11 +126,7 @@ export class BookingRefundService {
         }
 
         // Handle UNPAID invoice: Deduct cancellation charge from wallet
-        if (
-          !intent.wasPaid &&
-          Number(intent.cancellationCharge) > 0 &&
-          booking.customer
-        ) {
+        if (!intent.wasPaid && Number(intent.cancellationCharge) > 0 && booking.customer) {
           const chargeAmount = -Number(intent.cancellationCharge); // Negative for debit
           await this.updateCustomerWallet(
             intent.customerId,
@@ -199,10 +180,7 @@ export class BookingRefundService {
       // Notify customer
       if (intent.wasPaid) {
         // Notify about refund for paid invoices (wallet or Razorpay)
-        if (
-          Number(intent.walletRefundAmount) > 0 ||
-          Number(intent.razorpayRefundAmount) > 0
-        ) {
+        if (Number(intent.walletRefundAmount) > 0 || Number(intent.razorpayRefundAmount) > 0) {
           this.notificationService.notifyCustomerRefundProcessed(
             intent.customerId,
             intent.booking.bookingNumber,
@@ -223,6 +201,7 @@ export class BookingRefundService {
           driverCompensation,
         );
       }
+
     } catch (error) {
       this.logger.error(`✗ Refund FAILED: ${intentId} ${error.message}`);
       // Retry logic
@@ -242,14 +221,10 @@ export class BookingRefundService {
         if (newRetryCount >= intent.maxRetries) {
           this.logger.error(`✗ Refund FAILED after max retries: ${intentId}`);
         } else {
-          this.logger.warn(
-            `Refund retry ${newRetryCount}/${intent.maxRetries} for ${intentId}`,
-          );
+          this.logger.warn(`Refund retry ${newRetryCount}/${intent.maxRetries} for ${intentId}`);
         }
       } catch (updateError) {
-        this.logger.error(
-          `Failed to update refund intent ${intentId} retry status: ${updateError.message}`,
-        );
+        this.logger.error(`Failed to update refund intent ${intentId} retry status: ${updateError.message}`);
       }
     }
   }
@@ -275,10 +250,7 @@ export class BookingRefundService {
     const isPaid = invoice.isPaid;
 
     // Full refund for PENDING and DRIVER_ASSIGNED
-    if (
-      booking.status === BookingStatus.PENDING ||
-      booking.status === BookingStatus.DRIVER_ASSIGNED
-    ) {
+    if (booking.status === BookingStatus.PENDING || booking.status === BookingStatus.DRIVER_ASSIGNED) {
       return {
         walletRefund: truncateDecimal(walletApplied),
         razorpayRefund: truncateDecimal(totalPayable),
@@ -288,23 +260,10 @@ export class BookingRefundService {
     }
 
     // Partial refund for CONFIRMED and PICKUP_ARRIVED
-    if (
-      booking.status === BookingStatus.CONFIRMED ||
-      booking.status === BookingStatus.PICKUP_ARRIVED
-    ) {
-      const minCharge = new Decimal(
-        this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') ??
-          0.1,
-      );
-      const maxCharge = new Decimal(
-        this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') ??
-          0.5,
-      );
-      const incrementPerKm = new Decimal(
-        this.configService.get<number>(
-          'CANCELLATION_CHARGE_INCREMENT_PER_KM',
-        ) ?? 0.05,
-      );
+    if (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.PICKUP_ARRIVED) {
+      const minCharge = new Decimal(this.configService.get<number>('CANCELLATION_MIN_CHARGE_PERCENT') ?? 0.1);
+      const maxCharge = new Decimal(this.configService.get<number>('CANCELLATION_MAX_CHARGE_PERCENT') ?? 0.5);
+      const incrementPerKm = new Decimal(this.configService.get<number>('CANCELLATION_CHARGE_INCREMENT_PER_KM') ?? 0.05);
 
       // Charge percentage starts at minCharge and INCREASES with distance
       let chargePercentage = minCharge;
@@ -322,27 +281,18 @@ export class BookingRefundService {
             if (navigationData.bookingId === booking.id) {
               const kmTravelled = navigationData.kmTravelled || 0;
               const increment = incrementPerKm.mul(kmTravelled);
-              chargePercentage = Decimal.min(
-                maxCharge,
-                minCharge.plus(increment),
-              );
-              this.logger.log(
-                `Booking ${booking.id}: ${kmTravelled}km travelled, charge: ${chargePercentage.mul(100).toFixed(1)}%`,
-              );
+              chargePercentage = Decimal.min(maxCharge, minCharge.plus(increment));
+              this.logger.log(`Booking ${booking.id}: ${kmTravelled}km travelled, charge: ${chargePercentage.mul(100).toFixed(1)}%`);
             }
           }
         } catch (error) {
-          this.logger.warn(
-            `Failed to read navigation data for booking ${booking.id}, using min charge: ${error.message}`,
-          );
+          this.logger.warn(`Failed to read navigation data for booking ${booking.id}, using min charge: ${error.message}`);
         }
       }
 
       // Refund percentage DECREASES as charge increases
       const refundPercentage = new Decimal(1).minus(chargePercentage);
-      const cancellationCharge = truncateDecimal(
-        basePrice.mul(chargePercentage),
-      );
+      const cancellationCharge = truncateDecimal(basePrice.mul(chargePercentage));
 
       // Calculate refunds with proportional distribution of cancellation charge
       // Each payment method bears its share of the charge based on contribution to total
@@ -419,9 +369,7 @@ export class BookingRefundService {
     });
 
     const action = amount > 0 ? 'Credited' : 'Debited';
-    this.logger.log(
-      `${action} ₹${Math.abs(amount)} ${amount > 0 ? 'to' : 'from'} customer ${customerId} wallet`,
-    );
+    this.logger.log(`${action} ₹${Math.abs(amount)} ${amount > 0 ? 'to' : 'from'} customer ${customerId} wallet`);
 
     return toNumber(newBalance);
   }
@@ -457,9 +405,7 @@ export class BookingRefundService {
       ? toDecimal(storedRate)
       : toDecimal(this.configService.get<number>('COMMISSION_RATE') || 0.07);
 
-    const compensation = truncateDecimal(
-      chargeDecimal.mul(new Decimal(1).minus(commissionRate)),
-    );
+    const compensation = truncateDecimal(chargeDecimal.mul(new Decimal(1).minus(commissionRate)));
 
     const newBalance = truncateDecimal(driverWalletBefore.plus(compensation));
 
@@ -479,9 +425,7 @@ export class BookingRefundService {
       },
     });
 
-    this.logger.log(
-      `Compensated driver ${driver.id} with ₹${toNumber(compensation)} for cancellation`,
-    );
+    this.logger.log(`Compensated driver ${driver.id} with ₹${toNumber(compensation)} for cancellation`);
     return toNumber(compensation);
   }
 
@@ -499,16 +443,14 @@ export class BookingRefundService {
 
     try {
       // Check if refund already exists (idempotency)
-      const existingRefunds =
-        await this.razorpayService.fetchRefunds(rzpPaymentId);
-      const matchedRefund = existingRefunds.find(
-        (r) => r.amount === amount && r.notes?.bookingId === booking.id,
+      const existingRefunds = await this.razorpayService.fetchRefunds(rzpPaymentId);
+      const matchedRefund = existingRefunds.find(r =>
+        r.amount === amount &&
+        r.notes?.bookingId === booking.id
       );
 
       if (matchedRefund) {
-        this.logger.warn(
-          `Refund already exists on Razorpay (ID: ${matchedRefund.refundId})`,
-        );
+        this.logger.warn(`Refund already exists on Razorpay (ID: ${matchedRefund.refundId})`);
         return matchedRefund.refundId;
       }
 
@@ -522,10 +464,9 @@ export class BookingRefundService {
         },
       });
 
-      this.logger.log(
-        `Razorpay refund created: ₹${amount} for booking ${booking.id}`,
-      );
+      this.logger.log(`Razorpay refund created: ₹${amount} for booking ${booking.id}`);
       return refund.refundId;
+
     } catch (error) {
       this.logger.error(`Razorpay refund failed: ${error.message}`);
       throw error;

@@ -1,15 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import { BookingAddress, Prisma } from '@prisma/client';
-import {
-  CreateBookingAddressDto,
-  UpdateBookingAddressDto,
-} from 'src/booking/dtos/booking-address.dto';
+import { CreateBookingAddressDto, UpdateBookingAddressDto } from 'src/booking/dtos/booking-address.dto';
+
 
 // Merge existing Address model + partial update into a complete CreateBookingAddressDto
-export function mergeAddressUpdateToDto(
-  existing: BookingAddress,
-  updateDto: UpdateBookingAddressDto,
-): CreateBookingAddressDto {
+export function mergeAddressUpdateToDto(existing: BookingAddress, updateDto: UpdateBookingAddressDto): CreateBookingAddressDto {
   if (!existing.contactName || !existing.contactPhone) {
     throw new BadRequestException('Contact name and phone are required');
   }
@@ -21,15 +16,12 @@ export function mergeAddressUpdateToDto(
     latitude: updateDto.latitude ?? Number(existing.latitude),
     longitude: updateDto.longitude ?? Number(existing.longitude),
     formattedAddress: updateDto.formattedAddress ?? existing.formattedAddress,
-    addressDetails:
-      updateDto.addressDetails ?? existing.addressDetails ?? undefined,
+    addressDetails: updateDto.addressDetails ?? existing.addressDetails ?? undefined,
   };
 }
 
 // Convert Address prisma model to CreateBookingAddressDto format
-export function toBookingAddressDto(
-  address: BookingAddress,
-): CreateBookingAddressDto {
+export function toBookingAddressDto(address: BookingAddress): CreateBookingAddressDto {
   if (!address.contactName || !address.contactPhone) {
     throw new BadRequestException('Contact name and phone are required');
   }
@@ -46,9 +38,7 @@ export function toBookingAddressDto(
 }
 
 // Create flat object for prisma create from full DTO
-export function toAddressCreateData(
-  dto: CreateBookingAddressDto,
-): Prisma.BookingAddressCreateInput {
+export function toAddressCreateData(dto: CreateBookingAddressDto): Prisma.BookingAddressCreateInput {
   return {
     addressName: dto.addressName,
     contactName: dto.contactName,
@@ -62,27 +52,17 @@ export function toAddressCreateData(
 }
 
 // Create flat object for prisma update from partial DTO
-export function toAddressUpdateData(
-  updateDto: UpdateBookingAddressDto,
-): Prisma.BookingAddressUpdateInput {
+export function toAddressUpdateData(updateDto: UpdateBookingAddressDto): Prisma.BookingAddressUpdateInput {
   const updateData: Prisma.BookingAddressUpdateInput = {};
-
-  if (updateDto.addressName !== undefined)
-    updateData.addressName = updateDto.addressName;
-  if (updateDto.contactName !== undefined)
-    updateData.contactName = updateDto.contactName;
-  if (updateDto.contactPhone !== undefined)
-    updateData.contactPhone = updateDto.contactPhone;
-  if (updateDto.noteToDriver !== undefined)
-    updateData.noteToDriver = updateDto.noteToDriver;
-  if (updateDto.latitude !== undefined)
-    updateData.latitude = updateDto.latitude;
-  if (updateDto.longitude !== undefined)
-    updateData.longitude = updateDto.longitude;
-  if (updateDto.formattedAddress !== undefined)
-    updateData.formattedAddress = updateDto.formattedAddress;
-  if (updateDto.addressDetails !== undefined)
-    updateData.addressDetails = updateDto.addressDetails;
-
+  
+  if (updateDto.addressName !== undefined) updateData.addressName = updateDto.addressName;
+  if (updateDto.contactName !== undefined) updateData.contactName = updateDto.contactName;
+  if (updateDto.contactPhone !== undefined) updateData.contactPhone = updateDto.contactPhone;
+  if (updateDto.noteToDriver !== undefined) updateData.noteToDriver = updateDto.noteToDriver;
+  if (updateDto.latitude !== undefined) updateData.latitude = updateDto.latitude;
+  if (updateDto.longitude !== undefined) updateData.longitude = updateDto.longitude;
+  if (updateDto.formattedAddress !== undefined) updateData.formattedAddress = updateDto.formattedAddress;
+  if (updateDto.addressDetails !== undefined) updateData.addressDetails = updateDto.addressDetails;
+  
   return updateData;
 }

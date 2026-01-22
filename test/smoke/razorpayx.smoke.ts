@@ -31,17 +31,13 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 if (process.env.SMOKE_TESTS !== 'true') {
-  console.error(
-    '❌ Smoke tests disabled. Set SMOKE_TESTS=true to run intentionally.',
-  );
+  console.error('❌ Smoke tests disabled. Set SMOKE_TESTS=true to run intentionally.');
   console.error('   Run: SMOKE_TESTS=true npm run smoke:razorpay');
   process.exit(1);
 }
 
 if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-  console.error(
-    '❌ Razorpay credentials missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env',
-  );
+  console.error('❌ Razorpay credentials missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env');
   process.exit(1);
 }
 
@@ -78,18 +74,14 @@ function logError(message: string) {
 async function run() {
   console.log('\n🚀 RazorpayX Payout Smoke Test (IMPS Mode)');
   console.log(`   Key: ${process.env.RAZORPAY_KEY_ID?.substring(0, 12)}...`);
-  console.log(
-    `   Account: ${process.env.RAZORPAY_ACCOUNT_NUMBER || 'Default'}`,
-  );
+  console.log(`   Account: ${process.env.RAZORPAY_ACCOUNT_NUMBER || 'Default'}`);
 
-  const configService = {
-    get: (key: string) => process.env[key],
-  } as ConfigService;
+  const configService = { get: (key: string) => process.env[key] } as ConfigService;
   const razorpayService = new RazorpayService(configService);
-
+  
   let razorpayXService: RazorpayXService;
   let razorpayXEnabled = true;
-
+  
   try {
     razorpayXService = new RazorpayXService(configService);
   } catch (error) {
@@ -130,26 +122,18 @@ async function run() {
     logWarning('RazorpayX not initialized, skipping fund account details');
   } else {
     try {
-      const fundAccountDetails =
-        await razorpayXService!.getFundAccountDetails(bankFundAccountId);
+      const fundAccountDetails = await razorpayXService!.getFundAccountDetails(bankFundAccountId);
       logSuccess(`Fund account details fetched`);
       logInfo(`ID: ${fundAccountDetails.id}`);
       logInfo(`Type: ${fundAccountDetails.account_type}`);
-
+      
       // Verify it's a bank account
       if (fundAccountDetails.account_type !== 'bank_account') {
-        logWarning(
-          `Expected 'bank_account', got '${fundAccountDetails.account_type}'`,
-        );
+        logWarning(`Expected 'bank_account', got '${fundAccountDetails.account_type}'`);
       }
     } catch (error: any) {
-      if (
-        error.message?.includes('not found') ||
-        error.message?.includes('URL')
-      ) {
-        logWarning(
-          'RazorpayX not activated - fund account details API unavailable',
-        );
+      if (error.message?.includes('not found') || error.message?.includes('URL')) {
+        logWarning('RazorpayX not activated - fund account details API unavailable');
       } else {
         throw error;
       }
@@ -180,20 +164,13 @@ async function run() {
       logSuccess(`IMPS payout created: ${payoutId}`);
       logInfo(`Status: ${payout.status}`);
       logInfo(`Amount: ₹${payout.amount}`);
+
     } catch (error: any) {
-      if (
-        error.message?.includes('not found') ||
-        error.message?.includes('URL')
-      ) {
+      if (error.message?.includes('not found') || error.message?.includes('URL')) {
         logWarning('RazorpayX not activated on your account');
         logInfo('Enable RazorpayX in Dashboard → Products → Payouts');
-        logInfo(
-          'Contact/Fund account creation still works (standard Razorpay)',
-        );
-      } else if (
-        error.message?.includes('Insufficient') ||
-        error.message?.includes('balance')
-      ) {
+        logInfo('Contact/Fund account creation still works (standard Razorpay)');
+      } else if (error.message?.includes('Insufficient') || error.message?.includes('balance')) {
         logWarning('Insufficient RazorpayX balance');
         logInfo('Add test funds in Dashboard → RazorpayX → Add Funds');
       } else {
@@ -230,11 +207,9 @@ async function run() {
   console.log('='.repeat(60));
   console.log(`Contact ID:           ${contactId}`);
   console.log(`Fund Account ID:      ${bankFundAccountId}`);
-  console.log(
-    `Payout ID:            ${payoutId || 'Not created (RazorpayX issue)'}`,
-  );
+  console.log(`Payout ID:            ${payoutId || 'Not created (RazorpayX issue)'}`);
   console.log('='.repeat(60));
-
+  
   if (payoutId) {
     console.log('\n🎉 Full payout flow tested successfully!\n');
   } else {

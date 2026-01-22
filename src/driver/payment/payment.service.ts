@@ -3,16 +3,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
-import {
-  TransactionType,
-  TransactionCategory,
-  PaymentMethod,
-} from '@prisma/client';
-import {
-  toDecimal,
-  toNumber,
-  truncateDecimal,
-} from 'src/booking/utils/decimal.utils';
+import { TransactionType, TransactionCategory, PaymentMethod } from '@prisma/client';
+import { toDecimal, toNumber, truncateDecimal } from 'src/booking/utils/decimal.utils';
 import { FcmEventType } from 'src/common/types/fcm.types';
 import { PaymentType } from 'src/razorpay/types/razorpay-payment-link.types';
 
@@ -46,10 +38,7 @@ export class DriverPaymentService {
    * DB stores referenceId → driverId mapping for webhook lookup
    * Redis caches for spam prevention
    */
-  async generatePaymentLink(
-    driverId: string,
-    amount: number,
-  ): Promise<{
+  async generatePaymentLink(driverId: string, amount: number): Promise<{
     paymentLinkUrl: string;
     paymentLinkId: string;
     amount: number;
@@ -77,14 +66,8 @@ export class DriverPaymentService {
       const cached: CachedPaymentLink = JSON.parse(cachedStr);
       const remainingTime = cached.expiresAt - now;
       // Reuse if: enough time left, same amount, no partial payment yet
-      if (
-        remainingTime >= this.MIN_REMAINING_SECONDS &&
-        cached.amount === amount &&
-        cached.collected === 0
-      ) {
-        this.logger.log(
-          `Reusing payment link for driver ${driverId} (${remainingTime}s remaining)`,
-        );
+      if (remainingTime >= this.MIN_REMAINING_SECONDS && cached.amount === amount && cached.collected === 0) {
+        this.logger.log(`Reusing payment link for driver ${driverId} (${remainingTime}s remaining)`);
         return {
           paymentLinkUrl: cached.shortUrl,
           paymentLinkId: cached.paymentLinkId,
@@ -94,18 +77,17 @@ export class DriverPaymentService {
       }
     }
 
-    // Create DB record first with generated referenceId (UUID, 36 chars)
-    const referenceId = crypto.randomUUID();
-    await this.prisma.driverPaymentLink.create({
+   // Create DB record first with generated referenceId (UUID, 36 chars)
+   const referenceId = crypto.randomUUID();
+   await this.prisma.driverPaymentLink.create({
       data: { referenceId, driverId },
     });
 
     // Create Razorpay link with referenceId
     const expiresAt = now + this.LINK_EXPIRY_SECONDS;
-    const customerName =
-      driver.firstName && driver.lastName
-        ? `${driver.firstName} ${driver.lastName}`
-        : driver.phoneNumber;
+    const customerName = driver.firstName && driver.lastName
+      ? `${driver.firstName} ${driver.lastName}`
+      : driver.phoneNumber;
 
     const paymentLink = await this.razorpayService.createPaymentLink({
       amount,
@@ -128,16 +110,9 @@ export class DriverPaymentService {
       collected: 0,
       expiresAt,
     };
-    await this.redisService.set(
-      redisKey,
-      JSON.stringify(cacheData),
-      'EX',
-      this.LINK_EXPIRY_SECONDS,
-    );
+    await this.redisService.set(redisKey, JSON.stringify(cacheData), 'EX', this.LINK_EXPIRY_SECONDS);
 
-    this.logger.log(
-      `Created payment link for driver ${driverId}: ${paymentLink.paymentLinkId}`,
-    );
+    this.logger.log(`Created payment link for driver ${driverId}: ${paymentLink.paymentLinkId}`);
 
     return {
       paymentLinkUrl: paymentLink.paymentLinkUrl,
@@ -150,20 +125,14 @@ export class DriverPaymentService {
   /**
    * Handle payment from webhook - lookup driver from DB via referenceId
    */
-  async handlePaymentReceived(
-    referenceId: string,
-    rzpPaymentId: string,
-    amountPaid: number,
-  ): Promise<void> {
+  async handlePaymentReceived(referenceId: string, rzpPaymentId: string, amountPaid: number): Promise<void> {
     const driverId = await this.extractDriverIdFromReference(referenceId);
     if (!driverId) {
       this.logger.warn(`Invalid referenceId`);
       return;
     }
 
-    this.logger.log(
-      `Payment received: driver=${driverId}, amount=${amountPaid}`,
-    );
+    this.logger.log(`Payment received: driver=${driverId}, amount=${amountPaid}`);
 
     // Use Decimal for accurate wallet math
     const amountPaidDecimal = truncateDecimal(toDecimal(amountPaid));
@@ -176,9 +145,7 @@ export class DriverPaymentService {
       });
 
       const beforeBalance = toDecimal(driver?.walletBalance ?? 0);
-      const afterBalance = truncateDecimal(
-        beforeBalance.plus(amountPaidDecimal),
-      );
+      const afterBalance = truncateDecimal(beforeBalance.plus(amountPaidDecimal));
 
       await tx.driver.update({
         where: { id: driverId },

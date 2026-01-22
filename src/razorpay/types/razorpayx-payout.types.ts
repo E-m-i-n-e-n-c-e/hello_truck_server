@@ -15,27 +15,13 @@ export interface CreatePayoutParams {
 
 export interface PayoutResponse {
   razorpayPayoutId: string;
-  status:
-    | 'processing'
-    | 'processed'
-    | 'reversed'
-    | 'cancelled'
-    | 'queued'
-    | 'rejected';
+  status: 'processing' | 'processed' | 'reversed' | 'cancelled' | 'queued' | 'rejected';
   amount: number;
 }
 
 export interface FetchPayoutResponse {
   id: string;
-  status:
-    | 'processing'
-    | 'processed'
-    | 'reversed'
-    | 'cancelled'
-    | 'queued'
-    | 'rejected'
-    | 'pending'
-    | 'failed';
+  status: 'processing' | 'processed' | 'reversed' | 'cancelled' | 'queued' | 'rejected' | 'pending' | 'failed';
   amount: number; // In rupees (converted from paise by service)
   currency: string;
   mode: string;

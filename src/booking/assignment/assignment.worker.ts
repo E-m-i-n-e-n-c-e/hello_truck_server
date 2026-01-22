@@ -12,9 +12,7 @@ export class AssignmentWorker extends WorkerHost {
   private readonly logger = new Logger(AssignmentWorker.name);
 
   async process(job: Job) {
-    this.logger.log(
-      `[Worker] PROCESS METHOD CALLED - Processing job: ${job.name} id=${job.id} data=${JSON.stringify(job.data)}`,
-    );
+    this.logger.log(`[Worker] PROCESS METHOD CALLED - Processing job: ${job.name} id=${job.id} data=${JSON.stringify(job.data)}`);
     this.logger.log(`[Worker] Job name is: "${job.name}"`);
     this.logger.log(`[Worker] Job name type: ${typeof job.name}`);
 
@@ -60,8 +58,6 @@ export class AssignmentWorker extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job) {
-    this.logger.log(
-      `Job with id ${job.id} FAILED! Attempt Number ${job.attemptsMade}`,
-    );
+    this.logger.log(`Job with id ${job.id} FAILED! Attempt Number ${job.attemptsMade}`);
   }
 }

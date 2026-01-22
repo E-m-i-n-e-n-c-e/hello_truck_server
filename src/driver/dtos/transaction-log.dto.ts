@@ -1,12 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import {
-  TransactionType,
-  TransactionCategory,
-  Transaction,
-  $Enums,
-  PaymentMethod,
-  PayoutStatus,
-} from '@prisma/client';
+import { TransactionType, TransactionCategory, Transaction, $Enums, PaymentMethod, PayoutStatus } from '@prisma/client';
 import { BookingResponseDto } from 'src/booking/dtos/booking.dto';
 import { IsBoolean, IsOptional } from 'class-validator';
 import { Transform } from 'class-transformer';

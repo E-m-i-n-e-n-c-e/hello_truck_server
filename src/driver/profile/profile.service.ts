@@ -1,21 +1,8 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
-import {
-  UpdateDriverProfileDto,
-  CreateDriverProfileDto,
-  UpdateLocationDto,
-} from '../dtos/profile.dto';
-import {
-  Driver,
-  DriverStatus,
-  PayoutMethodType,
-  TransactionCategory,
-} from '@prisma/client';
+import { UpdateDriverProfileDto, CreateDriverProfileDto, UpdateLocationDto } from '../dtos/profile.dto';
+import { Driver, DriverStatus, PayoutMethodType, TransactionCategory } from '@prisma/client';
 import { DocumentsService } from '../documents/documents.service';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { AddressService } from '../address/address.service';
@@ -77,19 +64,10 @@ export class ProfileService {
       throw new BadRequestException('Profile already exists');
     }
 
-    const {
-      googleIdToken,
-      documents,
-      vehicle,
-      address,
-      payoutDetails,
-      appliedReferralCode,
-      ...profileData
-    } = createProfileDto;
+    const { googleIdToken, documents, vehicle, address, payoutDetails, appliedReferralCode, ...profileData } = createProfileDto;
     let email: string | undefined;
     if (googleIdToken) {
-      email =
-        await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
+      email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -115,19 +93,10 @@ export class ProfileService {
         const driverName = profileData.lastName
           ? `${profileData.firstName} ${profileData.lastName}`
           : profileData.firstName;
-        contactId = await this.razorpayService.createContact(
-          driver.phoneNumber,
-          driverName,
-        );
-        fundAccountId = await this.razorpayService.createFundAccount(
-          contactId,
-          payoutDetails,
-        );
+        contactId = await this.razorpayService.createContact(driver.phoneNumber, driverName);
+        fundAccountId = await this.razorpayService.createFundAccount(contactId, payoutDetails);
         // Map DTO payoutMethod to Prisma enum
-        payoutMethodType =
-          payoutDetails.payoutMethod === PayoutMethod.VPA
-            ? 'VPA'
-            : 'BANK_ACCOUNT';
+        payoutMethodType = payoutDetails.payoutMethod === PayoutMethod.VPA ? 'VPA' : 'BANK_ACCOUNT';
       }
 
       // Update driver profile
@@ -143,25 +112,17 @@ export class ProfileService {
       });
     });
 
-    // Apply referral code if provided
+    // Apply referral code if provided 
     if (appliedReferralCode) {
-      this.referralService
-        .applyDriverReferralCode(appliedReferralCode, userId)
-        .catch((error) => {
-          console.error(
-            `Failed to apply referral code for driver ${userId}:`,
-            error,
-          );
-        });
+      this.referralService.applyDriverReferralCode(appliedReferralCode, userId).catch((error) => {
+        console.error(`Failed to apply referral code for driver ${userId}:`, error);
+      });
     }
 
     return { success: true, message: 'Profile created successfully' };
   }
 
-  async updateProfile(
-    userId: string,
-    updateProfileDto: UpdateDriverProfileDto,
-  ) {
+  async updateProfile(userId: string, updateProfileDto: UpdateDriverProfileDto) {
     const { googleIdToken, payoutDetails, ...profileData } = updateProfileDto;
 
     const driver = await this.prisma.driver.findUnique({
@@ -175,8 +136,7 @@ export class ProfileService {
     // Extract email from Google ID token if provided
     let email: string | undefined;
     if (googleIdToken) {
-      email =
-        await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
+      email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
     }
 
     // Create payout details if provided
@@ -188,19 +148,10 @@ export class ProfileService {
       const driverName = profileData.lastName
         ? `${profileData.firstName} ${profileData.lastName}`
         : profileData.firstName;
-      contactId = await this.razorpayService.createContact(
-        driver.phoneNumber,
-        driverName,
-      );
-      fundAccountId = await this.razorpayService.createFundAccount(
-        contactId,
-        payoutDetails,
-      );
+      contactId = await this.razorpayService.createContact(driver.phoneNumber, driverName);
+      fundAccountId = await this.razorpayService.createFundAccount(contactId, payoutDetails);
       // Map DTO payoutMethod to Prisma enum
-      payoutMethodType =
-        payoutDetails.payoutMethod === PayoutMethod.VPA
-          ? 'VPA'
-          : 'BANK_ACCOUNT';
+      payoutMethodType = payoutDetails.payoutMethod === PayoutMethod.VPA ? 'VPA' : 'BANK_ACCOUNT';
     }
 
     await this.prisma.driver.update({
@@ -228,13 +179,8 @@ export class ProfileService {
       throw new NotFoundException('Driver not found');
     }
 
-    if (
-      driver.driverStatus === 'ON_RIDE' ||
-      driver.driverStatus === 'RIDE_OFFERED'
-    ) {
-      throw new BadRequestException(
-        'Cannot update status while driver is on a ride or has a ride offered',
-      );
+    if (driver.driverStatus === 'ON_RIDE' || driver.driverStatus === 'RIDE_OFFERED') {
+      throw new BadRequestException('Cannot update status while driver is on a ride or has a ride offered');
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -257,11 +203,7 @@ export class ProfileService {
   }
 
   async upsertFcmToken(sessionId: string, fcmToken: string) {
-    await this.firebaseService.upsertFcmToken({
-      sessionId,
-      fcmToken,
-      userType: 'driver',
-    });
+    await this.firebaseService.upsertFcmToken({sessionId, fcmToken, userType: 'driver'});
   }
 
   async updateLocation(userId: string, updateLocationDto: UpdateLocationDto) {
@@ -272,7 +214,7 @@ export class ProfileService {
         'active_drivers',
         Number(updateLocationDto.longitude),
         Number(updateLocationDto.latitude),
-        userId,
+        userId
       )
       .exec();
   }

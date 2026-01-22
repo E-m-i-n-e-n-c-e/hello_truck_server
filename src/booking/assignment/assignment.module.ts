@@ -31,13 +31,9 @@ import { BookingNotificationService } from '../services/booking-notification.ser
     }),
     BullModule.registerQueue({ name: 'booking-assignment' }),
   ],
-  providers: [
-    AssignmentService,
-    AssignmentWorker,
-    BookingInvoiceService,
-    PricingService,
-    BookingNotificationService,
-  ],
+  providers: [AssignmentService, AssignmentWorker, BookingInvoiceService, PricingService, BookingNotificationService],
   exports: [AssignmentService],
 })
 export class AssignmentModule {}
+
+

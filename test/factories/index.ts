@@ -1,28 +1,18 @@
-import {
-  PrismaClient,
-  VerificationStatus,
-  DriverStatus,
-  VehicleType,
-  VehicleBodyType,
-  FuelType,
-} from '@prisma/client';
+import { PrismaClient, VerificationStatus, DriverStatus, VehicleType, VehicleBodyType, FuelType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 /**
  * Create a test customer with unique phone number
  */
-export async function createTestCustomer(
-  overrides?: Partial<{
-    phoneNumber: string;
-    firstName: string;
-    email: string;
-    walletBalance: number;
-  }>,
-) {
-  const phone =
-    overrides?.phoneNumber || `99${Date.now().toString().slice(-8)}`;
-
+export async function createTestCustomer(overrides?: Partial<{
+  phoneNumber: string;
+  firstName: string;
+  email: string;
+  walletBalance: number;
+}>) {
+  const phone = overrides?.phoneNumber || `99${Date.now().toString().slice(-8)}`;
+  
   return prisma.customer.create({
     data: {
       phoneNumber: phone,
@@ -36,22 +26,18 @@ export async function createTestCustomer(
 /**
  * Create a test driver with unique phone number and VERIFIED status
  */
-export async function createTestDriver(
-  overrides?: Partial<{
-    phoneNumber: string;
-    firstName: string;
-    verificationStatus: VerificationStatus;
-  }>,
-) {
-  const phone =
-    overrides?.phoneNumber || `88${Date.now().toString().slice(-8)}`;
-
+export async function createTestDriver(overrides?: Partial<{
+  phoneNumber: string;
+  firstName: string;
+  verificationStatus: VerificationStatus;
+}>) {
+  const phone = overrides?.phoneNumber || `88${Date.now().toString().slice(-8)}`;
+  
   return prisma.driver.create({
     data: {
       phoneNumber: phone,
       firstName: overrides?.firstName || 'Test Driver',
-      verificationStatus:
-        overrides?.verificationStatus || VerificationStatus.VERIFIED,
+      verificationStatus: overrides?.verificationStatus || VerificationStatus.VERIFIED,
       driverStatus: DriverStatus.AVAILABLE,
     },
   });
@@ -62,16 +48,14 @@ export async function createTestDriver(
  */
 export async function createTestVehicle(driverId: string, modelName?: string) {
   const vehicleModelName = modelName || 'Tata Ace';
-
+  
   // Ensure the model exists
   const model = await prisma.vehicleModel.findUnique({
     where: { name: vehicleModelName },
   });
 
   if (!model) {
-    throw new Error(
-      `VehicleModel ${vehicleModelName} not found. Run seedVehicleModels first.`,
-    );
+    throw new Error(`VehicleModel ${vehicleModelName} not found. Run seedVehicleModels first.`);
   }
 
   return prisma.vehicle.create({

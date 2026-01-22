@@ -1,10 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { createTestApp } from '../setup/test-app';
-import {
-  setupTestDatabase,
-  closeDatabaseConnection,
-  prisma,
-} from '../setup/database';
+import { setupTestDatabase, closeDatabaseConnection, prisma } from '../setup/database';
 import { loginAsCustomer, loginAsDriver } from '../setup/auth-helper';
 import { createBookingRequestDto } from '../factories';
 import * as request from 'supertest';
@@ -12,7 +8,7 @@ import * as request from 'supertest';
 /**
  * WebSocket E2E tests are complex because they require actual server listening.
  * These tests are marked as skipped for CI but can be run manually with a running server.
- *
+ * 
  * To test WebSocket functionality:
  * 1. Start the server: npm run start:dev
  * 2. Run manual smoke test: npm run test:smoke:realtime
@@ -133,16 +129,12 @@ describe('07 - Realtime Updates (E2E)', () => {
 
   describe('Realtime Gateway Validation', () => {
     it('should have booking confirmed for realtime events', async () => {
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.status).toBe('CONFIRMED');
     });
 
     it('should have driver assigned to booking', async () => {
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.assignedDriverId).toBe(driverId);
     });
   });

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Headers,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Post, Body, Headers, UnauthorizedException, Logger } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { RazorpayWebhookPayload } from 'src/razorpay/types/razorpay-webhook.types';
@@ -28,10 +21,7 @@ export class WebhookController {
     @Headers('x-razorpay-signature') signature: string,
   ): Promise<{ status: string }> {
     // Verify signature
-    const isValid = this.razorpayService.verifyWebhookSignature(
-      JSON.stringify(body),
-      signature,
-    );
+    const isValid = this.razorpayService.verifyWebhookSignature(JSON.stringify(body), signature);
     if (!isValid) {
       throw new UnauthorizedException('Invalid webhook signature');
     }
@@ -46,8 +36,7 @@ export class WebhookController {
     });
 
     // Check payment type from notes and route
-    const paymentType = body.payload.payment_link?.entity?.notes
-      ?.paymentType as PaymentType | undefined;
+    const paymentType = body.payload.payment_link?.entity?.notes?.paymentType as PaymentType | undefined;
 
     if (paymentType === PaymentType.DRIVER_WALLET) {
       await this.webhookService.handleDriverWebhook(body);

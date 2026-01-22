@@ -27,10 +27,7 @@ export class WebhookService {
       return;
     }
 
-    if (
-      event === 'payment_link.paid' ||
-      event === 'payment_link.partially_paid'
-    ) {
+    if (event === 'payment_link.paid' || event === 'payment_link.partially_paid') {
       const amountPaid = (payment?.amount ?? 0) / 100; // Convert paise to rupees
       await this.driverPaymentService.handlePaymentReceived(
         referenceId,
@@ -59,10 +56,7 @@ export class WebhookService {
       }
 
       const rzpPaymentId = payment?.id ?? '';
-      await this.bookingPaymentService.handlePaymentSuccess(
-        rzpPaymentLinkId,
-        rzpPaymentId,
-      );
+      await this.bookingPaymentService.handlePaymentSuccess(rzpPaymentLinkId, rzpPaymentId);
     }
   }
 }

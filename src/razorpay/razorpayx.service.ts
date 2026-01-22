@@ -1,18 +1,7 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import {
-  CreatePayoutParams,
-  PayoutResponse,
-  FetchPayoutResponse,
-  RazorpayPayoutResponse,
-  RazorpayFundAccountResponse,
-} from './types/razorpayx-payout.types';
+import { CreatePayoutParams, PayoutResponse, FetchPayoutResponse, RazorpayPayoutResponse, RazorpayFundAccountResponse } from './types/razorpayx-payout.types';
 
 /**
  * RazorpayX Service - Handles payout operations using RazorpayX API
@@ -28,9 +17,7 @@ export class RazorpayXService {
   constructor(private readonly configService: ConfigService) {
     const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
     const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
-    const accountNumber =
-      this.configService.get<string>('RAZORPAY_ACCOUNT_NUMBER') ||
-      '2323230041626905';
+    const accountNumber = this.configService.get<string>('RAZORPAY_ACCOUNT_NUMBER') || '2323230041626905';
     if (!keyId || !keySecret) {
       throw new Error('RazorpayX credentials not configured');
     }
@@ -60,39 +47,31 @@ export class RazorpayXService {
     try {
       // Validate amount is positive and >= minimum (0.01 INR = 1 paise)
       if (params.amount <= 0) {
-        throw new BadRequestException(
-          'Payout amount must be greater than zero',
-        );
+        throw new BadRequestException('Payout amount must be greater than zero');
       }
 
       // Razorpay requires amount in paisa (smallest currency unit)
       const amountInPaise = Math.round(params.amount * 100);
-
+      
       if (amountInPaise < 1) {
         throw new BadRequestException('Amount must be >= ₹0.01 (1 paise)');
       }
 
       // Normalize and validate currency
       const currency = (params.currency || 'INR').toUpperCase();
-
+      
       // Normalize and validate mode
       const allowedModes = ['IMPS', 'NEFT', 'RTGS', 'UPI'] as const;
-      const mode = (
-        params.mode || 'IMPS'
-      ).toUpperCase() as (typeof allowedModes)[number];
-
+      const mode = (params.mode || 'IMPS').toUpperCase() as typeof allowedModes[number];
+      
       if (!allowedModes.includes(mode)) {
-        throw new BadRequestException(
-          `Invalid mode. Allowed: ${allowedModes.join(', ')}`,
-        );
+        throw new BadRequestException(`Invalid mode. Allowed: ${allowedModes.join(', ')}`);
       }
 
       const purpose = params.purpose || 'payout';
 
       // Fetch fund account details to determine correct mode
-      const fundAccount = await this.getFundAccountDetails(
-        params.fundAccountId,
-      );
+      const fundAccount = await this.getFundAccountDetails(params.fundAccountId);
 
       // Auto-correct payout mode based on fund account type
       // RazorpayX enforces strict rules:
@@ -154,9 +133,7 @@ export class RazorpayXService {
       const status = response.data.status as PayoutResponse['status'];
       const amount = response.data.amount / 100; // Convert back to rupees
 
-      this.logger.log(
-        `Created RazorpayX payout with ID: ${razorpayPayoutId}, status: ${status}`,
-      );
+      this.logger.log(`Created RazorpayX payout with ID: ${razorpayPayoutId}, status: ${status}`);
 
       return { razorpayPayoutId, status, amount };
     } catch (error) {
@@ -171,17 +148,12 @@ export class RazorpayXService {
         const errorData = error.response?.data;
 
         if (status === 400) {
-          const errorMessage =
-            errorData?.error?.description || 'Invalid payout request';
-          this.logger.error(
-            `RazorpayX validation error: ${JSON.stringify(errorData)}`,
-          );
+          const errorMessage = errorData?.error?.description || 'Invalid payout request';
+          this.logger.error(`RazorpayX validation error: ${JSON.stringify(errorData)}`);
           throw new BadRequestException(errorMessage);
         }
 
-        this.logger.error(
-          `RazorpayX API Error: ${status} - ${JSON.stringify(errorData)}`,
-        );
+        this.logger.error(`RazorpayX API Error: ${status} - ${JSON.stringify(errorData)}`);
       } else {
         this.logger.error(`RazorpayX payout creation failed: ${error.message}`);
       }
@@ -203,21 +175,16 @@ export class RazorpayXService {
     try {
       this.logger.log(`Fetching fund account details for ID: ${fundAccountId}`);
 
-      const response =
-        await this.axiosInstance.get<RazorpayFundAccountResponse>(
-          `/fund_accounts/${fundAccountId}`,
-        );
+      const response = await this.axiosInstance.get<RazorpayFundAccountResponse>(
+        `/fund_accounts/${fundAccountId}`,
+      );
 
       const account_type = response.data.account_type;
 
       // Validate account_type is one of the expected values
       if (!['vpa', 'bank_account'].includes(account_type)) {
-        this.logger.error(
-          `Unexpected account_type from Razorpay: ${account_type}`,
-        );
-        throw new InternalServerErrorException(
-          'Unsupported fund account type from Razorpay',
-        );
+        this.logger.error(`Unexpected account_type from Razorpay: ${account_type}`);
+        throw new InternalServerErrorException('Unsupported fund account type from Razorpay');
       }
 
       return {
@@ -232,18 +199,12 @@ export class RazorpayXService {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
         const errorData = error.response?.data;
-        this.logger.error(
-          `Failed to fetch fund account details: ${status} - ${JSON.stringify(errorData)}`,
-        );
+        this.logger.error(`Failed to fetch fund account details: ${status} - ${JSON.stringify(errorData)}`);
       } else {
-        this.logger.error(
-          `Failed to fetch fund account details: ${error.message}`,
-        );
+        this.logger.error(`Failed to fetch fund account details: ${error.message}`);
       }
 
-      throw new InternalServerErrorException(
-        'Failed to fetch fund account details',
-      );
+      throw new InternalServerErrorException('Failed to fetch fund account details');
     }
   }
 
@@ -256,15 +217,11 @@ export class RazorpayXService {
     try {
       this.logger.log(`Fetching RazorpayX payout status for ID: ${payoutId}`);
 
-      const response: AxiosResponse = await this.axiosInstance.get(
-        `/payouts/${payoutId}`,
-      );
+      const response: AxiosResponse = await this.axiosInstance.get(`/payouts/${payoutId}`);
 
       const payoutData = response.data;
 
-      this.logger.log(
-        `Fetched payout ${payoutId} with status: ${payoutData.status}`,
-      );
+      this.logger.log(`Fetched payout ${payoutId} with status: ${payoutData.status}`);
 
       return {
         id: payoutData.id,
@@ -277,19 +234,15 @@ export class RazorpayXService {
         utr: payoutData.utr || undefined,
         createdAt: payoutData.created_at,
         failureReason: payoutData.failure_reason || undefined,
-        statusDetails: payoutData.status_details
-          ? {
-              description: payoutData.status_details.description,
-              source: payoutData.status_details.source,
-              reason: payoutData.status_details.reason,
-            }
-          : undefined,
+        statusDetails: payoutData.status_details ? {
+          description: payoutData.status_details.description,
+          source: payoutData.status_details.source,
+          reason: payoutData.status_details.reason,
+        } : undefined,
       };
     } catch (error) {
       const message = error.response?.data || error.message;
-      this.logger.error(
-        `RazorpayX payout fetch failed: ${JSON.stringify(message)}`,
-      );
+      this.logger.error(`RazorpayX payout fetch failed: ${JSON.stringify(message)}`);
       throw new InternalServerErrorException('Failed to fetch payout status');
     }
   }

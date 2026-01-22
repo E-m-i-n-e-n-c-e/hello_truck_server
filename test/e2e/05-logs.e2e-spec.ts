@@ -1,11 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp } from '../setup/test-app';
-import {
-  setupTestDatabase,
-  closeDatabaseConnection,
-  prisma,
-} from '../setup/database';
+import { setupTestDatabase, closeDatabaseConnection, prisma } from '../setup/database';
 import { loginAsCustomer, loginAsDriver } from '../setup/auth-helper';
 import { createBookingRequestDto } from '../factories';
 
@@ -116,9 +112,7 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
       .set('Authorization', `Bearer ${driverToken}`)
       .expect(201);
 
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-    });
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
 
     // Settle cash BEFORE verifying pickup (payment required)
     await request(app.getHttpServer())
@@ -142,9 +136,7 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
       .set('Authorization', `Bearer ${driverToken}`)
       .expect(201);
 
-    const bookingForDrop = await prisma.booking.findUnique({
-      where: { id: bookingId },
-    });
+    const bookingForDrop = await prisma.booking.findUnique({ where: { id: bookingId } });
 
     await request(app.getHttpServer())
       .post('/bookings/driver/drop/verify')
@@ -220,9 +212,7 @@ describe('05 - Wallet & Transaction Logs (E2E)', () => {
         .set('Authorization', `Bearer ${customerToken}`)
         .expect(200);
 
-      const refundLog = res.body.find(
-        (log: any) => log.bookingId === bookingId && log.refundIntent,
-      );
+      const refundLog = res.body.find((log: any) => log.bookingId === bookingId && log.refundIntent);
 
       if (refundLog) {
         expect(refundLog.refundIntent).toBeDefined();

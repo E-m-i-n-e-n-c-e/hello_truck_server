@@ -1,6 +1,6 @@
-import { VehicleOwner } from '@prisma/client';
-import { Expose } from 'class-transformer';
-import { IsOptional, IsString, IsUrl } from 'class-validator';
+import { VehicleOwner } from "@prisma/client";
+import { Expose } from "class-transformer";
+import { IsOptional, IsString, IsUrl } from "class-validator";
 
 export class CreateVehicleOwnerDto implements Partial<VehicleOwner> {
   @IsString()
@@ -99,3 +99,4 @@ export class VehicleOwnerResponseDto implements VehicleOwner {
   @Expose()
   updatedAt: Date;
 }
+

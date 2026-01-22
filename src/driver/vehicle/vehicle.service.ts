@@ -1,14 +1,7 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateVehicleDto, UpdateVehicleDto } from '../dtos/vehicle.dto';
-import {
-  CreateVehicleOwnerDto,
-  UpdateVehicleOwnerDto,
-} from '../dtos/vehicle-owner.dto';
+import { CreateVehicleDto, UpdateVehicleDto} from '../dtos/vehicle.dto';
+import { CreateVehicleOwnerDto, UpdateVehicleOwnerDto } from '../dtos/vehicle-owner.dto';
 import { Prisma, VehicleType } from '@prisma/client';
 
 @Injectable()
@@ -17,15 +10,13 @@ export class VehicleService {
 
   async getAllVehicleModels() {
     return this.prisma.vehicleModel.findMany({
-      orderBy: [{ name: 'asc' }],
+      orderBy: [
+        { name: 'asc' }
+      ]
     });
   }
 
-  async createVehicle(
-    driverId: string,
-    createVehicleDto: CreateVehicleDto,
-    tx: Prisma.TransactionClient = this.prisma,
-  ) {
+  async createVehicle(driverId: string, createVehicleDto: CreateVehicleDto, tx: Prisma.TransactionClient = this.prisma) {
     const { owner, ...vehicleData } = createVehicleDto;
 
     // Validate vehicle model exists
@@ -34,9 +25,7 @@ export class VehicleService {
     });
 
     if (!vehicleModel) {
-      throw new BadRequestException(
-        `Invalid vehicle model: ${vehicleData.vehicleModelName}`,
-      );
+      throw new BadRequestException(`Invalid vehicle model: ${vehicleData.vehicleModelName}`);
     }
 
     // Check if vehicle already exists for this driver
@@ -80,9 +69,7 @@ export class VehicleService {
       });
 
       if (!vehicleModel) {
-        throw new BadRequestException(
-          `Invalid vehicle model: ${updateVehicleDto.vehicleModelName}`,
-        );
+        throw new BadRequestException(`Invalid vehicle model: ${updateVehicleDto.vehicleModelName}`);
       }
     }
 
@@ -120,10 +107,7 @@ export class VehicleService {
     return vehicle;
   }
 
-  async createVehicleOwner(
-    vehicleId: string,
-    createOwnerDto: CreateVehicleOwnerDto,
-  ) {
+  async createVehicleOwner(vehicleId: string, createOwnerDto: CreateVehicleOwnerDto) {
     // Check if owner already exists for this vehicle
     const existingOwner = await this.prisma.vehicleOwner.findUnique({
       where: { vehicleId },
@@ -141,10 +125,7 @@ export class VehicleService {
     });
   }
 
-  async updateVehicleOwner(
-    vehicleId: string,
-    updateOwnerDto: UpdateVehicleOwnerDto,
-  ) {
+  async updateVehicleOwner(vehicleId: string, updateOwnerDto: UpdateVehicleOwnerDto) {
     const owner = await this.prisma.vehicleOwner.findUnique({
       where: { vehicleId },
     });

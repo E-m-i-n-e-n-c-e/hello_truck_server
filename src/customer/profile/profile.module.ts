@@ -9,16 +9,9 @@ import { CustomerProfileController } from '../controllers/customer-profile.contr
 import { ReferralModule } from 'src/referral/referral.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    GstModule,
-    AddressModule,
-    FirebaseModule,
-    TokenModule,
-    ReferralModule,
-  ],
+  imports: [PrismaModule, GstModule, AddressModule, FirebaseModule, TokenModule, ReferralModule],
   controllers: [CustomerProfileController],
   providers: [ProfileService],
-  exports: [ProfileService],
+  exports: [ProfileService]
 })
 export class ProfileModule {}

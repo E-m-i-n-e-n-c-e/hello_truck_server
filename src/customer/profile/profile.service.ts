@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateProfileDto, CreateProfileDto } from '../dtos/profile.dto';
 import { GstService } from '../gst/gst.service';
@@ -34,11 +30,11 @@ export class ProfileService {
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
-    const { googleIdToken, ...profileData } = updateProfileDto;
+
+    const {googleIdToken, ...profileData } = updateProfileDto;
     let email: string | undefined;
-    if (googleIdToken) {
-      email =
-        await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
+    if(googleIdToken) {
+      email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
     }
 
     await this.prisma.customer.update({
@@ -46,10 +42,10 @@ export class ProfileService {
       data: {
         ...profileData,
         ...(email && { email }),
-      },
+      }
     });
 
-    return { success: true, message: 'Profile updated successfully' };
+    return {success:true, message:'Profile updated successfully'};
   }
 
   async createProfile(userId: string, createProfileDto: CreateProfileDto) {
@@ -61,29 +57,22 @@ export class ProfileService {
       throw new NotFoundException('Customer not found');
     }
 
-    if (customer.firstName) {
+    if(customer.firstName) {
       throw new BadRequestException('Profile already exists');
     }
 
-    const {
-      googleIdToken,
-      gstDetails,
-      savedAddress,
-      appliedReferralCode,
-      ...profileData
-    } = createProfileDto;
+    const {googleIdToken, gstDetails, savedAddress, appliedReferralCode, ...profileData } = createProfileDto;
     let email: string | undefined;
-    if (googleIdToken) {
-      email =
-        await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
+    if(googleIdToken) {
+      email = await this.firebaseService.getEmailFromGoogleIdToken(googleIdToken);
     }
 
     await this.prisma.$transaction(async (tx) => {
-      if (gstDetails) {
+      if(gstDetails) {
         await this.gstService.addGstDetails(userId, gstDetails, tx);
       }
 
-      if (savedAddress) {
+      if(savedAddress) {
         await this.addressService.createSavedAddress(userId, savedAddress, tx);
       }
 
@@ -93,31 +82,22 @@ export class ProfileService {
           ...profileData,
           isBusiness: gstDetails ? true : false,
           ...(email && { email }),
-        },
+        }
       });
     });
 
-    // Apply referral code if provided
+    // Apply referral code if provided 
     if (appliedReferralCode) {
-      this.referralService
-        .applyCustomerReferralCode(appliedReferralCode, userId)
-        .catch((error) => {
-          console.error(
-            `Failed to apply referral code for customer ${userId}:`,
-            error,
-          );
-        });
+      this.referralService.applyCustomerReferralCode(appliedReferralCode, userId).catch((error) => {
+        console.error(`Failed to apply referral code for customer ${userId}:`, error);
+      });
     }
 
-    return { success: true, message: 'Profile created successfully' };
+    return {success:true, message:'Profile created successfully'};
   }
 
   async upsertFcmToken(sessionId: string, fcmToken: string) {
-    await this.firebaseService.upsertFcmToken({
-      sessionId,
-      fcmToken,
-      userType: 'customer',
-    });
+    await this.firebaseService.upsertFcmToken({sessionId, fcmToken, userType: 'customer'});
   }
 
   async getWalletLogs(userId: string) {

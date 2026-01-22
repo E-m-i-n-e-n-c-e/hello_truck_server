@@ -8,47 +8,36 @@ export class LogCleanupService {
   constructor(private prisma: PrismaService) {}
 
   async cleanupOldLogs() {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);  // 30 days
 
     // Delete booking logs older than 30 days
     const bookingLogsResult = await this.prisma.bookingStatusLog.deleteMany({
       where: { statusChangedAt: { lt: thirtyDaysAgo } },
     });
     this.logger.log(`Cleaned up ${bookingLogsResult.count} booking logs`);
-
+    
     // Delete driver status logs older than 30 days
-    const driverStatusLogsResult = await this.prisma.driverStatusLog.deleteMany(
-      {
-        where: { statusChangedAt: { lt: thirtyDaysAgo } },
-      },
-    );
-    this.logger.log(
-      `Cleaned up ${driverStatusLogsResult.count} driver status logs`,
-    );
+    const driverStatusLogsResult = await this.prisma.driverStatusLog.deleteMany({
+      where: { statusChangedAt: { lt: thirtyDaysAgo } },
+    });
+    this.logger.log(`Cleaned up ${driverStatusLogsResult.count} driver status logs`);
 
     // Delete webhook logs older than 30 days
     const webhookLogsResult = await this.prisma.webhookLog.deleteMany({
       where: { createdAt: { lt: thirtyDaysAgo } },
     });
     this.logger.log(`Cleaned up ${webhookLogsResult.count} webhook logs`);
-
+    
     // Delete driver wallet logs older than 30 days
-    const driverWalletLogsResult = await this.prisma.driverWalletLog.deleteMany(
-      {
-        where: { createdAt: { lt: thirtyDaysAgo } },
-      },
-    );
-    this.logger.log(
-      `Cleaned up ${driverWalletLogsResult.count} driver wallet logs`,
-    );
-
+    const driverWalletLogsResult = await this.prisma.driverWalletLog.deleteMany({
+      where: { createdAt: { lt: thirtyDaysAgo } },
+    });
+    this.logger.log(`Cleaned up ${driverWalletLogsResult.count} driver wallet logs`);
+    
     // Delete customer wallet logs older than 30 days
-    const customerWalletLogsResult =
-      await this.prisma.customerWalletLog.deleteMany({
-        where: { createdAt: { lt: thirtyDaysAgo } },
-      });
-    this.logger.log(
-      `Cleaned up ${customerWalletLogsResult.count} customer wallet logs`,
-    );
+    const customerWalletLogsResult = await this.prisma.customerWalletLog.deleteMany({
+      where: { createdAt: { lt: thirtyDaysAgo } },
+    });
+    this.logger.log(`Cleaned up ${customerWalletLogsResult.count} customer wallet logs`);
   }
 }

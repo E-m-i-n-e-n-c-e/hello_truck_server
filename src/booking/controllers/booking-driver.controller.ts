@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';
 import { RolesGuard } from 'src/token/guards/roles.guard';
 import { Roles } from 'src/token/decorators/roles.decorator';
@@ -14,10 +6,7 @@ import { User } from 'src/token/decorators/user.decorator';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { BookingAssignmentResponseDto } from '../dtos/booking-assignment.dto';
 import { BookingDriverService } from '../services/booking-driver.service';
-import {
-  RideSummaryDto,
-  EarningsSummaryResponseDto,
-} from '../dtos/booking.dto';
+import { RideSummaryDto, EarningsSummaryResponseDto } from '../dtos/booking.dto';
 
 @Controller('bookings/driver')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -107,10 +96,6 @@ export class BookingDriverController {
     @Query('startDate') startDate?: string, // Optional: YYYY-MM-DD format, defaults to today
     @Query('endDate') endDate?: string, // Optional: YYYY-MM-DD format, defaults to startDate
   ) {
-    return this.bookingDriverService.getEarningsSummary(
-      driverId,
-      startDate,
-      endDate,
-    );
+    return this.bookingDriverService.getEarningsSummary(driverId, startDate, endDate);
   }
 }

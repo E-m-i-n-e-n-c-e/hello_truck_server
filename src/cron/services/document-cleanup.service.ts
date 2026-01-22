@@ -14,41 +14,39 @@ export class DocumentCleanupService {
     const expiredLicenses = await this.prisma.driverDocuments.updateMany({
       where: {
         licenseExpiry: { lt: now },
-        licenseStatus: 'VERIFIED',
+        licenseStatus: 'VERIFIED'
       },
-      data: { licenseStatus: 'PENDING' },
+      data: { licenseStatus: 'PENDING' }
     });
 
     // 2. Expire FCs
     const expiredFCs = await this.prisma.driverDocuments.updateMany({
       where: {
         fcExpiry: { lt: now },
-        fcStatus: 'VERIFIED',
+        fcStatus: 'VERIFIED'
       },
-      data: { fcStatus: 'PENDING' },
+      data: { fcStatus: 'PENDING' }
     });
 
     // 3. Expire Insurance
     const expiredInsurances = await this.prisma.driverDocuments.updateMany({
       where: {
         insuranceExpiry: { lt: now },
-        insuranceStatus: 'VERIFIED',
+        insuranceStatus: 'VERIFIED'
       },
-      data: { insuranceStatus: 'PENDING' },
+      data: { insuranceStatus: 'PENDING' }
     });
 
     // 4. Expire RC Books
     const expiredRcBooks = await this.prisma.driverDocuments.updateMany({
       where: {
         rcBookExpiry: { lt: now },
-        rcBookStatus: 'VERIFIED',
+        rcBookStatus: 'VERIFIED'
       },
-      data: { rcBookStatus: 'PENDING' },
+      data: { rcBookStatus: 'PENDING' }
     });
 
-    this.logger.log(
-      `Expired docs: License=${expiredLicenses.count}, FC=${expiredFCs.count}, Insurance=${expiredInsurances.count}, RCBook=${expiredRcBooks.count}.`,
-    );
+    this.logger.log(`Expired docs: License=${expiredLicenses.count}, FC=${expiredFCs.count}, Insurance=${expiredInsurances.count}, RCBook=${expiredRcBooks.count}.`);
 
     // 5. Update Driver status to PENDING ONLY if they have EXPIRED documents
     const demotedDrivers = await this.prisma.driver.updateMany({
@@ -59,15 +57,13 @@ export class DocumentCleanupService {
             { licenseExpiry: { lt: now } },
             { fcExpiry: { lt: now } },
             { insuranceExpiry: { lt: now } },
-            { rcBookExpiry: { lt: now } },
-          ],
-        },
+            { rcBookExpiry: { lt: now } }
+          ]
+        }
       },
-      data: { verificationStatus: 'PENDING' },
+      data: { verificationStatus: 'PENDING' }
     });
 
-    this.logger.log(
-      `Demoted ${demotedDrivers.count} drivers due to expired documents.`,
-    );
+    this.logger.log(`Demoted ${demotedDrivers.count} drivers due to expired documents.`);
   }
 }

@@ -6,16 +6,9 @@ import { UserType, User, UserToken } from 'src/common/types/user-session.types';
 
 @Injectable()
 export class TokenService {
-  constructor(
-    private sessionService: SessionService,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private sessionService: SessionService, private jwtService: JwtService) {}
 
-  async generateAccessToken(
-    user: User,
-    userType: UserType,
-    sessionId: string,
-  ): Promise<string> {
+  async generateAccessToken(user: User, userType: UserType, sessionId: string): Promise<string> {
     const hasCompletedOnboarding = user.firstName !== null;
     const accessToken = await this.jwtService.signAsync({
       userType,
@@ -23,40 +16,25 @@ export class TokenService {
       phoneNumber: user.phoneNumber,
       hasCompletedOnboarding,
       sessionId,
-      isActive: user.isActive,
+      isActive: user.isActive
     });
 
     return accessToken;
   }
 
-  async generateRefreshToken(
-    userId: string,
-    userType: UserType,
-    staleRefreshToken?: string,
-    fcmToken?: string,
-  ): Promise<string> {
+  async generateRefreshToken(userId: string, userType: UserType, staleRefreshToken?: string, fcmToken?: string): Promise<string> {
     // If a stale refresh token is provided, delete the session
     if (staleRefreshToken) {
-      await this.sessionService.deleteSession(
-        staleRefreshToken.split('.', 2)[0],
-        userType,
-      );
+      await this.sessionService.deleteSession(staleRefreshToken.split('.', 2)[0], userType);
     }
     // Create a new session
-    const session = await this.sessionService.createSession(
-      userId,
-      userType,
-      fcmToken,
-    );
+    const session = await this.sessionService.createSession(userId, userType, fcmToken);
 
     const refreshToken = `${session.id}.${session.token}`;
     return refreshToken;
   }
 
-  async refreshAccessToken(
-    refreshToken: string,
-    userType: UserType,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  async refreshAccessToken(refreshToken: string, userType: UserType): Promise<{ accessToken: string; refreshToken: string}> {
     if (!refreshToken || !refreshToken.includes('.')) {
       throw new UnauthorizedException('Invalid refresh token format');
     }
@@ -74,24 +52,18 @@ export class TokenService {
 
     if (!isCurrentToken && !isOldToken) {
       await this.sessionService.deleteSession(session.id, userType);
-      throw new UnauthorizedException(
-        'Invalid refresh token - session terminated',
-      );
+      throw new UnauthorizedException('Invalid refresh token - session terminated');
     }
 
     const newToken = crypto.randomBytes(64).toString('hex');
 
     await this.sessionService.updateSession(session.id, userType, {
       token: newToken,
-      ...(isCurrentToken && { oldToken: session.token }), // Only set oldToken if current token was used
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // Extend 30 days
+        ...(isCurrentToken && { oldToken: session.token }), // Only set oldToken if current token was used
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // Extend 30 days
     });
 
-    const accessToken = await this.generateAccessToken(
-      session.user,
-      userType,
-      session.id,
-    );
+    const accessToken = await this.generateAccessToken(session.user, userType, session.id);
 
     return {
       accessToken,
@@ -99,10 +71,7 @@ export class TokenService {
     };
   }
 
-  async validateRefreshToken(
-    refreshToken: string,
-    userType: UserType,
-  ): Promise<User> {
+  async validateRefreshToken(refreshToken: string, userType: UserType): Promise<User> {
     if (!refreshToken || !refreshToken.includes('.')) {
       throw new UnauthorizedException('Invalid refresh token format');
     }
@@ -119,9 +88,7 @@ export class TokenService {
     if (session.token !== tokenValue && session.oldToken !== tokenValue) {
       // Security breach - delete the session
       await this.sessionService.deleteSession(sessionId, userType);
-      throw new UnauthorizedException(
-        'Invalid refresh token - session terminated',
-      );
+      throw new UnauthorizedException('Invalid refresh token - session terminated');
     }
 
     return session.user;
@@ -129,18 +96,18 @@ export class TokenService {
 
   async validateAccessToken(token: string): Promise<UserToken> {
     try {
-      if (token === '6300045929') {
+      if(token === '6300045929') {
         return {
           userId: 'd0ae7050-a9b3-40db-aa9f-68a2f0e4effe',
           userType: 'customer',
           phoneNumber: '6300045929',
           hasCompletedOnboarding: true,
           sessionId: '1234567890',
-          isActive: true,
+          isActive: true
         };
       }
       const user: UserToken = await this.jwtService.verifyAsync(token);
-      if (!user.isActive) {
+      if(!user.isActive) {
         throw new UnauthorizedException('Account is not active');
       }
       return user;

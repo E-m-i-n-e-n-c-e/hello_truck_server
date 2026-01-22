@@ -9,6 +9,6 @@ import { DriverDocumentsController } from '../controllers/driver-documents.contr
   imports: [PrismaModule, FirebaseModule, TokenModule],
   controllers: [DriverDocumentsController],
   providers: [DocumentsService],
-  exports: [DocumentsService],
+  exports: [DocumentsService]
 })
 export class DocumentsModule {}

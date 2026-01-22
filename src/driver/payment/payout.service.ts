@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RazorpayXService } from 'src/razorpay/razorpayx.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
@@ -160,13 +155,10 @@ export class DriverPayoutService {
     const withdrawalAmount = toNumber(truncateDecimal(withdrawalAmountDecimal));
 
     // Calculate 1% service fee (truncated to 2 decimal places)
-    const serviceFeeDecimal = truncateDecimal(
-      withdrawalAmountDecimal.times(0.01),
-    );
-
+    const serviceFeeDecimal = truncateDecimal(withdrawalAmountDecimal.times(0.01));
+    
     // Actual payout amount after service fee
-    const payoutAmountDecimal =
-      withdrawalAmountDecimal.minus(serviceFeeDecimal);
+    const payoutAmountDecimal = withdrawalAmountDecimal.minus(serviceFeeDecimal);
     const payoutAmount = toNumber(truncateDecimal(payoutAmountDecimal));
 
     this.logger.log(

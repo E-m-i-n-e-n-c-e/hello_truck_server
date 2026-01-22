@@ -54,16 +54,10 @@ export async function createTestApp(): Promise<INestApplication> {
         emailVerified: true,
         name: 'Test User',
       }),
-      getEmailFromGoogleIdToken: jest
-        .fn()
-        .mockResolvedValue('test@example.com'),
+      getEmailFromGoogleIdToken: jest.fn().mockResolvedValue('test@example.com'),
       upsertFcmToken: jest.fn().mockResolvedValue(undefined),
-      sendNotification: jest
-        .fn()
-        .mockResolvedValue({ messageId: 'msg_test123' }),
-      notifyAllSessions: jest
-        .fn()
-        .mockResolvedValue({ successCount: 1, failureCount: 0 }),
+      sendNotification: jest.fn().mockResolvedValue({ messageId: 'msg_test123' }),
+      notifyAllSessions: jest.fn().mockResolvedValue({ successCount: 1, failureCount: 0 }),
       subscribeToTopic: jest.fn().mockResolvedValue(undefined),
       unsubscribeFromTopic: jest.fn().mockResolvedValue(undefined),
     })

@@ -16,33 +16,9 @@ import { AssignmentModule } from './assignment/assignment.module';
 import { RazorpayModule } from 'src/razorpay/razorpay.module';
 
 @Module({
-  imports: [
-    PricingModule,
-    TokenModule,
-    FirebaseModule,
-    RedisModule,
-    AssignmentModule,
-    RazorpayModule,
-  ],
-  controllers: [
-    BookingCustomerController,
-    BookingDriverController,
-    BookingPaymentController,
-  ],
-  providers: [
-    BookingCustomerService,
-    BookingDriverService,
-    BookingInvoiceService,
-    BookingPaymentService,
-    BookingRefundService,
-    BookingNotificationService,
-  ],
-  exports: [
-    BookingCustomerService,
-    BookingDriverService,
-    BookingPaymentService,
-    BookingRefundService,
-    BookingNotificationService,
-  ],
+  imports: [PricingModule, TokenModule, FirebaseModule, RedisModule, AssignmentModule, RazorpayModule],
+  controllers: [BookingCustomerController, BookingDriverController, BookingPaymentController],
+  providers: [BookingCustomerService, BookingDriverService, BookingInvoiceService, BookingPaymentService, BookingRefundService, BookingNotificationService],
+  exports: [BookingCustomerService, BookingDriverService, BookingPaymentService, BookingRefundService, BookingNotificationService],
 })
 export class BookingModule {}

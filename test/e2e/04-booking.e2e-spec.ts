@@ -1,11 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp } from '../setup/test-app';
-import {
-  setupTestDatabase,
-  closeDatabaseConnection,
-  prisma,
-} from '../setup/database';
+import { setupTestDatabase, closeDatabaseConnection, prisma } from '../setup/database';
 import { loginAsCustomer, loginAsDriver } from '../setup/auth-helper';
 import { testState } from '../setup/shared-state';
 import { createBookingRequestDto } from '../factories';
@@ -241,9 +237,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .expect(201);
 
       // After accepting, booking should be CONFIRMED
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.status).toBe('CONFIRMED');
     });
 
@@ -254,9 +248,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .set('Authorization', `Bearer ${driverToken}`)
         .expect(201);
 
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.status).toBe('PICKUP_ARRIVED');
     });
 
@@ -270,9 +262,7 @@ describe('04 - Booking Flow (E2E)', () => {
 
     it('should verify pickup', async () => {
       // Get booking OTP
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
 
       const res = await request(app.getHttpServer())
         .post('/bookings/driver/pickup/verify')
@@ -280,9 +270,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .send({ otp: booking?.pickupOtp })
         .expect(201);
 
-      const updatedBooking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const updatedBooking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(updatedBooking?.status).toBe('PICKUP_VERIFIED');
     });
 
@@ -292,9 +280,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .set('Authorization', `Bearer ${driverToken}`)
         .expect(201);
 
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.status).toBe('IN_TRANSIT');
     });
 
@@ -304,16 +290,12 @@ describe('04 - Booking Flow (E2E)', () => {
         .set('Authorization', `Bearer ${driverToken}`)
         .expect(201);
 
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.status).toBe('DROP_ARRIVED');
     });
 
     it('should verify drop', async () => {
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
 
       const res = await request(app.getHttpServer())
         .post('/bookings/driver/drop/verify')
@@ -321,9 +303,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .send({ otp: booking?.dropOtp })
         .expect(201);
 
-      const updatedBooking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const updatedBooking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(updatedBooking?.status).toBe('DROP_VERIFIED');
     });
 
@@ -334,9 +314,7 @@ describe('04 - Booking Flow (E2E)', () => {
 
       expect(res.status).toBe(201);
 
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(booking?.status).toBe('COMPLETED');
     });
   });
@@ -349,10 +327,8 @@ describe('04 - Booking Flow (E2E)', () => {
       // Create a NEW booking for online payment test
       const bookingData = createBookingRequestDto();
       // Modify addresses slightly to create unique booking
-      bookingData.pickupAddress.formattedAddress =
-        '200 Pickup Online St, Hyderabad';
-      bookingData.dropAddress.formattedAddress =
-        '300 Drop Online Ave, Hyderabad';
+      bookingData.pickupAddress.formattedAddress = '200 Pickup Online St, Hyderabad';
+      bookingData.dropAddress.formattedAddress = '300 Drop Online Ave, Hyderabad';
 
       const res = await request(app.getHttpServer())
         .post('/bookings/customer')
@@ -434,9 +410,7 @@ describe('04 - Booking Flow (E2E)', () => {
     });
 
     it('should verify pickup after payment', async () => {
-      const bookingForPickup = await prisma.booking.findUnique({
-        where: { id: onlineBookingId },
-      });
+      const bookingForPickup = await prisma.booking.findUnique({ where: { id: onlineBookingId } });
       await request(app.getHttpServer())
         .post('/bookings/driver/pickup/verify')
         .set('Authorization', `Bearer ${driverToken}`)
@@ -458,9 +432,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .expect(201);
 
       // Verify drop
-      const bookingForDrop = await prisma.booking.findUnique({
-        where: { id: onlineBookingId },
-      });
+      const bookingForDrop = await prisma.booking.findUnique({ where: { id: onlineBookingId } });
       await request(app.getHttpServer())
         .post('/bookings/driver/drop/verify')
         .set('Authorization', `Bearer ${driverToken}`)
@@ -474,9 +446,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .set('Authorization', `Bearer ${driverToken}`)
         .expect(201);
 
-      const booking = await prisma.booking.findUnique({
-        where: { id: onlineBookingId },
-      });
+      const booking = await prisma.booking.findUnique({ where: { id: onlineBookingId } });
       expect(booking?.status).toBe('COMPLETED');
     });
   });
@@ -512,9 +482,7 @@ describe('04 - Booking Flow (E2E)', () => {
         .expect(200);
 
       // Should return today's date in YYYY-MM-DD format
-      const today = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Kolkata',
-      });
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
       expect(res.body.date).toBe(today);
 
       // Should have 2 completed rides (cash + online)
@@ -543,9 +511,7 @@ describe('04 - Booking Flow (E2E)', () => {
 
     it('should get ride summary for specific date', async () => {
       // Use today's date explicitly
-      const today = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Kolkata',
-      });
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
       const res = await request(app.getHttpServer())
         .get('/bookings/driver/ride-summary')
@@ -561,9 +527,7 @@ describe('04 - Booking Flow (E2E)', () => {
       // Use a future date
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 1);
-      const futureDateStr = futureDate.toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Kolkata',
-      });
+      const futureDateStr = futureDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
       const res = await request(app.getHttpServer())
         .get('/bookings/driver/ride-summary')
@@ -585,9 +549,7 @@ describe('04 - Booking Flow (E2E)', () => {
 
       if (res.body.totalRides > 0) {
         const assignment = res.body.assignments[0];
-        const invoice = assignment.booking.invoices.find(
-          (inv: any) => inv.type === 'FINAL',
-        );
+        const invoice = assignment.booking.invoices.find((inv: any) => inv.type === 'FINAL');
 
         if (invoice) {
           const totalAmount = Number(invoice.finalAmount);
@@ -595,9 +557,7 @@ describe('04 - Booking Flow (E2E)', () => {
           const expectedNetEarning = totalAmount - commission;
 
           // Net earnings should be less than total amount (commission deducted)
-          expect(res.body.netEarnings).toBeLessThan(
-            totalAmount * res.body.totalRides,
-          );
+          expect(res.body.netEarnings).toBeLessThan(totalAmount * res.body.totalRides);
         }
       }
     });

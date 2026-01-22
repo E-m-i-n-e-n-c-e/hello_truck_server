@@ -1,4 +1,4 @@
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from "@prisma/client/runtime/library";
 
 export type Address = {
   addressLine1: string;
@@ -16,3 +16,4 @@ export type Address = {
 export type AddressWithPhoneNumber = Address & {
   phoneNumber: string;
 };
+

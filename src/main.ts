@@ -30,21 +30,18 @@ function setupSwagger(app: INestApplication) {
 
   // Add security to all endpoints by default, except auth endpoints
   document.paths = Object.keys(document.paths).reduce((acc, path) => {
-    acc[path] = Object.keys(document.paths[path]).reduce(
-      (methodAcc, method) => {
-        // Skip adding security to auth endpoints
-        if (path.includes('/auth/')) {
-          methodAcc[method] = document.paths[path][method];
-        } else {
-          methodAcc[method] = {
-            ...document.paths[path][method],
-            security: [{ 'access-token': [] }],
-          };
-        }
-        return methodAcc;
-      },
-      {},
-    );
+    acc[path] = Object.keys(document.paths[path]).reduce((methodAcc, method) => {
+      // Skip adding security to auth endpoints
+      if (path.includes('/auth/')) {
+        methodAcc[method] = document.paths[path][method];
+      } else {
+        methodAcc[method] = {
+          ...document.paths[path][method],
+          security: [{ 'access-token': [] }],
+        };
+      }
+      return methodAcc;
+    }, {});
     return acc;
   }, {});
 
@@ -70,10 +67,9 @@ function setupSwagger(app: INestApplication) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger:
-      process.env.NODE_ENV === 'production'
-        ? false
-        : ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger: process.env.NODE_ENV === 'production'
+      ? false
+      : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
   // Get ConfigService for typed environment access

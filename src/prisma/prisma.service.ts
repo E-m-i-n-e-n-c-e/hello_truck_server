@@ -2,10 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient, BookingStatus, DriverStatus } from '@prisma/client';
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
     super();
 
@@ -18,17 +15,15 @@ export class PrismaService
 
             // After update succeeds, handle logging non-blocking
             setImmediate(() => {
-              if (result.driverStatus && result.id) {
-                self
-                  .handleDriverStatusChange(result.id, result.driverStatus)
-                  .catch((err) => {
-                    console.error('Driver status logging failed:', err);
-                  });
+              if(result.driverStatus && result.id) {
+              self.handleDriverStatusChange(result.id, result.driverStatus).catch(err => {
+                  console.error('Driver status logging failed:', err);
+                });
               }
             });
 
             return result;
-          },
+          }
         },
         booking: {
           async update({ args, query }) {
@@ -37,18 +32,16 @@ export class PrismaService
             // After update succeeds, handle logging non-blocking
             setImmediate(() => {
               if (result.status && result.id) {
-                self
-                  .handleBookingStatusChange(result.id, result.status)
-                  .catch((err) => {
-                    console.error('Booking lifecycle logging failed:', err);
-                  });
+                self.handleBookingStatusChange(result.id!, result.status!).catch(err => {
+                  console.error('Booking lifecycle logging failed:', err);
+                });
               }
             });
 
             return result;
-          },
+          }
         },
-      },
+      }
     });
   }
 
@@ -56,7 +49,7 @@ export class PrismaService
   async handleBookingStatusChange(bookingId: string, newStatus: BookingStatus) {
     const oldStatus = await this.booking.findUnique({
       where: { id: bookingId },
-      select: { status: true },
+      select: { status: true }
     });
 
     if (oldStatus && oldStatus.status !== newStatus) {
@@ -64,7 +57,7 @@ export class PrismaService
         data: {
           bookingId,
           status: newStatus,
-        },
+        }
       });
     }
   }
@@ -73,14 +66,15 @@ export class PrismaService
   async handleDriverStatusChange(driverId: string, newStatus: DriverStatus) {
     const oldStatus = await this.driver.findUnique({
       where: { id: driverId },
-      select: { driverStatus: true },
+      select: { driverStatus: true }
     });
     if (oldStatus && oldStatus.driverStatus !== newStatus) {
       await this.driverStatusLog.create({
-        data: { driverId, status: newStatus },
+        data: { driverId, status: newStatus }
       });
     }
   }
+
 
   async onModuleInit() {
     await this.$connect();

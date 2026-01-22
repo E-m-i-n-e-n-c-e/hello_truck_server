@@ -22,12 +22,10 @@ import { WebhookModule } from './webhook/webhook.module';
       validate, // Fail-fast validation on startup
     }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([
-      {
-        ttl: seconds(60), // 1 minute
-        limit: 200, // 200 requests per ttl
-      },
-    ]),
+    ThrottlerModule.forRoot([{
+      ttl: seconds(60), // 1 minute
+      limit: 200, // 200 requests per ttl
+    }]),
     AuthModule,
     CronModule,
     TokenModule,
@@ -38,11 +36,9 @@ import { WebhookModule } from './webhook/webhook.module';
     WebhookModule,
   ],
   controllers: [AppController],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
-  ],
+  providers: [ {
+    provide: APP_GUARD,
+    useClass: CustomThrottlerGuard,
+  }],
 })
 export class AppModule {}

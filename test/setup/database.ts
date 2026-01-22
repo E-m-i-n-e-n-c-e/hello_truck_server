@@ -55,27 +55,9 @@ export async function truncateDatabase(): Promise<void> {
  */
 export async function seedVehicleModels(): Promise<void> {
   const models = [
-    {
-      name: 'Tata Ace',
-      baseFare: 200,
-      perKm: 10,
-      baseKm: 5,
-      maxWeightTons: 0.75,
-    },
-    {
-      name: 'Mahindra Bolero Pickup',
-      baseFare: 300,
-      perKm: 12,
-      baseKm: 5,
-      maxWeightTons: 1.5,
-    },
-    {
-      name: 'Tata 407',
-      baseFare: 500,
-      perKm: 15,
-      baseKm: 5,
-      maxWeightTons: 2.5,
-    },
+    { name: 'Tata Ace', baseFare: 200, perKm: 10, baseKm: 5, maxWeightTons: 0.75 },
+    { name: 'Mahindra Bolero Pickup', baseFare: 300, perKm: 12, baseKm: 5, maxWeightTons: 1.5 },
+    { name: 'Tata 407', baseFare: 500, perKm: 15, baseKm: 5, maxWeightTons: 2.5 },
   ];
 
   for (const model of models) {
