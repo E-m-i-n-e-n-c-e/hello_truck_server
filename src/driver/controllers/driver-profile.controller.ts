@@ -1,4 +1,4 @@
-import { Controller, UseGuards, Post, Get, Put, Body, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
+import { Controller, UseGuards, Post, Get, Put, Body, Query } from '@nestjs/common';
 import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 import { Roles } from 'src/token/decorators/roles.decorator';
 import { AccessTokenGuard } from 'src/token/guards/access-token.guard';

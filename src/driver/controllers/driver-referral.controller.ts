@@ -10,11 +10,13 @@ import {
 } from '@nestjs/common';
 import { ReferralService } from '../../referral/referral.service';
 import { ApplyDriverReferralDto } from '../../referral/dtos/apply-driver-referral.dto';
+import { DriverReferralStatsDto } from '../../referral/dtos/referral-stats.dto';
 import { AccessTokenGuard } from '../../token/guards/access-token.guard';
 import { RolesGuard } from '../../token/guards/roles.guard';
 import { Roles } from '../../token/decorators/roles.decorator';
 import { User } from '../../token/decorators/user.decorator';
 import { UserToken } from '../../common/types/user-session.types';
+import { Serialize } from 'src/common/interceptors/serialize.interceptor';
 
 @Controller('driver/referral')
 @UseGuards(AccessTokenGuard, RolesGuard)
@@ -38,7 +40,8 @@ export class DriverReferralController {
   }
 
   @Get('stats')
-  async getReferralStats(@User() user: UserToken) {
+  @Serialize(DriverReferralStatsDto)
+  async getReferralStats(@User() user: UserToken): Promise<DriverReferralStatsDto> {
     return this.referralService.getDriverReferralStats(user.userId);
   }
 

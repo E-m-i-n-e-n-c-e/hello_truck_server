@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { generateReferralCode } from '../common/utils/referral-code.util';
 import { FirebaseService } from '../firebase/firebase.service';
 import { FcmEventType } from '../common/types/fcm.types';
+import { CustomerReferralStatsDto, DriverReferralStatsDto } from './dtos/referral-stats.dto';
 
 @Injectable()
 export class ReferralService {
@@ -426,7 +427,7 @@ export class ReferralService {
   /**
    * Get referral stats for a customer
    */
-  async getCustomerReferralStats(customerId: string) {
+  async getCustomerReferralStats(customerId: string): Promise<CustomerReferralStatsDto> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
       select: { referralCode: true },
@@ -438,13 +439,17 @@ export class ReferralService {
       }),
       this.prisma.customerReferral.findMany({
         where: { referrerId: customerId },
-        include: {
+        select: {
+          id: true,
+          referrerRewardApplied: true,
+          createdAt: true,
           referred: {
             select: {
               id: true,
               firstName: true,
               lastName: true,
               phoneNumber: true,
+              bookingCount: true,
               createdAt: true,
             },
           },
@@ -454,13 +459,14 @@ export class ReferralService {
     ]);
 
     return {
-      referralCode: customer?.referralCode,
+      referralCode: customer?.referralCode ?? null,
       totalReferrals: referralCount,
       remainingReferrals: Math.max(0, this.MAX_REFERRALS - referralCount),
       maxReferrals: this.MAX_REFERRALS,
       referrals: referrals.map((r) => ({
         id: r.id,
         referredCustomer: r.referred,
+        referrerRewardApplied: r.referrerRewardApplied,
         createdAt: r.createdAt,
       })),
     };
@@ -469,7 +475,7 @@ export class ReferralService {
   /**
    * Get referral stats for a driver
    */
-  async getDriverReferralStats(driverId: string) {
+  async getDriverReferralStats(driverId: string): Promise<DriverReferralStatsDto> {
     const driver = await this.prisma.driver.findUnique({
       where: { id: driverId },
       select: { referralCode: true },
@@ -481,13 +487,18 @@ export class ReferralService {
       }),
       this.prisma.driverReferral.findMany({
         where: { referrerId: driverId },
-        include: {
+        select: {
+          id: true,
+          referrerRewardApplied: true,
+          createdAt: true,
           referred: {
             select: {
               id: true,
               firstName: true,
               lastName: true,
               phoneNumber: true,
+              photo: true,
+              rideCount: true,
               createdAt: true,
             },
           },
@@ -497,13 +508,14 @@ export class ReferralService {
     ]);
 
     return {
-      referralCode: driver?.referralCode,
+      referralCode: driver?.referralCode ?? null,
       totalReferrals: referralCount,
       remainingReferrals: Math.max(0, this.MAX_REFERRALS - referralCount),
       maxReferrals: this.MAX_REFERRALS,
       referrals: referrals.map((r) => ({
         id: r.id,
         referredDriver: r.referred,
+        referrerRewardApplied: r.referrerRewardApplied,
         createdAt: r.createdAt,
       })),
     };

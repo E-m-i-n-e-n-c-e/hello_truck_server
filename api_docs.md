@@ -362,24 +362,43 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `referralCode`: `string` - Customer referral code (format: CUS-XXXXXXXX)
 *   **`ApplyDriverReferralDto`**: Apply a driver referral code.
     *   `referralCode`: `string` - Driver referral code (format: DRI-XXXXXXXX)
-*   **`CustomerReferralStatsResponseDto`**: Customer referral statistics.
+*   **`CustomerReferralStatsDto`**: Customer referral statistics response.
     *   `referralCode`: `string | null` - Customer's unique referral code
     *   `totalReferrals`: `number` - Number of successful referrals
     *   `remainingReferrals`: `number` - Remaining referral slots (max 5)
     *   `maxReferrals`: `number` - Maximum allowed referrals (5)
-    *   `referrals`: `Array` - List of referred customers with details
-        *   `id`: `string` - Referral record ID
-        *   `referredCustomer`: `object` - Referred customer details (id, firstName, lastName, phoneNumber, createdAt)
-        *   `createdAt`: `Date` - When referral was applied
-*   **`DriverReferralStatsResponseDto`**: Driver referral statistics.
+    *   `referrals`: `CustomerReferralEntryDto[]` - List of referred customers
+*   **`CustomerReferralEntryDto`**: Individual customer referral entry.
+    *   `id`: `string` - Referral record ID
+    *   `referredCustomer`: `ReferredCustomerDto` - Referred customer details
+    *   `referrerRewardApplied`: `boolean` - Whether referrer has received ₹100 reward (true after referred customer completes first booking)
+    *   `createdAt`: `Date` - When referral was applied
+*   **`ReferredCustomerDto`**: Details of a referred customer.
+    *   `id`: `string` - Customer ID
+    *   `firstName`: `string | null` - First name
+    *   `lastName`: `string | null` - Last name
+    *   `phoneNumber`: `string` - Phone number
+    *   `bookingCount`: `number` - Number of completed bookings (0 = first booking pending)
+    *   `createdAt`: `Date` - When customer signed up
+*   **`DriverReferralStatsDto`**: Driver referral statistics response.
     *   `referralCode`: `string | null` - Driver's unique referral code
     *   `totalReferrals`: `number` - Number of successful referrals
     *   `remainingReferrals`: `number` - Remaining referral slots (max 5)
     *   `maxReferrals`: `number` - Maximum allowed referrals (5)
-    *   `referrals`: `Array` - List of referred drivers with details
-        *   `id`: `string` - Referral record ID
-        *   `referredDriver`: `object` - Referred driver details (id, firstName, lastName, phoneNumber, createdAt)
-        *   `createdAt`: `Date` - When referral was applied
+    *   `referrals`: `DriverReferralEntryDto[]` - List of referred drivers
+*   **`DriverReferralEntryDto`**: Individual driver referral entry.
+    *   `id`: `string` - Referral record ID
+    *   `referredDriver`: `ReferredDriverDto` - Referred driver details
+    *   `referrerRewardApplied`: `boolean` - Whether referrer has received ₹300 reward (true after referred driver completes first ride)
+    *   `createdAt`: `Date` - When referral was applied
+*   **`ReferredDriverDto`**: Details of a referred driver.
+    *   `id`: `string` - Driver ID
+    *   `firstName`: `string | null` - First name
+    *   `lastName`: `string | null` - Last name
+    *   `phoneNumber`: `string` - Phone number
+    *   `photo`: `string | null` - Profile photo URL
+    *   `rideCount`: `number` - Number of completed rides (0 = first ride pending)
+    *   `createdAt`: `Date` - When driver signed up
 
 ### Razorpay DTOs
 *   **`CreateContactDto`**:
