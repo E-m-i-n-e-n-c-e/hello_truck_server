@@ -65,6 +65,8 @@ export class GetProfileResponseDto implements Customer {
   @Expose()
   walletBalance: Decimal;
   @Expose()
+  bookingCount: number;
+  @Expose()
   createdAt: Date;
   @Expose()
   updatedAt: Date;

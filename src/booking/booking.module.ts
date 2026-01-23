@@ -14,9 +14,10 @@ import { BookingNotificationService } from './services/booking-notification.serv
 import { RedisModule } from 'src/redis/redis.module';
 import { AssignmentModule } from './assignment/assignment.module';
 import { RazorpayModule } from 'src/razorpay/razorpay.module';
+import { ReferralModule } from 'src/referral/referral.module';
 
 @Module({
-  imports: [PricingModule, TokenModule, FirebaseModule, RedisModule, AssignmentModule, RazorpayModule],
+  imports: [PricingModule, TokenModule, FirebaseModule, RedisModule, AssignmentModule, RazorpayModule, ReferralModule],
   controllers: [BookingCustomerController, BookingDriverController, BookingPaymentController],
   providers: [BookingCustomerService, BookingDriverService, BookingInvoiceService, BookingPaymentService, BookingRefundService, BookingNotificationService],
   exports: [BookingCustomerService, BookingDriverService, BookingPaymentService, BookingRefundService, BookingNotificationService],

@@ -17,6 +17,7 @@ model Customer {
   referralCode    String?              @unique
   isActive        Boolean              @default(true)
   walletBalance   Decimal              @default(0) @db.Decimal(10, 2)
+  bookingCount    Int                  @default(0)
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   bookings        Booking[]
@@ -517,25 +518,31 @@ model RefundIntent {
 }
 
 model CustomerReferral {
-  id         String   @id @default(uuid())
-  referrerId String
-  referredId String   @unique
-  createdAt  DateTime @default(now())
-  referred   Customer @relation("CustomerReferred", fields: [referredId], references: [id], onDelete: Cascade)
-  referrer   Customer @relation("CustomerReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(uuid())
+  referrerId             String
+  referredId             String   @unique
+  referrerRewardApplied  Boolean  @default(false)
+  referredRewardApplied  Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  referred               Customer @relation("CustomerReferred", fields: [referredId], references: [id], onDelete: Cascade)
+  referrer               Customer @relation("CustomerReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
 
   @@index([referrerId])
+  @@index([referredId, referrerRewardApplied])
 }
 
 model DriverReferral {
-  id         String   @id @default(uuid())
-  referrerId String
-  referredId String   @unique
-  createdAt  DateTime @default(now())
-  referred   Driver   @relation("DriverReferred", fields: [referredId], references: [id], onDelete: Cascade)
-  referrer   Driver   @relation("DriverReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(uuid())
+  referrerId             String
+  referredId             String   @unique
+  referrerRewardApplied  Boolean  @default(false)
+  referredRewardApplied  Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  referred               Driver   @relation("DriverReferred", fields: [referredId], references: [id], onDelete: Cascade)
+  referrer               Driver   @relation("DriverReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
 
   @@index([referrerId])
+  @@index([referredId, referrerRewardApplied])
 }
 
 model WebhookLog {

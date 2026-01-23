@@ -7,6 +7,7 @@ import { BookingInvoiceService } from './booking-invoice.service';
 import { BookingPaymentService } from './booking-payment.service';
 import { BookingNotificationService } from './booking-notification.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
+import { ReferralService } from 'src/referral/referral.service';
 import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
 
 type BookingWithRelations = Booking & {
@@ -34,6 +35,7 @@ export class BookingDriverService {
     private readonly notificationService: BookingNotificationService,
     private readonly configService: ConfigService,
     private readonly razorpayService: RazorpayService,
+    private readonly referralService: ReferralService,
   ) { }
 
   async acceptBooking(driverAssignmentId: string): Promise<void> {
@@ -334,7 +336,7 @@ export class BookingDriverService {
   }
 
   async finishRide(driverId: string): Promise<void> {
-    const { walletChange, isCashPayment, customerId } = await this.prisma.$transaction(async (tx) => {
+    const { walletChange, isCashPayment, customerId, driverRideCount, customerBookingCount } = await this.prisma.$transaction(async (tx) => {
       const assignment = await this.getDriverAssignment(driverId, tx);
       if (!assignment) {
         throw new NotFoundException(`No pending assignment found for driver ${driverId}`);
@@ -397,14 +399,15 @@ export class BookingDriverService {
         walletLogReason = `Earnings from Booking #${assignment.booking.bookingNumber}`;
       }
 
-      // Update driver status and wallet
-      await tx.driver.update({
+      // Update driver status and wallet, increment ride count
+      const updatedDriver = await tx.driver.update({
         where: { id: driverId },
         data: {
           driverStatus: DriverStatus.AVAILABLE,
           walletBalance: newBalance,
           rideCount: { increment: 1 },
         },
+        select: { rideCount: true },
       });
 
       // Log wallet change
@@ -425,7 +428,24 @@ export class BookingDriverService {
         data: { status: BookingStatus.COMPLETED, completedAt: new Date() },
       });
 
-      return { walletChange, isCashPayment, customerId: assignment.booking.customerId };
+      // Increment customer booking count
+      let customerBookingCount: number | null = null;
+      if (assignment.booking.customerId) {
+        const updatedCustomer = await tx.customer.update({
+          where: { id: assignment.booking.customerId },
+          data: { bookingCount: { increment: 1 } },
+          select: { bookingCount: true },
+        });
+        customerBookingCount = updatedCustomer.bookingCount;
+      }
+
+      return { 
+        walletChange, 
+        isCashPayment, 
+        customerId: assignment.booking.customerId,
+        driverRideCount: updatedDriver.rideCount,
+        customerBookingCount,
+      };
     });
 
     // Send notifications (fire-and-forget, outside transaction)
@@ -440,6 +460,20 @@ export class BookingDriverService {
     // Notify customer that ride is completed
     if (customerId) {
       this.notificationService.notifyCustomerRideCompleted(customerId);
+    }
+
+    // If this was driver's first ride, apply referral reward asynchronously
+    if (driverRideCount === 1) {
+      this.referralService.applyDriverReferrerReward(driverId).catch(err => {
+        this.logger.error(`Failed to apply driver referrer reward: ${err.message}`);
+      });
+    }
+
+    // If this was customer's first booking, apply referral reward asynchronously
+    if (customerBookingCount === 1 && customerId) {
+      this.referralService.applyCustomerReferrerReward(customerId).catch(err => {
+        this.logger.error(`Failed to apply customer referrer reward: ${err.message}`);
+      });
     }
   }
 

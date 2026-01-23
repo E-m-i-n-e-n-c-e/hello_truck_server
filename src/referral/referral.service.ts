@@ -93,6 +93,8 @@ export class ReferralService {
 
   /**
    * Apply a referral code when a customer signs up
+   * Now only credits ₹50 to the referred customer instantly
+   * Referrer gets ₹100 later when referred completes first booking
    */
   async applyCustomerReferralCode(
     referralCode: string,
@@ -134,31 +136,16 @@ export class ReferralService {
         throw new BadRequestException('Referral limit reached for this code');
       }
 
-      // Create the referral record
+      // Create the referral record (referrerRewardApplied = false by default)
       await tx.customerReferral.create({
         data: {
           referrerId: referrer.id,
           referredId: newCustomerId,
+          referredRewardApplied: true, // Mark referred reward as applied
         },
       });
 
-      // 1. Credit Referrer (Customer) -> 100
-      const updatedReferrer = await tx.customer.update({
-        where: { id: referrer.id },
-        data: { walletBalance: { increment: 100 } },
-      });
-
-      await tx.customerWalletLog.create({
-        data: {
-          customerId: referrer.id,
-          amount: 100,
-          reason: 'Referral Bonus',
-          beforeBalance: referrer.walletBalance!, // Assuming fetched by findUnique
-          afterBalance: updatedReferrer.walletBalance!,
-        },
-      });
-
-      // 2. Credit Referred (New Customer) -> 50
+      // Credit ONLY the referred customer ₹50 instantly
       const newCustomer = await tx.customer.findUnique({
         where: { id: newCustomerId },
       });
@@ -173,29 +160,107 @@ export class ReferralService {
           data: {
             customerId: newCustomerId,
             amount: 50,
-            reason: 'Referral Bonus',
+            reason: 'Referral Signup Bonus',
             beforeBalance: newCustomer.walletBalance!,
             afterBalance: updatedNewCustomer.walletBalance!,
           },
         });
+
+        this.logger.log(
+          `Successfully applied referral code ${referralCode} for customer ${newCustomerId}. Credited ₹50 to referred customer.`,
+        );
+
+        // Send notification to referred customer only
+        this.firebaseService.notifyAllSessions(newCustomerId, 'customer', {
+          data: { event: FcmEventType.WalletChange },
+        });
       }
-
-      this.logger.log(
-        `Successfully applied referral code ${referralCode} for customer ${newCustomerId}`,
-      );
-
-      // Send notifications (fire-and-forget)
-      this.firebaseService.notifyAllSessions(referrer.id, 'customer', {
-        data: { event: FcmEventType.WalletChange },
-      });
-      this.firebaseService.notifyAllSessions(newCustomerId, 'customer', {
-        data: { event: FcmEventType.WalletChange },
-      });
     });
   }
 
   /**
+   * Apply referrer reward when referred customer completes their first booking
+   * Called asynchronously after first booking completion
+   * Idempotent - safe to call multiple times
+   */
+  async applyCustomerReferrerReward(referredCustomerId: string): Promise<void> {
+    this.logger.log(
+      `Applying referrer reward for referred customer ${referredCustomerId}`,
+    );
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Find the referral record (idempotent update)
+        const referralUpdate = await tx.customerReferral.updateMany({
+          where: {
+            referredId: referredCustomerId,
+            referrerRewardApplied: false,
+          },
+          data: {
+            referrerRewardApplied: true,
+          },
+        });
+
+        // If no rows updated, reward already applied or no referral exists
+        if (referralUpdate.count === 0) {
+          this.logger.log(
+            `No referrer reward to apply for customer ${referredCustomerId} (already applied or no referral)`,
+          );
+          return;
+        }
+
+        // Get the referral record to find referrer
+        const referral = await tx.customerReferral.findUnique({
+          where: { referredId: referredCustomerId },
+          include: { referrer: true },
+        });
+
+        if (!referral) {
+          this.logger.warn(
+            `Referral record not found after update for customer ${referredCustomerId}`,
+          );
+          return;
+        }
+
+        const referrer = referral.referrer;
+
+        // Credit referrer ₹100
+        const updatedReferrer = await tx.customer.update({
+          where: { id: referrer.id },
+          data: { walletBalance: { increment: 100 } },
+        });
+
+        await tx.customerWalletLog.create({
+          data: {
+            customerId: referrer.id,
+            amount: 100,
+            reason: 'Referral Completion Bonus',
+            beforeBalance: referrer.walletBalance!,
+            afterBalance: updatedReferrer.walletBalance!,
+          },
+        });
+
+        this.logger.log(
+          `Successfully applied ₹100 referrer reward to customer ${referrer.id}`,
+        );
+
+        // Send notification to referrer
+        this.firebaseService.notifyAllSessions(referrer.id, 'customer', {
+          data: { event: FcmEventType.WalletChange },
+        });
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to apply customer referrer reward: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Apply a referral code when a driver signs up
+   * Now only credits ₹50 to the referred driver instantly
+   * Referrer gets ₹300 later when referred completes first ride
    */
   async applyDriverReferralCode(
     referralCode: string,
@@ -237,31 +302,16 @@ export class ReferralService {
         throw new BadRequestException('Referral limit reached for this code');
       }
 
-      // Create the referral record
+      // Create the referral record (referrerRewardApplied = false by default)
       await tx.driverReferral.create({
         data: {
           referrerId: referrer.id,
           referredId: newDriverId,
+          referredRewardApplied: true, // Mark referred reward as applied
         },
       });
 
-      // 1. Credit Referrer (Driver) -> 300
-      const updatedReferrer = await tx.driver.update({
-        where: { id: referrer.id },
-        data: { walletBalance: { increment: 300 } },
-      });
-
-      await tx.driverWalletLog.create({
-        data: {
-          driverId: referrer.id,
-          amount: 300,
-          reason: 'Referral Bonus',
-          beforeBalance: referrer.walletBalance!,
-          afterBalance: updatedReferrer.walletBalance!,
-        },
-      });
-
-      // 2. Credit Referred (New Driver) -> 50
+      // Credit ONLY the referred driver ₹50 instantly
       const newDriver = await tx.driver.findUnique({
         where: { id: newDriverId },
       });
@@ -276,25 +326,101 @@ export class ReferralService {
           data: {
             driverId: newDriverId,
             amount: 50,
-            reason: 'Referral Bonus',
+            reason: 'Referral Signup Bonus',
             beforeBalance: newDriver.walletBalance!,
             afterBalance: updatedNewDriver.walletBalance!,
           },
         });
+
+        this.logger.log(
+          `Successfully applied referral code ${referralCode} for driver ${newDriverId}. Credited ₹50 to referred driver.`,
+        );
+
+        // Send notification to referred driver only
+        this.firebaseService.notifyAllSessions(newDriverId, 'driver', {
+          data: { event: FcmEventType.WalletChange },
+        });
       }
-
-      this.logger.log(
-        `Successfully applied referral code ${referralCode} for driver ${newDriverId}`,
-      );
-
-      // Send notifications (fire-and-forget)
-      this.firebaseService.notifyAllSessions(referrer.id, 'driver', {
-        data: { event: FcmEventType.WalletChange },
-      });
-      this.firebaseService.notifyAllSessions(newDriverId, 'driver', {
-        data: { event: FcmEventType.WalletChange },
-      });
     });
+  }
+
+  /**
+   * Apply referrer reward when referred driver completes their first ride
+   * Called asynchronously after first ride completion
+   * Idempotent - safe to call multiple times
+   */
+  async applyDriverReferrerReward(referredDriverId: string): Promise<void> {
+    this.logger.log(
+      `Applying referrer reward for referred driver ${referredDriverId}`,
+    );
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Find the referral record (idempotent update)
+        const referralUpdate = await tx.driverReferral.updateMany({
+          where: {
+            referredId: referredDriverId,
+            referrerRewardApplied: false,
+          },
+          data: {
+            referrerRewardApplied: true,
+          },
+        });
+
+        // If no rows updated, reward already applied or no referral exists
+        if (referralUpdate.count === 0) {
+          this.logger.log(
+            `No referrer reward to apply for driver ${referredDriverId} (already applied or no referral)`,
+          );
+          return;
+        }
+
+        // Get the referral record to find referrer
+        const referral = await tx.driverReferral.findUnique({
+          where: { referredId: referredDriverId },
+          include: { referrer: true },
+        });
+
+        if (!referral) {
+          this.logger.warn(
+            `Referral record not found after update for driver ${referredDriverId}`,
+          );
+          return;
+        }
+
+        const referrer = referral.referrer;
+
+        // Credit referrer ₹300
+        const updatedReferrer = await tx.driver.update({
+          where: { id: referrer.id },
+          data: { walletBalance: { increment: 300 } },
+        });
+
+        await tx.driverWalletLog.create({
+          data: {
+            driverId: referrer.id,
+            amount: 300,
+            reason: 'Referral Completion Bonus',
+            beforeBalance: referrer.walletBalance!,
+            afterBalance: updatedReferrer.walletBalance!,
+          },
+        });
+
+        this.logger.log(
+          `Successfully applied ₹300 referrer reward to driver ${referrer.id}`,
+        );
+
+        // Send notification to referrer
+        this.firebaseService.notifyAllSessions(referrer.id, 'driver', {
+          data: { event: FcmEventType.WalletChange },
+        });
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to apply driver referrer reward: ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   /**
