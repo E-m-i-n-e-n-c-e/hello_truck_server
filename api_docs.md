@@ -160,8 +160,8 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `reason`: `string` - Cancellation reason
 *   **`CancellationConfigResponseDto`**: Configuration for cancellation charges.
     *   `minChargePercent`: `number` - Minimum charge percentage (e.g., 0.1 for 10%)
-    *   `maxChargePercent`: `number` - Maximum charge percentage (e.g., 0.5 for 50%)
-    *   `incrementPerMinute`: `number` - Charge increase per minute after acceptance (e.g., 0.01 for 1%)
+    *   `maxChargePercent`: `number` - Maximum charge percentage (e.g., 0.6 for 60%)
+    *   `incrementPerMin`: `number` - Charge increase per minute after driver accepts (e.g., 0.05 for 5%)
 
 ### Profile & Address DTOs
 *   **`CreateProfileDto` / `UpdateProfileDto`**: For customer profile creation/updates.

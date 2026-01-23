@@ -2984,6 +2984,9 @@
           },
           "package": {
             "$ref": "#/components/schemas/PackageDetailsDto"
+          },
+          "gstNumber": {
+            "type": "string"
           }
         },
         "required": [
@@ -3020,14 +3023,14 @@
           "maxChargePercent": {
             "type": "number"
           },
-          "incrementPerKm": {
+          "incrementPerMin": {
             "type": "number"
           }
         },
         "required": [
           "minChargePercent",
           "maxChargePercent",
-          "incrementPerKm"
+          "incrementPerMin"
         ]
       },
       "CancelBookingDto": {
