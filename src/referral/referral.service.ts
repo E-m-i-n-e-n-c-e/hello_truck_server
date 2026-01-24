@@ -8,7 +8,6 @@ import { CustomerReferralStatsDto, DriverReferralStatsDto } from './dtos/referra
 @Injectable()
 export class ReferralService {
   private readonly logger = new Logger(ReferralService.name);
-  private readonly MAX_REFERRALS = 5;
   private readonly MAX_RETRIES = 5;
 
   constructor(
@@ -126,15 +125,6 @@ export class ReferralService {
 
       if (existingReferral) {
         throw new BadRequestException('Referral code already applied');
-      }
-
-      // Check referrer's referral count
-      const referralCount = await tx.customerReferral.count({
-        where: { referrerId: referrer.id },
-      });
-
-      if (referralCount >= this.MAX_REFERRALS) {
-        throw new BadRequestException('Referral limit reached for this code');
       }
 
       // Create the referral record (referrerRewardApplied = false by default)
@@ -292,15 +282,6 @@ export class ReferralService {
 
       if (existingReferral) {
         throw new BadRequestException('Referral code already applied');
-      }
-
-      // Check referrer's referral count
-      const referralCount = await tx.driverReferral.count({
-        where: { referrerId: referrer.id },
-      });
-
-      if (referralCount >= this.MAX_REFERRALS) {
-        throw new BadRequestException('Referral limit reached for this code');
       }
 
       // Create the referral record (referrerRewardApplied = false by default)
@@ -461,8 +442,8 @@ export class ReferralService {
     return {
       referralCode: customer?.referralCode ?? null,
       totalReferrals: referralCount,
-      remainingReferrals: Math.max(0, this.MAX_REFERRALS - referralCount),
-      maxReferrals: this.MAX_REFERRALS,
+      remainingReferrals: 5 - referralCount, // Unlimited referrals - deprecated field
+      maxReferrals: 5, // Unlimited referrals - deprecated field
       referrals: referrals.map((r) => ({
         id: r.id,
         referredCustomer: r.referred,
@@ -510,8 +491,8 @@ export class ReferralService {
     return {
       referralCode: driver?.referralCode ?? null,
       totalReferrals: referralCount,
-      remainingReferrals: Math.max(0, this.MAX_REFERRALS - referralCount),
-      maxReferrals: this.MAX_REFERRALS,
+      remainingReferrals: 5 - referralCount, // Unlimited referrals - deprecated field
+      maxReferrals: 5, // Unlimited referrals - deprecated field
       referrals: referrals.map((r) => ({
         id: r.id,
         referredDriver: r.referred,
@@ -551,15 +532,6 @@ export class ReferralService {
         return { isValid: false, reason: 'Referral code already applied' };
       }
 
-      // Check referrer's referral count
-      const referralCount = await this.prisma.customerReferral.count({
-        where: { referrerId: referrer.id },
-      });
-
-      if (referralCount >= this.MAX_REFERRALS) {
-        return { isValid: false, reason: 'Referral limit reached for this code' };
-      }
-
       return { isValid: true };
     } catch (error) {
       this.logger.error(`Error validating customer referral code: ${error.message}`);
@@ -595,15 +567,6 @@ export class ReferralService {
 
       if (existingReferral) {
         return { isValid: false, reason: 'Referral code already applied' };
-      }
-
-      // Check referrer's referral count
-      const referralCount = await this.prisma.driverReferral.count({
-        where: { referrerId: referrer.id },
-      });
-
-      if (referralCount >= this.MAX_REFERRALS) {
-        return { isValid: false, reason: 'Referral limit reached for this code' };
       }
 
       return { isValid: true };

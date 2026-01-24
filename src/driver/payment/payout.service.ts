@@ -125,18 +125,11 @@ export class DriverPayoutService {
         walletBalance: true,
         fundAccountId: true,
         payoutMethod: true,
-        rideCount: true,
       },
     });
 
     if (!driver) {
       throw new NotFoundException('Driver not found');
-    }
-
-    if (driver.rideCount < 2) {
-      throw new BadRequestException(
-        'You must complete at least 2 rides before withdrawing funds',
-      );
     }
 
     if (!driver.fundAccountId || !driver.payoutMethod) {

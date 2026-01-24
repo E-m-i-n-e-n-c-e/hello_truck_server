@@ -14,11 +14,10 @@ export class PayoutService {
   async processDailyPayouts() {
     this.logger.log('Starting daily payout processing');
 
-    // Get all drivers with positive wallet balance, minimum 2 rides
+    // Get all drivers with positive wallet balance
     const drivers = await this.prisma.driver.findMany({
       where: {
         walletBalance: { gt: 0 },
-        rideCount: { gte: 2 },
         fundAccountId: { not: null },
         payoutMethod: { not: null },
       },

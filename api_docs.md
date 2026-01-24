@@ -365,8 +365,6 @@ Common Data Transfer Objects (DTOs) used across the API.
 *   **`CustomerReferralStatsDto`**: Customer referral statistics response.
     *   `referralCode`: `string | null` - Customer's unique referral code
     *   `totalReferrals`: `number` - Number of successful referrals
-    *   `remainingReferrals`: `number` - Remaining referral slots (max 5)
-    *   `maxReferrals`: `number` - Maximum allowed referrals (5)
     *   `referrals`: `CustomerReferralEntryDto[]` - List of referred customers
 *   **`CustomerReferralEntryDto`**: Individual customer referral entry.
     *   `id`: `string` - Referral record ID
@@ -383,8 +381,8 @@ Common Data Transfer Objects (DTOs) used across the API.
 *   **`DriverReferralStatsDto`**: Driver referral statistics response.
     *   `referralCode`: `string | null` - Driver's unique referral code
     *   `totalReferrals`: `number` - Number of successful referrals
-    *   `remainingReferrals`: `number` - Remaining referral slots (max 5)
-    *   `maxReferrals`: `number` - Maximum allowed referrals (5)
+    *   `remainingReferrals`: `number` - Deprecated (always 0, unlimited referrals now allowed)
+    *   `maxReferrals`: `number` - Deprecated (always 0, unlimited referrals now allowed)
     *   `referrals`: `DriverReferralEntryDto[]` - List of referred drivers
 *   **`DriverReferralEntryDto`**: Individual driver referral entry.
     *   `id`: `string` - Referral record ID
@@ -503,7 +501,7 @@ Common Data Transfer Objects (DTOs) used across the API.
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/driver/payment/link` 🔒 | Generates a payment link for driver wallet top-up. Reuses existing link if valid. | `GeneratePaymentLinkDto` | `PaymentLinkResponseDto` |
-| `POST` | `/driver/payment/withdraw` 🔒 | Requests withdrawal from driver wallet. **Requirements**: Minimum 2 completed rides. | `WithdrawalRequestDto` | `{ message: string }` |
+| `POST` | `/driver/payment/withdraw` 🔒 | Requests withdrawal from driver wallet. | `WithdrawalRequestDto` | `{ message: string }` |
 | `POST` | `/driver/payment/webhook` | Webhook endpoint for driver payment events (wallet top-ups). Verifies signature and processes payment. | `RazorpayWebhookPayload` | `{ status: string }` |
 
 ### Customer Profile (`CustomerProfile`)
@@ -580,16 +578,16 @@ Common Data Transfer Objects (DTOs) used across the API.
 ### Customer Referral (`CustomerReferral`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/customer/referral/apply` 🔒 | Applies a referral code for the customer. Can only be used once. Maximum 5 referrals per referrer. | `{ referralCode: string }` (format: CUS-XXXXXXXX) | `{ message: string }` |
-| `GET` | `/customer/referral/stats` 🔒 | Gets customer's referral statistics including their referral code, total referrals, and referral history. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number, maxReferrals: number, referrals: Array }` |
-| `GET` | `/customer/referral/validate` 🔒 | Validates a customer referral code before applying it. Checks if code exists, not self-referral, not already used, and referrer hasn't reached limit. | Query: `code` (string) | `{ isValid: boolean, reason?: string }` |
+| `POST` | `/customer/referral/apply` 🔒 | Applies a referral code for the customer. Can only be used once. Unlimited referrals allowed per referrer. Referred customer gets ₹50 instantly; referrer gets ₹100 after first booking. | `{ referralCode: string }` (format: CUS-XXXXXXXX) | `{ message: string }` |
+| `GET` | `/customer/referral/stats` 🔒 | Gets customer's referral statistics including their referral code, total referrals, and referral history with status. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number (deprecated), maxReferrals: number (deprecated), referrals: Array<{ id, referredCustomer: { id, firstName, lastName, phoneNumber, bookingCount, createdAt }, referrerRewardApplied, createdAt }> }` |
+| `GET` | `/customer/referral/validate` 🔒 | Validates a customer referral code before applying it. Checks if code exists, not self-referral, and not already used. | Query: `code` (string) | `{ isValid: boolean, reason?: string }` |
 
 ### Driver Referral (`DriverReferral`)
 | Method | Path | Description | Request Body | Success Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/driver/referral/apply` 🔒 | Applies a referral code for the driver. Can only be used once. Maximum 5 referrals per referrer. | `{ referralCode: string }` (format: DRI-XXXXXXXX) | `{ message: string }` |
-| `GET` | `/driver/referral/stats` 🔒 | Gets driver's referral statistics including their referral code, total referrals, and referral history. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number, maxReferrals: number, referrals: Array }` |
-| `GET` | `/driver/referral/validate` 🔒 | Validates a driver referral code before applying it. Checks if code exists, not self-referral, not already used, and referrer hasn't reached limit. | Query: `code` (string) | `{ isValid: boolean, reason?: string }` |
+| `POST` | `/driver/referral/apply` 🔒 | Applies a referral code for the driver. Can only be used once. Unlimited referrals allowed per referrer. Referred driver gets ₹50 instantly; referrer gets ₹300 after first ride. | `{ referralCode: string }` (format: DRI-XXXXXXXX) | `{ message: string }` |
+| `GET` | `/driver/referral/stats` 🔒 | Gets driver's referral statistics including their referral code, total referrals, and referral history with status. | - | `{ referralCode: string, totalReferrals: number, remainingReferrals: number (deprecated), maxReferrals: number (deprecated), referrals: Array<{ id, referredDriver: { id, firstName, lastName, phoneNumber, photo, rideCount, createdAt }, referrerRewardApplied, createdAt }> }` |
+| `GET` | `/driver/referral/validate` 🔒 | Validates a driver referral code before applying it. Checks if code exists, not self-referral, and not already used. | Query: `code` (string) | `{ isValid: boolean, reason?: string }` |
 
 ### Admin (`Admin`)
 | Method | Path | Description | Request Body | Success Response |
