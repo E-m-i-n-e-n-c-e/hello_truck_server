@@ -32,12 +32,13 @@ export class ProfileService {
   async getProfile(
     userId: string,
     options: GetProfileOptions,
-  ): Promise<Driver> {
+  ): Promise<Driver & { hasAppliedReferral: boolean }> {
     const driver = await this.prisma.driver.findUnique({
       where: { id: userId },
       include: {
         documents: options.includeDocuments ?? false,
         vehicle: options.includeVehicle ?? false,
+        appliedReferral: true,
       },
     });
 
@@ -45,7 +46,10 @@ export class ProfileService {
       throw new NotFoundException('Driver not found');
     }
 
-    return driver;
+    return {
+      ...driver,
+      hasAppliedReferral: !!driver.appliedReferral,
+    };
   }
 
   async createProfile(

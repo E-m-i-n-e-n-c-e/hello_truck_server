@@ -9,7 +9,7 @@ import { CustomerReferralStatsDto, DriverReferralStatsDto } from './dtos/referra
 export class ReferralService {
   private readonly logger = new Logger(ReferralService.name);
   private readonly MAX_RETRIES = 5;
-  private readonly WAITING_PERIOD_HOURS = 24;
+  private readonly WINDOW_HOURS = 24;
 
   constructor(
     private prisma: PrismaService,
@@ -17,24 +17,20 @@ export class ReferralService {
   ) {}
 
   /**
-   * Check if the waiting period has passed since profile creation
-   * @param profileCreatedAt - Timestamp when profile was created
-   * @param waitingPeriodHours - Waiting period in hours (default: 24)
-   * @returns true if waiting period has passed
+   * Check if user is within the eligibility window to apply referral codes
+   * @param timestamp - Timestamp when profile was created (profileCreatedAt or createdAt)
+   * @param windowHours - Eligibility window in hours (default: 24)
+   * @returns true if within the eligibility window
    */
-  private hasWaitingPeriodPassed(
-    profileCreatedAt: Date | null,
-    waitingPeriodHours: number = this.WAITING_PERIOD_HOURS,
+  private isWithinReferralWindow(
+    timestamp: Date,
+    windowHours: number = this.WINDOW_HOURS,
   ): boolean {
-    if (!profileCreatedAt) {
-      return false;
-    }
-
     const now = new Date();
-    const waitingPeriodMs = waitingPeriodHours * 60 * 60 * 1000;
-    const timeSinceProfileCreation = now.getTime() - profileCreatedAt.getTime();
+    const windowMs = windowHours * 60 * 60 * 1000;
+    const timeSinceProfileCreation = now.getTime() - timestamp.getTime();
 
-    return timeSinceProfileCreation >= waitingPeriodMs;
+    return timeSinceProfileCreation <= windowMs;
   }
 
   /**
@@ -172,10 +168,10 @@ export class ReferralService {
         // Use profileCreatedAt if available, otherwise fallback to createdAt
         const profileTimestamp = newCustomer.profileCreatedAt ?? newCustomer.createdAt;
 
-        // Check if waiting period has passed
-        if (!this.hasWaitingPeriodPassed(profileTimestamp)) {
+        // Check if within referral eligibility window (first 24 hours)
+        if (!this.isWithinReferralWindow(profileTimestamp)) {
           throw new BadRequestException(
-            'Referral rewards are only available 24 hours after completing your profile',
+            'Referral codes can only be applied within 24 hours of signup',
           );
         }
 
@@ -344,10 +340,10 @@ export class ReferralService {
         // Use profileCreatedAt if available, otherwise fallback to createdAt
         const profileTimestamp = newDriver.profileCreatedAt || newDriver.createdAt;
 
-        // Check if waiting period has passed
-        if (!this.hasWaitingPeriodPassed(profileTimestamp)) {
+        // Check if within referral eligibility window (first 24 hours)
+        if (!this.isWithinReferralWindow(profileTimestamp)) {
           throw new BadRequestException(
-            'Referral rewards are only available 24 hours after completing your profile',
+            'Referral codes can only be applied within 24 hours of signup',
           );
         }
 

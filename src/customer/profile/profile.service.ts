@@ -17,16 +17,22 @@ export class ProfileService {
     private referralService: ReferralService,
   ) {}
 
-  async getProfile(userId: string): Promise<Customer> {
+  async getProfile(userId: string): Promise<Customer & { hasAppliedReferral: boolean }> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: userId },
+      include: {
+        appliedReferral: true,
+      },
     });
 
     if (!customer) {
       throw new NotFoundException('Customer not found');
     }
 
-    return customer;
+    return {
+      ...customer,
+      hasAppliedReferral: !!customer.appliedReferral,
+    };
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
@@ -87,7 +93,7 @@ export class ProfileService {
       });
     });
 
-    // Apply referral code if provided 
+    // Apply referral code if provided
     if (appliedReferralCode) {
       this.referralService.applyCustomerReferralCode(appliedReferralCode, userId).catch((error) => {
         console.error(`Failed to apply referral code for customer ${userId}:`, error);

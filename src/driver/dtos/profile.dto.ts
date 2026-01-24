@@ -163,6 +163,8 @@ export class ProfileResponseDto {
   rideCount: number;
   @Expose()
   walletBalance: number;
+  @Expose()
+  hasAppliedReferral: boolean;
 }
 
 export class UpdateDriverStatusDto implements Partial<DriverStatusLog> {

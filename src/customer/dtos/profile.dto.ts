@@ -72,4 +72,6 @@ export class GetProfileResponseDto implements Customer {
   createdAt: Date;
   @Expose()
   updatedAt: Date;
+  @Expose()
+  hasAppliedReferral: boolean;
 }
