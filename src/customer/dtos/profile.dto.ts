@@ -67,6 +67,8 @@ export class GetProfileResponseDto implements Customer {
   @Expose()
   bookingCount: number;
   @Expose()
+  profileCreatedAt: Date | null;
+  @Expose()
   createdAt: Date;
   @Expose()
   updatedAt: Date;

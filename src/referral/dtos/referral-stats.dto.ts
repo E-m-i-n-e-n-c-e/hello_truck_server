@@ -20,6 +20,9 @@ export class ReferredCustomerDto {
   bookingCount: number;
 
   @Expose()
+  profileCreatedAt: Date | null;
+
+  @Expose()
   createdAt: Date;
 }
 
@@ -83,6 +86,9 @@ export class ReferredDriverDto {
 
   @Expose()
   rideCount: number;
+
+  @Expose()
+  profileCreatedAt: Date | null;
 
   @Expose()
   createdAt: Date;

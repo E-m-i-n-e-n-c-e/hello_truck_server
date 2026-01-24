@@ -81,6 +81,7 @@ export class ProfileService {
         data: {
           ...profileData,
           isBusiness: gstDetails ? true : false,
+          profileCreatedAt: new Date(),
           ...(email && { email }),
         }
       });

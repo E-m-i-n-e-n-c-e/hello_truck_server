@@ -9,11 +9,33 @@ import { CustomerReferralStatsDto, DriverReferralStatsDto } from './dtos/referra
 export class ReferralService {
   private readonly logger = new Logger(ReferralService.name);
   private readonly MAX_RETRIES = 5;
+  private readonly WAITING_PERIOD_HOURS = 24;
 
   constructor(
     private prisma: PrismaService,
     private firebaseService: FirebaseService,
   ) {}
+
+  /**
+   * Check if the waiting period has passed since profile creation
+   * @param profileCreatedAt - Timestamp when profile was created
+   * @param waitingPeriodHours - Waiting period in hours (default: 24)
+   * @returns true if waiting period has passed
+   */
+  private hasWaitingPeriodPassed(
+    profileCreatedAt: Date | null,
+    waitingPeriodHours: number = this.WAITING_PERIOD_HOURS,
+  ): boolean {
+    if (!profileCreatedAt) {
+      return false;
+    }
+
+    const now = new Date();
+    const waitingPeriodMs = waitingPeriodHours * 60 * 60 * 1000;
+    const timeSinceProfileCreation = now.getTime() - profileCreatedAt.getTime();
+
+    return timeSinceProfileCreation >= waitingPeriodMs;
+  }
 
   /**
    * Generate and assign a referral code to a customer (called asynchronously after signup)
@@ -136,12 +158,27 @@ export class ReferralService {
         },
       });
 
-      // Credit ONLY the referred customer ₹50 instantly
+      // Check if 1 day has passed since profile creation before crediting reward
       const newCustomer = await tx.customer.findUnique({
         where: { id: newCustomerId },
+        select: {
+          walletBalance: true,
+          profileCreatedAt: true,
+          createdAt: true,
+        },
       });
 
       if (newCustomer) {
+        // Use profileCreatedAt if available, otherwise fallback to createdAt
+        const profileTimestamp = newCustomer.profileCreatedAt ?? newCustomer.createdAt;
+
+        // Check if waiting period has passed
+        if (!this.hasWaitingPeriodPassed(profileTimestamp)) {
+          throw new BadRequestException(
+            'Referral rewards are only available 24 hours after completing your profile',
+          );
+        }
+
         const updatedNewCustomer = await tx.customer.update({
           where: { id: newCustomerId },
           data: { walletBalance: { increment: 50 } },
@@ -293,12 +330,27 @@ export class ReferralService {
         },
       });
 
-      // Credit ONLY the referred driver ₹50 instantly
+      // Check if 1 day has passed since profile creation before crediting reward
       const newDriver = await tx.driver.findUnique({
         where: { id: newDriverId },
+        select: {
+          walletBalance: true,
+          profileCreatedAt: true,
+          createdAt: true,
+        },
       });
 
       if (newDriver) {
+        // Use profileCreatedAt if available, otherwise fallback to createdAt
+        const profileTimestamp = newDriver.profileCreatedAt || newDriver.createdAt;
+
+        // Check if waiting period has passed
+        if (!this.hasWaitingPeriodPassed(profileTimestamp)) {
+          throw new BadRequestException(
+            'Referral rewards are only available 24 hours after completing your profile',
+          );
+        }
+
         const updatedNewDriver = await tx.driver.update({
           where: { id: newDriverId },
           data: { walletBalance: { increment: 50 } },
@@ -432,6 +484,7 @@ export class ReferralService {
               phoneNumber: true,
               bookingCount: true,
               createdAt: true,
+              profileCreatedAt: true,
             },
           },
         },
@@ -481,6 +534,7 @@ export class ReferralService {
               photo: true,
               rideCount: true,
               createdAt: true,
+              profileCreatedAt: true,
             },
           },
         },

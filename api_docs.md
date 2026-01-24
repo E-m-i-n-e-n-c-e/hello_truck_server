@@ -180,6 +180,7 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `referralCode`: `string | null` - Customer's unique referral code (format: CUS-XXXXXXXX, auto-generated on signup)
     *   `walletBalance`: `Decimal`
     *   `isActive`: `boolean`
+    *   `profileCreatedAt`: `Date | null`
     *   `createdAt`: `Date`
     *   `updatedAt`: `Date`
 *   **`CreateSavedAddressDto` / `UpdateSavedAddressDto`**: For customer's saved addresses.
@@ -265,6 +266,7 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `isActive`: `boolean`
     *   `documents`: `DriverDocumentsResponseDto | null`
     *   `vehicle`: `VehicleResponseDto | null`
+    *   `profileCreatedAt`: `Date | null`
     *   `createdAt`: `Date`
     *   `updatedAt`: `Date`
     *   `lastSeenAt`: `Date | null`
@@ -377,6 +379,7 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `lastName`: `string | null` - Last name
     *   `phoneNumber`: `string` - Phone number
     *   `bookingCount`: `number` - Number of completed bookings (0 = first booking pending)
+    *   `profileCreatedAt`: `Date | null`
     *   `createdAt`: `Date` - When customer signed up
 *   **`DriverReferralStatsDto`**: Driver referral statistics response.
     *   `referralCode`: `string | null` - Driver's unique referral code
@@ -396,6 +399,7 @@ Common Data Transfer Objects (DTOs) used across the API.
     *   `phoneNumber`: `string` - Phone number
     *   `photo`: `string | null` - Profile photo URL
     *   `rideCount`: `number` - Number of completed rides (0 = first ride pending)
+    *   `profileCreatedAt`: `Date | null`
     *   `createdAt`: `Date` - When driver signed up
 
 ### Razorpay DTOs

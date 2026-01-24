@@ -8,18 +8,19 @@ datasource db {
 }
 
 model Customer {
-  id              String               @id @default(uuid())
-  phoneNumber     String               @unique
-  firstName       String?
-  lastName        String?
-  email           String?
-  isBusiness      Boolean              @default(false)
-  referralCode    String?              @unique
-  isActive        Boolean              @default(true)
-  walletBalance   Decimal              @default(0) @db.Decimal(10, 2)
-  bookingCount    Int                  @default(0)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id               String               @id @default(uuid())
+  phoneNumber      String               @unique
+  firstName        String?
+  lastName         String?
+  email            String?
+  isBusiness       Boolean              @default(false)
+  referralCode     String?              @unique
+  isActive         Boolean              @default(true)
+  walletBalance    Decimal              @default(0) @db.Decimal(10, 2)
+  bookingCount     Int                  @default(0)
+  profileCreatedAt DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   bookings        Booking[]
   gstDetails      CustomerGstDetails[]
   appliedReferral CustomerReferral?    @relation("CustomerReferred")
@@ -112,6 +113,7 @@ model Driver {
   verificationStatus VerificationStatus  @default(PENDING)
   driverStatus       DriverStatus        @default(UNAVAILABLE)
   walletBalance      Decimal             @default(0) @db.Decimal(10, 2)
+  profileCreatedAt   DateTime?
   createdAt          DateTime            @default(now())
   lastSeenAt         DateTime?
   updatedAt          DateTime            @updatedAt

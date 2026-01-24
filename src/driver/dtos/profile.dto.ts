@@ -144,6 +144,8 @@ export class ProfileResponseDto {
   @Expose()
   driverStatus: DriverStatus;
   @Expose()
+  profileCreatedAt: Date | null;
+  @Expose()
   createdAt: Date;
   @Expose()
   updatedAt: Date;

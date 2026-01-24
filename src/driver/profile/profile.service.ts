@@ -105,6 +105,7 @@ export class ProfileService {
         data: {
           ...profileData,
           ...(email && { email }),
+          profileCreatedAt: new Date(),
           ...(contactId && { contactId }),
           ...(fundAccountId && { fundAccountId }),
           ...(payoutMethodType && { payoutMethod: payoutMethodType }),
