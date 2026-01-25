@@ -240,12 +240,15 @@ export class BookingRefundService {
     cancellationCharge: Decimal;
     refundFactor: Decimal | null;
   }> {
-    // Use basePrice for cancellation charge (not effectiveBasePrice which includes weight)
-    // Cancellation happens before pickup, so weight doesn't matter
+    // Use basePrice for capping the cancellation charge
     const basePrice = toDecimal(invoice.basePrice);
     const walletApplied = toDecimal(invoice.walletApplied);
     const totalPayable = toDecimal(invoice.finalAmount);
     const isPaid = invoice.isPaid;
+
+    // Get cancellation base amount and platform fee from config
+    const cancellationBase = new Decimal(this.configService.get<number>('CANCELLATION_BASE_AMOUNT') ?? 100);
+    const platformFee = new Decimal(this.configService.get<number>('PLATFORM_FEE') ?? 20);
 
     // Full refund for PENDING and DRIVER_ASSIGNED
     if (booking.status === BookingStatus.PENDING || booking.status === BookingStatus.DRIVER_ASSIGNED) {
@@ -282,7 +285,11 @@ export class BookingRefundService {
 
       // Refund percentage DECREASES as charge increases
       const refundPercentage = new Decimal(1).minus(chargePercentage);
-      const cancellationCharge = truncateDecimal(basePrice.mul(chargePercentage));
+      
+      // Calculate cancellation charge: (CANCELLATION_BASE_AMOUNT × percentage) + PLATFORM_FEE
+      // Then cap it at basePrice to avoid overcharging
+      const calculatedCancellation = cancellationBase.mul(chargePercentage).plus(platformFee);
+      const cancellationCharge = truncateDecimal(Decimal.min(basePrice, calculatedCancellation));
 
       // Calculate refunds with proportional distribution of cancellation charge
       // Each payment method bears its share of the charge based on contribution to total
@@ -366,7 +373,8 @@ export class BookingRefundService {
 
   /**
    * Compensate driver from cancellation charge
-   * Uses stored commission rate from assignment if available
+   * Driver receives: cancellationCharge - PLATFORM_FEE (no commission applied)
+   * Platform keeps the PLATFORM_FEE
    */
   private async compensateDriver(
     driver: { id: string; walletBalance: any },
@@ -379,23 +387,12 @@ export class BookingRefundService {
     const driverWalletBefore = toDecimal(driver.walletBalance);
     const chargeDecimal = toDecimal(cancellationCharge);
 
-    // Try to get commission rate from the accepted assignment
-    const assignment = await tx.bookingAssignment.findFirst({
-      where: {
-        bookingId: booking.id,
-        driverId: driver.id,
-        status: 'ACCEPTED',
-      },
-    });
+    // Get platform fee from config
+    const platformFee = toDecimal(this.configService.get<number>('PLATFORM_FEE') || 20);
 
-    // Use stored commission rate if available, otherwise fall back to env config
-    // Note: commissionRate field added in migration - may be null for older assignments
-    const storedRate = assignment?.commissionRate;
-    const commissionRate = storedRate
-      ? toDecimal(storedRate)
-      : toDecimal(this.configService.get<number>('COMMISSION_RATE') || 0.07);
-
-    const compensation = truncateDecimal(chargeDecimal.mul(new Decimal(1).minus(commissionRate)));
+    // Driver gets: cancellationCharge - platformFee (no commission)
+    // Platform keeps: platformFee
+    const compensation = truncateDecimal(Decimal.max(new Decimal(0), chargeDecimal.minus(platformFee)));
 
     const newBalance = truncateDecimal(driverWalletBefore.plus(compensation));
 
@@ -415,7 +412,10 @@ export class BookingRefundService {
       },
     });
 
-    this.logger.log(`Compensated driver ${driver.id} with ₹${toNumber(compensation)} for cancellation`);
+    this.logger.log(
+      `Compensated driver ${driver.id} with ₹${toNumber(compensation)} ` +
+      `(Charge: ₹${cancellationCharge}, Platform Fee: ₹${toNumber(platformFee)})`
+    );
     return toNumber(compensation);
   }
 

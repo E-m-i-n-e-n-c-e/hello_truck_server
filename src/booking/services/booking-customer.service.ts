@@ -404,6 +404,8 @@ export class BookingCustomerService {
       minChargePercent: this.configService.get('CANCELLATION_MIN_CHARGE_PERCENT') ?? 0.1,
       maxChargePercent: this.configService.get('CANCELLATION_MAX_CHARGE_PERCENT') ?? 0.6,
       incrementPerMin: this.configService.get('CANCELLATION_CHARGE_INCREMENT_PER_MIN') ?? 0.05,
+      cancellationBaseAmount: this.configService.get('CANCELLATION_BASE_AMOUNT') ?? 100,
+      platformFee: this.configService.get('PLATFORM_FEE') ?? 20,
     };
   }
 

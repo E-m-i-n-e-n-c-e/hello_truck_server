@@ -200,4 +200,10 @@ export class CancellationConfigResponseDto {
 
   @Expose()
   incrementPerMin: number;
+
+  @Expose()
+  cancellationBaseAmount: number;
+
+  @Expose()
+  platformFee: number;
 }

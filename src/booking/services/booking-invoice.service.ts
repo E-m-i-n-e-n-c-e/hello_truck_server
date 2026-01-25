@@ -10,16 +10,17 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
 import { truncateDecimal, toDecimal, toNumber, minDecimal } from '../utils/decimal.utils';
 import { PaymentLinkResponse, PaymentType } from 'src/razorpay/types/razorpay-payment-link.types';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class BookingInvoiceService {
   private readonly logger = new Logger(BookingInvoiceService.name);
-  private readonly PLATFORM_FEE = 20; // ₹20 platform fee
 
   constructor(
     private readonly pricingService: PricingService,
     private readonly prisma: PrismaService,
     private readonly razorpayService: RazorpayService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -36,7 +37,7 @@ export class BookingInvoiceService {
     const idealVehicle = estimate.topVehicles[0];
 
     // Calculate platform fee: ₹20 if no GST, ₹0 if GST provided
-    const platformFee = gstNumber ? 0 : this.PLATFORM_FEE;
+    const platformFee = gstNumber ? 0 : (this.configService.get<number>('PLATFORM_FEE') ?? 20);
 
     // Add platform fee to estimated cost
     const estimatedCostWithFee = idealVehicle.estimatedCost + platformFee;
@@ -98,7 +99,7 @@ export class BookingInvoiceService {
     );
 
     // Calculate platform fee: ₹20 if no GST, ₹0 if GST provided
-    const platformFee = gstNumber ? 0 : this.PLATFORM_FEE;
+    const platformFee = gstNumber ? 0 : (this.configService.get<number>('PLATFORM_FEE') ?? 20);
 
     // Add platform fee to total price
     const totalPriceWithFee = pricing.totalPrice + platformFee;

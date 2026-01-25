@@ -49,6 +49,8 @@ const envSchema = z.object({
   COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.07),
 
   // Cancellation Charge (time-based)
+  CANCELLATION_BASE_AMOUNT: z.coerce.number().min(0).default(100), // Fixed amount on which cancellation % is calculated
+  PLATFORM_FEE: z.coerce.number().min(0).default(20), // Platform fee added to cancellation charge and non gst bookings
   CANCELLATION_MIN_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.1), // 10% minimum (after calculation)
   CANCELLATION_MAX_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.6), // 60% maximum
   CANCELLATION_CHARGE_INCREMENT_PER_MIN: z.coerce.number().min(0).max(1).default(0.05), // 5% per minute from booking creation
