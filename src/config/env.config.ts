@@ -51,9 +51,9 @@ const envSchema = z.object({
   // Cancellation Charge (time-based)
   CANCELLATION_BASE_AMOUNT: z.coerce.number().min(0).default(100), // Fixed amount on which cancellation % is calculated
   PLATFORM_FEE: z.coerce.number().min(0).default(20), // Platform fee added to cancellation charge and non gst bookings
-  CANCELLATION_MIN_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.1), // 10% minimum (after calculation)
-  CANCELLATION_MAX_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.6), // 60% maximum
-  CANCELLATION_CHARGE_INCREMENT_PER_MIN: z.coerce.number().min(0).max(1).default(0.05), // 5% per minute from booking creation
+  CANCELLATION_MIN_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.2), // 20% minimum (after calculation)
+  CANCELLATION_MAX_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(1), // 100% maximum
+  CANCELLATION_CHARGE_INCREMENT_PER_MIN: z.coerce.number().min(0).max(1).default(0.1), // 10% per minute from booking creation
 });
 
 // Export the inferred type
