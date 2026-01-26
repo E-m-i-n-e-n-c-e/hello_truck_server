@@ -286,9 +286,10 @@ export class BookingRefundService {
       // Refund percentage DECREASES as charge increases
       const refundPercentage = new Decimal(1).minus(chargePercentage);
       
-      // Calculate cancellation charge: (CANCELLATION_BASE_AMOUNT × percentage) + PLATFORM_FEE
+      // Calculate cancellation charge: (CANCELLATION_BASE_AMOUNT × percentage) + (PLATFORM_FEE / 2)
       // Then cap it at basePrice to avoid overcharging
-      const calculatedCancellation = cancellationBase.mul(chargePercentage).plus(platformFee);
+      const halfPlatformFee = platformFee.div(2);
+      const calculatedCancellation = cancellationBase.mul(chargePercentage).plus(halfPlatformFee);
       const cancellationCharge = truncateDecimal(Decimal.min(basePrice, calculatedCancellation));
 
       // Calculate refunds with proportional distribution of cancellation charge
@@ -389,10 +390,11 @@ export class BookingRefundService {
 
     // Get platform fee from config
     const platformFee = toDecimal(this.configService.get<number>('PLATFORM_FEE') || 20);
+    const halfPlatformFee = platformFee.div(2);
 
-    // Driver gets: cancellationCharge - platformFee (no commission)
-    // Platform keeps: platformFee
-    const compensation = truncateDecimal(Decimal.max(new Decimal(0), chargeDecimal.minus(platformFee)));
+    // Driver gets: cancellationCharge - (platformFee / 2) (no commission)
+    // Platform keeps: platformFee / 2
+    const compensation = truncateDecimal(Decimal.max(new Decimal(0), chargeDecimal.minus(halfPlatformFee)));
 
     const newBalance = truncateDecimal(driverWalletBefore.plus(compensation));
 
@@ -414,7 +416,7 @@ export class BookingRefundService {
 
     this.logger.log(
       `Compensated driver ${driver.id} with ₹${toNumber(compensation)} ` +
-      `(Charge: ₹${cancellationCharge}, Platform Fee: ₹${toNumber(platformFee)})`
+      `(Charge: ₹${cancellationCharge}, Platform Fee: ₹${toNumber(halfPlatformFee)})`
     );
     return toNumber(compensation);
   }
