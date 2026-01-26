@@ -7,6 +7,7 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle, seconds } from '@nestjs/throttler';
 import { DriverPaymentService } from '../payment/payment.service';
 import { DriverPayoutService } from '../payment/payout.service';
 import { RazorpayService } from 'src/razorpay/razorpay.service';
@@ -48,6 +49,7 @@ export class DriverPaymentController {
   @Post('withdraw')
   @UseGuards(AccessTokenGuard, RolesGuard)
   @Roles('driver')
+  @Throttle({ default: { ttl: seconds(60), limit: 1 } })
   async requestWithdrawal(
     @User('userId') driverId: string,
     @Body() dto: WithdrawalRequestDto,

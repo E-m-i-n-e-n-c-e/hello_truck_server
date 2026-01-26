@@ -16,8 +16,8 @@ export class AgriculturalProductDto {
   productName: string;
 
   @IsString()
-  @IsNotEmpty()
-  gstBillUrl: string;
+  @IsOptional()
+  gstBillUrl?: string;
 }
 
 class PackageDimensionsDto {

@@ -69,10 +69,10 @@ export function toPackageDetailsDto(pkg: Package): PackageDetailsDto {
 
   // Handle AGRICULTURAL product type (commercial)
   if (pkg.productType === ProductType.AGRICULTURAL) {
-    if(!pkg.productName || !pkg.gstBillUrl) throw new BadRequestException('Agricultural product details required');
+    if(!pkg.productName) throw new BadRequestException('Agricultural product details required');
     const agricultural : AgriculturalProductDto = { 
           productName: pkg.productName,
-          gstBillUrl: pkg.gstBillUrl
+          gstBillUrl: pkg.gstBillUrl ?? undefined
         }
     
     return {
