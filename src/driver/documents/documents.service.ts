@@ -124,6 +124,12 @@ export class DocumentsService {
         },
       });
 
+      // Auto-create verification request (fire-and-forget)
+      // Don't await - let it run in background
+      this.autoCreateVerificationRequest(driverId).catch(() => {
+        // Silently fail - this is best-effort
+      });
+
       return documents;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -273,7 +279,66 @@ export class DocumentsService {
       data: data,
     });
 
+    // Auto-create verification request for re-verification (fire-and-forget)
+    // Don't await - let it run in background
+    this.autoCreateVerificationRequest(driverId).catch(() => {
+      // Silently fail - this is best-effort
+    });
+
     return updatedDocuments;
+  }
+
+  /**
+   * Auto-create verification request (fire-and-forget helper)
+   * This is called after document creation/update to ensure verification request exists
+   *
+   * NOTE: We directly create the request here to avoid circular dependency with admin-portal module
+   */
+  private async autoCreateVerificationRequest(driverId: string): Promise<void> {
+    try {
+      // Single query: Find driver and include existing verification requests with status filter
+      const driver = await this.prisma.driver.findUnique({
+        where: { id: driverId },
+        select: {
+          verificationStatus: true,
+          verificationRequests: {
+            where: {
+              status: {
+                in: ['PENDING', 'APPROVED', 'REVERT_REQUESTED'],
+              },
+            },
+            select: { id: true },
+            take: 1, // Only need to know if at least one exists
+          },
+        },
+      });
+
+      if (!driver) {
+        return; // Driver not found, skip
+      }
+
+      // Check if existing request found (count > 0)
+      if (driver.verificationRequests && driver.verificationRequests.length > 0) {
+        return; // Request already exists
+      }
+
+      // Determine verification type based on driver status
+      const verificationType = driver.verificationStatus === VerificationStatus.VERIFIED
+        ? 'EXISTING_DRIVER'
+        : 'NEW_DRIVER';
+
+      // Create PENDING verification request
+      await this.prisma.driverVerificationRequest.create({
+        data: {
+          driverId,
+          verificationType,
+          status: 'PENDING',
+        },
+      });
+    } catch (error) {
+      // Silently fail - this is best-effort background task
+      console.error(`Failed to auto-create verification request for driver ${driverId}:`, error);
+    }
   }
 
   async getUploadUrl(

@@ -18,19 +18,20 @@ export class RefundCronService {
   async processPendingRefunds(): Promise<void> {
     this.logger.log('Processing pending refunds...');
 
-    // Find PENDING refund intents ready for processing
+    // Find PENDING refund intents ready for processing (only approved ones)
     const intents = await this.prisma.refundIntent.findMany({
       where: {
         status: 'PENDING',
+        isApproved: true, // Only process approved refunds
       },
     });
 
     if (intents.length === 0) {
-      this.logger.log('No pending refunds to process');
+      this.logger.log('No pending approved refunds to process');
       return;
     }
 
-    this.logger.log(`Found ${intents.length} pending refunds`);
+    this.logger.log(`Found ${intents.length} pending approved refunds`);
 
     let successCount = 0;
     let failureCount = 0;

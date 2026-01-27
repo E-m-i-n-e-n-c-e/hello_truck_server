@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 // Define the schema for environment variables
 const envSchema = z.object({
+  APP_MODE: z.enum(['app', 'admin', 'all']).default('app'),
   // Server
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),

@@ -27,7 +27,7 @@ export class FirebaseService implements OnModuleInit {
           credential: admin.credential.cert(serviceAccountPath),
           storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
           projectId,
-        });
+        }, 'main-app'); // Named app for main application
       } else {
         // Initialize with service account key object (for production)
         const serviceAccountKey = {
@@ -47,7 +47,7 @@ export class FirebaseService implements OnModuleInit {
           credential: admin.credential.cert(serviceAccountKey),
           storageBucket: this.configService.get<string>('FIREBASE_STORAGE_BUCKET'),
           projectId,
-        });
+        }, 'main-app'); // Named app for main application
       }
 
       // Initialize Google Auth Client

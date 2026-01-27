@@ -30,6 +30,8 @@ model Customer {
   refundIntents   RefundIntent[]
   addresses       SavedAddress[]
   transactions    Transaction[]
+  // Admin Portal Relations
+  adminRefundRequests AdminRefundRequest[]
 
   @@index([isActive])
   @@index([referralCode])
@@ -133,6 +135,9 @@ model Driver {
   payouts            Payout[]
   transactions       Transaction[]
   vehicle            Vehicle?
+  // Admin Portal Relations
+  verificationRequests DriverVerificationRequest[]
+  adminRefundRequests  AdminRefundRequest[]
 
   @@index([isActive, verificationStatus])
   @@index([lastSeenAt, driverStatus])
@@ -342,6 +347,9 @@ model Booking {
   invoices           Invoice[]
   refundIntents      RefundIntent?
   transactions       Transaction[]
+  // Admin Portal Relations
+  adminRefundRequest AdminRefundRequest?
+  supportNotes       SupportNote[]
 
   @@index([customerId, status])
   @@index([assignedDriverId, status])
@@ -510,6 +518,7 @@ model RefundIntent {
   processedAt          DateTime?
   wasPaid              Boolean
   refundFactor         Decimal?            @db.Decimal(10, 2)
+  isApproved           Boolean             @default(true) // false for admin refunds awaiting approval, true for internal cancellations
   customerWalletLogs   CustomerWalletLog[]
   booking              Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   customer             Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -517,6 +526,7 @@ model RefundIntent {
 
   @@index([status])
   @@index([bookingId])
+  @@index([isApproved, status])
 }
 
 model CustomerReferral {
@@ -681,4 +691,253 @@ enum RefundStatus {
   COMPLETED
   FAILED
   NOT_REQUIRED
+}
+
+// ============================================
+// ADMIN PORTAL MODELS
+// ============================================
+
+// Admin Users (Multi-user system for admin portal)
+model AdminUser {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  role          AdminRole
+  firstName     String
+  lastName      String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions              AdminSession[]
+  auditLogs             AuditLog[]
+  assignedVerifications DriverVerificationRequest[] @relation("AssignedTo")
+  createdRefunds        AdminRefundRequest[]        @relation("CreatedBy")
+  approvedRefunds       AdminRefundRequest[]        @relation("ApprovedBy")
+  notifications         AdminNotification[]
+}
+
+// Admin Sessions - JWT-based sessions for web portal
+model AdminSession {
+  id                String   @id @default(uuid())
+  adminUserId       String
+  refreshTokenHash  String   @unique // Hashed refresh token for security
+  userAgent         String? // Browser/device info
+  ipAddress         String? // IP for security monitoring
+  fcmToken          String? // For web push notifications
+  lastNotifiedAt    DateTime? // Track last notification sent
+  expiresAt         DateTime // Refresh token expiry (7-30 days)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastUsedAt        DateTime @default(now()) // Track last refresh
+
+  adminUser         AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+  @@index([expiresAt])
+  @@index([refreshTokenHash])
+  @@index([fcmToken])
+}
+
+// Audit Logs (Super Admin + Admin - immutable action log)
+model AuditLog {
+  id              String    @id @default(cuid())
+  userId          String
+  user            AdminUser @relation(fields: [userId], references: [id])
+  role            AdminRole
+  actionType      String    // APPROVED, REJECTED, CREATED, REVERTED, VIEWED, LOGIN, LOGOUT
+  module          String    // VERIFICATION, REFUND, SUPPORT, FIELD_VERIFICATION, AUTH, SYSTEM
+  description     String
+  ipAddress       String?
+  userAgent       String?
+  beforeSnapshot  Json?
+  afterSnapshot   Json?
+  entityId        String?   // Related entity ID (driverId, bookingId, etc.)
+  entityType      String?   // DRIVER, BOOKING, REFUND, etc.
+  timestamp       DateTime  @default(now())
+
+  @@index([userId, timestamp])
+  @@index([module, timestamp])
+  @@index([actionType, timestamp])
+  @@index([timestamp])
+}
+
+// Driver Verification Requests (Wrapper around existing Driver verification)
+// This tracks the verification workflow, LibreDesk ticket, and assignments
+// The actual document statuses remain in DriverDocuments model
+model DriverVerificationRequest {
+  id                   String                      @id @default(cuid())
+  driverId             String
+  driver               Driver                      @relation(fields: [driverId], references: [id])
+  verificationType     DriverVerificationType
+  ticketId             String?                     @unique  // LibreDesk ticket ID
+  assignedToId         String?
+  assignedTo           AdminUser?                  @relation("AssignedTo", fields: [assignedToId], references: [id])
+  status               VerificationRequestStatus
+  reVerificationReason String?                     // Required for EXISTING_DRIVER type
+  bufferExpiresAt      DateTime?
+  revertReason         String?
+  revertRequestedById  String?
+  revertRequestedAt    DateTime?
+  approvedAt           DateTime?
+  approvedById         String?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  fieldPhotos     FieldVerificationPhoto[]
+  documentActions VerificationDocumentAction[]
+
+  @@index([driverId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+// Tracks individual document approval/rejection actions
+// Links to existing DriverDocuments via documentField
+model VerificationDocumentAction {
+  id                    String                    @id @default(cuid())
+  verificationRequestId String
+  verificationRequest   DriverVerificationRequest @relation(fields: [verificationRequestId], references: [id])
+  documentField         String                    // license, rcBook, fc, insurance, aadhar, selfie
+  action                DocumentActionType
+  rejectionReason       String?                   // Required if REJECTED
+  actionById            String
+  actionAt              DateTime                  @default(now())
+
+  @@index([verificationRequestId])
+}
+
+// Field Verification Photos (uploaded by Field Agent)
+model FieldVerificationPhoto {
+  id                    String                    @id @default(cuid())
+  verificationRequestId String
+  verificationRequest   DriverVerificationRequest @relation(fields: [verificationRequestId], references: [id])
+  photoType             FieldPhotoType
+  url                   String
+  uploadedById          String
+  uploadedAt            DateTime                  @default(now())
+
+  @@index([verificationRequestId])
+  @@map("field_verification_photos")
+}
+
+// Admin Refund Requests (supplement to existing RefundIntent)
+// This adds admin workflow, buffer, revert functionality
+model AdminRefundRequest {
+  id                  String            @id @default(cuid())
+  bookingId           String            @unique
+  booking             Booking           @relation(fields: [bookingId], references: [id])
+  customerId          String
+  customer            Customer          @relation(fields: [customerId], references: [id])
+  driverId            String?
+  driver              Driver?           @relation(fields: [driverId], references: [id])
+  amount              Decimal           @db.Decimal(10, 2)
+  reason              String
+  phoneNumber         String
+  notes               String?
+  evidenceUrls        String[]          // Array of evidence file URLs
+  status              AdminRefundStatus
+  createdById         String
+  createdBy           AdminUser         @relation("CreatedBy", fields: [createdById], references: [id])
+  approvedById        String?
+  approvedBy          AdminUser?        @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvedAt          DateTime?
+  bufferExpiresAt     DateTime?
+  revertReason        String?
+  revertRequestedById String?
+  revertRequestedAt   DateTime?
+  completedAt         DateTime?
+  refundIntentId      String?           // Link to actual RefundIntent after completion
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Support Notes for bookings
+model SupportNote {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  agentId   String
+  agentName String   // Denormalized for display
+  note      String
+  createdAt DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([createdAt])
+}
+
+// Admin Notifications
+model AdminNotification {
+  id         String    @id @default(cuid())
+  userId     String
+  user       AdminUser @relation(fields: [userId], references: [id])
+  title      String
+  message    String
+  entityId   String?   // Related entity ID
+  entityType String?   // VERIFICATION, REFUND, etc.
+  actionUrl  String?   // Link to relevant page
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+// ============================================
+// ADMIN PORTAL ENUMS
+// ============================================
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  AGENT
+  FIELD_AGENT
+  CUSTOMER_SUPPORT
+}
+
+// NOTE: Using different enum name to avoid collision with existing VerificationType
+enum DriverVerificationType {
+  NEW_DRIVER
+  EXISTING_DRIVER
+}
+
+// NOTE: Different enum name to avoid collision with existing VerificationStatus
+enum VerificationRequestStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  REVERT_REQUESTED
+  REVERTED
+  FINAL_APPROVED // After buffer expires
+}
+
+enum DocumentActionType {
+  APPROVED
+  REJECTED
+}
+
+enum FieldPhotoType {
+  VEHICLE_FRONT
+  VEHICLE_BACK
+  VEHICLE_LEFT
+  VEHICLE_RIGHT
+  DRIVER_WITH_VEHICLE
+  CHASSIS_NUMBER
+}
+
+// NOTE: Different enum name to avoid collision with existing RefundStatus
+enum AdminRefundStatus {
+  INITIATED
+  APPROVED
+  REJECTED
+  REVERT_REQUESTED
+  REVERTED
+  COMPLETED
 }

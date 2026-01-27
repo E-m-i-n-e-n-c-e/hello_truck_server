@@ -1,8 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { RootModule } from './root.module';
 import { ValidationPipe, INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import * as cookieParser from 'cookie-parser';
 import * as fs from 'fs';
 
 function setupSwagger(app: INestApplication) {
@@ -66,7 +67,7 @@ function setupSwagger(app: INestApplication) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create(RootModule.forRoot(), {
     logger: process.env.NODE_ENV === 'production'
       ? false
       : ['error', 'warn', 'log', 'debug', 'verbose'],
@@ -74,14 +75,40 @@ async function bootstrap() {
 
   // Get ConfigService for typed environment access
   const configService = app.get(ConfigService);
+  const appMode = configService.get<string>('APP_MODE', 'app');
 
-  // Enable CORS for admin dashboard
-  app.enableCors({
-    origin: '*',
-    credentials: true,
+  // Enable cookie parser for JWT in cookies
+  app.use(cookieParser());
+
+  // Enable CORS with proper credentials support for admin portal
+  const corsOptions = {
+    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Admin portal allowed origins
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'https://hello-truck-admin.vercel.app',
+        'https://ht-server.fly.dev',
+      ];
+      
+      // Allow if origin is in the list
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else if (appMode !== 'admin') {
+        // If not in admin mode, allow all origins
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true, // Always enable credentials for cookie support
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  });
+  };
+
+  app.enableCors(corsOptions);
 
   app.useGlobalPipes(
     new ValidationPipe({
