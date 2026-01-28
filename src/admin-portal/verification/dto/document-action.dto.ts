@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MinLength, IsDateString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { DocumentActionType } from '@prisma/client';
 
@@ -12,4 +12,9 @@ export class DocumentActionDto {
   @IsString()
   @MinLength(10)
   rejectionReason?: string;
+
+  @ApiProperty({ required: false, description: 'Expiry date for the document (ISO 8601 format)' })
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
 }

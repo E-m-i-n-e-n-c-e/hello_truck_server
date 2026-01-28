@@ -31,6 +31,9 @@ export interface AdminTokenResponse {
     firstName: string;
     lastName: string;
     role: AdminRole;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
   };
 }
 
@@ -106,6 +109,9 @@ export class AdminAuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
     };
   }
@@ -158,6 +164,7 @@ export class AdminAuthService {
         role: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 

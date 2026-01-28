@@ -712,9 +712,11 @@ model AdminUser {
   sessions              AdminSession[]
   auditLogs             AuditLog[]
   assignedVerifications DriverVerificationRequest[] @relation("AssignedTo")
+  approvedVerifications DriverVerificationRequest[] @relation("ApprovedBy")
   createdRefunds        AdminRefundRequest[]        @relation("CreatedBy")
   approvedRefunds       AdminRefundRequest[]        @relation("ApprovedBy")
   notifications         AdminNotification[]
+  documentActions       VerificationDocumentAction[]
 }
 
 // Admin Sessions - JWT-based sessions for web portal
@@ -781,6 +783,7 @@ model DriverVerificationRequest {
   revertRequestedAt    DateTime?
   approvedAt           DateTime?
   approvedById         String?
+  approvedBy           AdminUser?                  @relation("ApprovedBy", fields: [approvedById], references: [id])
   createdAt            DateTime                    @default(now())
   updatedAt            DateTime                    @updatedAt
 
@@ -803,9 +806,11 @@ model VerificationDocumentAction {
   action                DocumentActionType
   rejectionReason       String?                   // Required if REJECTED
   actionById            String
+  actionBy              AdminUser                 @relation(fields: [actionById], references: [id])
   actionAt              DateTime                  @default(now())
 
   @@index([verificationRequestId])
+  @@index([actionById])
 }
 
 // Field Verification Photos (uploaded by Field Agent)

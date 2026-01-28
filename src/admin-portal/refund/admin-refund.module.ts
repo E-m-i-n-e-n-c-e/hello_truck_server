@@ -6,7 +6,6 @@
  */
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigService } from '@nestjs/config';
 import { AdminRefundController } from './admin-refund.controller';
 import { AdminRefundService } from './admin-refund.service';
 import { RefundQueueService, REFUND_QUEUE_NAME } from './refund-queue.service';
@@ -15,6 +14,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { AdminFirebaseModule } from '../firebase/admin-firebase.module';
 import { RazorpayModule } from '../razorpay/razorpay.module';
+import { RedisModule } from '../redis/redis.module';
+import { RedisService } from '../redis/redis.service';
 
 @Module({
   imports: [
@@ -22,16 +23,13 @@ import { RazorpayModule } from '../razorpay/razorpay.module';
     AuditLogModule,
     AdminFirebaseModule,
     RazorpayModule,
+    RedisModule,
     BullModule.registerQueueAsync({
       name: REFUND_QUEUE_NAME,
-      useFactory: (configService: ConfigService) => {
-        const redisUrl = new URL(configService.get<string>('REDIS_URL')!);
+      inject: [RedisService],
+      useFactory: (redisService: RedisService) => {
         return {
-          connection: {
-            host: redisUrl.hostname,
-            port: parseInt(redisUrl.port || '6379'),
-            password: redisUrl.password || undefined,
-          },
+          connection: redisService.bullClient, // Use pre-configured Redis client with TLS
           defaultJobOptions: {
             removeOnComplete: true,
             removeOnFail: false, // Keep failed jobs for debugging
@@ -43,7 +41,6 @@ import { RazorpayModule } from '../razorpay/razorpay.module';
           },
         };
       },
-      inject: [ConfigService],
     }),
   ],
   controllers: [AdminRefundController],

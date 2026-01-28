@@ -12,7 +12,6 @@
  */
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigService } from '@nestjs/config';
 import { VerificationController } from './verification.controller';
 import { VerificationService } from './verification.service';
 import { VerificationQueueService, VERIFICATION_QUEUE_NAME } from './verification-queue.service';
@@ -21,22 +20,21 @@ import { VerificationAssignmentCron } from './verification-assignment.cron';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AdminFirebaseModule } from '../firebase/admin-firebase.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { RedisModule } from '../redis/redis.module';
+import { RedisService } from '../redis/redis.service';
 
 @Module({
   imports: [
     PrismaModule,
     AdminFirebaseModule,
     AuditLogModule,
+    RedisModule,
     BullModule.registerQueueAsync({
       name: VERIFICATION_QUEUE_NAME,
-      useFactory: (configService: ConfigService) => {
-        const redisUrl = new URL(configService.get<string>('REDIS_URL')!);
+      inject: [RedisService],
+      useFactory: (redisService: RedisService) => {
         return {
-          connection: {
-            host: redisUrl.hostname,
-            port: parseInt(redisUrl.port || '6379'),
-            password: redisUrl.password || undefined,
-          },
+          connection: redisService.bullClient, // Use pre-configured Redis client with TLS
           defaultJobOptions: {
             removeOnComplete: true,
             removeOnFail: false,
@@ -48,7 +46,6 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
           },
         };
       },
-      inject: [ConfigService],
     }),
   ],
   controllers: [VerificationController],

@@ -18,11 +18,13 @@ import {
   VerificationStatus,
   Prisma,
 } from '@prisma/client';
-import { CreateVerificationDto } from './dto/create-verification.dto';
-import { ListVerificationsDto } from './dto/list-verifications.dto';
-import { DocumentActionDto } from './dto/document-action.dto';
-import { AssignVerificationDto } from './dto/assign-verification.dto';
-import { VerificationRevertRequestDto } from './dto/revert-request.dto';
+import {
+  CreateVerificationRequestDto,
+  ListVerificationsRequestDto,
+  DocumentActionRequestDto,
+  AssignVerificationRequestDto,
+  RevertRequestDto,
+} from './dto/verification-request.dto';
 import { ConfigService } from '@nestjs/config';
 import { VerificationQueueService } from './verification-queue.service';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
@@ -229,7 +231,7 @@ export class VerificationService {
   /**
    * Create a new verification request
    */
-  async createVerification(dto: CreateVerificationDto) {
+  async createVerification(dto: CreateVerificationRequestDto) {
     // Check driver exists
     const driver = await this.prisma.driver.findUnique({
       where: { id: dto.driverId },
@@ -273,6 +275,7 @@ export class VerificationService {
             firstName: true,
             lastName: true,
             phoneNumber: true,
+            verificationStatus: true,
           },
         },
         assignedTo: {
@@ -294,8 +297,7 @@ export class VerificationService {
 
   /**
    * List drivers with PENDING verification status (NEW drivers)
-   * Uses legacy logic - queries drivers directly, not DriverVerificationRequest
-   * Includes any associated verification request for buffer/revert info
+   * Returns full driver details with documents, vehicle, address, and verification requests
    */
   async listPendingVerificationDrivers(
     page: number = 1,
@@ -305,6 +307,7 @@ export class VerificationService {
     const skip = (page - 1) * limit;
     const where: Prisma.DriverWhereInput = {
       verificationStatus: VerificationStatus.PENDING,
+      firstName: { not: null },
     };
 
     if (search) {
@@ -330,7 +333,7 @@ export class VerificationService {
           address: true,
           verificationRequests: {
             orderBy: { createdAt: 'desc' },
-            take: 1, // Get most recent verification request if exists
+            take: 1,
             include: {
               assignedTo: {
                 select: {
@@ -340,10 +343,24 @@ export class VerificationService {
                   role: true,
                 },
               },
+              fieldPhotos: true,
+              documentActions: {
+                orderBy: { actionAt: 'desc' },
+                include: {
+                  actionBy: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      role: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { profileCreatedAt: 'desc' },
       }),
       this.prisma.driver.count({ where }),
     ]);
@@ -361,8 +378,7 @@ export class VerificationService {
 
   /**
    * List drivers with VERIFIED status but PENDING documents (RE-VERIFICATION)
-   * Uses legacy logic - queries drivers directly, not DriverVerificationRequest
-   * Includes any associated verification request for buffer/revert info
+   * Returns full driver details with documents, vehicle, address, and verification requests
    */
   async listDriversWithPendingDocuments(
     page: number = 1,
@@ -372,6 +388,10 @@ export class VerificationService {
     const skip = (page - 1) * limit;
     const where: Prisma.DriverWhereInput = {
       verificationStatus: VerificationStatus.VERIFIED,
+      firstName: { not: null },
+      AND: [
+        { firstName: { not: '' } },
+      ],
       documents: {
         OR: [
           { licenseStatus: VerificationStatus.PENDING },
@@ -405,7 +425,7 @@ export class VerificationService {
           address: true,
           verificationRequests: {
             orderBy: { createdAt: 'desc' },
-            take: 1, // Get most recent verification request if exists
+            take: 1,
             include: {
               assignedTo: {
                 select: {
@@ -413,6 +433,20 @@ export class VerificationService {
                   firstName: true,
                   lastName: true,
                   role: true,
+                },
+              },
+              fieldPhotos: true,
+              documentActions: {
+                orderBy: { actionAt: 'desc' },
+                include: {
+                  actionBy: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      role: true,
+                    },
+                  },
                 },
               },
             },
@@ -437,7 +471,7 @@ export class VerificationService {
   /**
    * List verification requests with filters
    */
-  async listVerifications(filters: ListVerificationsDto) {
+  async listVerifications(filters: ListVerificationsRequestDto) {
     const {
       status,
       verificationType,
@@ -551,6 +585,16 @@ export class VerificationService {
         fieldPhotos: true,
         documentActions: {
           orderBy: { actionAt: 'desc' },
+          include: {
+            actionBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+              },
+            },
+          },
         },
       },
     });
@@ -601,9 +645,27 @@ export class VerificationService {
                 role: true,
               },
             },
+            approvedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+              },
+            },
             fieldPhotos: true,
             documentActions: {
               orderBy: { actionAt: 'desc' },
+              include: {
+                actionBy: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    role: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -628,7 +690,7 @@ export class VerificationService {
   /**
    * Assign verification to an agent
    */
-  async assignVerification(id: string, dto: AssignVerificationDto, assignedById: string) {
+  async assignVerification(id: string, dto: AssignVerificationRequestDto, assignedById: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
     });
@@ -665,7 +727,7 @@ export class VerificationService {
   async documentAction(
     verificationId: string,
     documentField: DocumentField,
-    dto: DocumentActionDto,
+    dto: DocumentActionRequestDto,
     actionById: string,
   ) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
@@ -709,9 +771,17 @@ export class VerificationService {
         ? VerificationStatus.VERIFIED
         : VerificationStatus.REJECTED;
 
+      const updateData: any = { [statusField]: newStatus };
+
+      // If approving and expiry date provided, update the expiry field
+      if (dto.action === DocumentActionType.APPROVED && dto.expiryDate) {
+        const expiryField = `${documentField}Expiry`;
+        updateData[expiryField] = new Date(dto.expiryDate);
+      }
+
       await this.prisma.driverDocuments.update({
         where: { id: verification.driver.documents.id },
-        data: { [statusField]: newStatus },
+        data: updateData,
       });
     }
 
@@ -866,7 +936,7 @@ export class VerificationService {
   /**
    * Request revert (within buffer window)
    */
-  async requestRevert(id: string, dto: VerificationRevertRequestDto, requestedById: string) {
+  async requestRevert(id: string, dto: RevertRequestDto, requestedById: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
     });
