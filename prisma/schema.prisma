@@ -712,9 +712,12 @@ model AdminUser {
   sessions              AdminSession[]
   auditLogs             AuditLog[]
   assignedVerifications DriverVerificationRequest[] @relation("AssignedTo")
+  approvedVerifications DriverVerificationRequest[] @relation("ApprovedBy")
   createdRefunds        AdminRefundRequest[]        @relation("CreatedBy")
   approvedRefunds       AdminRefundRequest[]        @relation("ApprovedBy")
   notifications         AdminNotification[]
+  documentActions       VerificationDocumentAction[]
+  verificationActions   VerificationAction[]        // Driver-level verification actions
 }
 
 // Admin Sessions - JWT-based sessions for web portal
@@ -781,11 +784,13 @@ model DriverVerificationRequest {
   revertRequestedAt    DateTime?
   approvedAt           DateTime?
   approvedById         String?
+  approvedBy           AdminUser?                  @relation("ApprovedBy", fields: [approvedById], references: [id])
   createdAt            DateTime                    @default(now())
   updatedAt            DateTime                    @updatedAt
 
-  fieldPhotos     FieldVerificationPhoto[]
-  documentActions VerificationDocumentAction[]
+  fieldPhotos          FieldVerificationPhoto[]
+  documentActions      VerificationDocumentAction[]
+  verificationActions  VerificationAction[]         // Driver-level actions (approve, reject, revert)
 
   @@index([driverId])
   @@index([status])
@@ -803,9 +808,28 @@ model VerificationDocumentAction {
   action                DocumentActionType
   rejectionReason       String?                   // Required if REJECTED
   actionById            String
+  actionBy              AdminUser                 @relation(fields: [actionById], references: [id])
   actionAt              DateTime                  @default(now())
 
   @@index([verificationRequestId])
+  @@index([actionById])
+}
+
+// Verification-level Actions (approve, reject, revert request, revert decision)
+// Provides complete audit trail for driver verification workflow
+model VerificationAction {
+  id                    String                    @id @default(cuid())
+  verificationRequestId String
+  verificationRequest   DriverVerificationRequest @relation(fields: [verificationRequestId], references: [id])
+  actionType            VerificationActionType    // APPROVED, REJECTED, REVERT_REQUESTED, REVERT_APPROVED, REVERT_REJECTED
+  reason                String?                   // Rejection reason or revert reason
+  actionById            String
+  actionBy              AdminUser                 @relation(fields: [actionById], references: [id])
+  actionAt              DateTime                  @default(now())
+
+  @@index([verificationRequestId])
+  @@index([actionById])
+  @@index([actionAt])
 }
 
 // Field Verification Photos (uploaded by Field Agent)
@@ -879,14 +903,16 @@ model AdminNotification {
   user       AdminUser @relation(fields: [userId], references: [id])
   title      String
   message    String
-  entityId   String?   // Related entity ID
+  entityId   String?   // Related entity ID (e.g., verification request ID)
   entityType String?   // VERIFICATION, REFUND, etc.
+  driverId   String?   // Driver ID for verification-related notifications
   actionUrl  String?   // Link to relevant page
   isRead     Boolean   @default(false)
   createdAt  DateTime  @default(now())
 
   @@index([userId, isRead])
   @@index([createdAt])
+  @@index([driverId])
 }
 
 // ============================================
@@ -921,6 +947,14 @@ enum VerificationRequestStatus {
 enum DocumentActionType {
   APPROVED
   REJECTED
+}
+
+enum VerificationActionType {
+  APPROVED           // Driver verification approved (buffer window starts)
+  REJECTED           // Driver verification rejected
+  REVERT_REQUESTED   // Agent/Admin requests revert during buffer
+  REVERT_APPROVED    // Admin approves revert request
+  REVERT_REJECTED    // Admin rejects revert request
 }
 
 enum FieldPhotoType {

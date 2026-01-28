@@ -41,6 +41,7 @@ export interface AdminMessagingPayload {
     event?: AdminNotificationEventType;
     entityId?: string;
     entityType?: string;
+    driverId?: string; // For verification-related notifications
     actionUrl?: string;
     [key: string]: string | undefined;
   };
@@ -53,6 +54,7 @@ export interface AdminNotificationPayload {
   body: string;
   entityId?: string;
   entityType?: 'VERIFICATION' | 'REFUND' | 'DRIVER' | 'BOOKING';
+  driverId?: string; // For verification-related notifications
   priority?: NotificationPriority;
   actionUrl?: string;
   data?: Record<string, string>;
@@ -67,6 +69,7 @@ export interface AdminNotificationRecord {
   body: string;
   entityId?: string;
   entityType?: string;
+  driverId?: string; // For verification-related notifications
   priority: string;
   actionUrl?: string;
   isRead: boolean;

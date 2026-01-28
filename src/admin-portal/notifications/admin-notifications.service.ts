@@ -19,6 +19,7 @@ export interface AdminNotificationInput {
   message: string;
   entityId?: string;
   entityType?: 'VERIFICATION' | 'REFUND' | 'DRIVER' | 'BOOKING';
+  driverId?: string; // For verification-related notifications
   actionUrl?: string;
 }
 
@@ -77,6 +78,7 @@ export class AdminNotificationsService {
         message: input.message,
         entityId: input.entityId,
         entityType: input.entityType,
+        driverId: input.driverId,
         actionUrl: input.actionUrl,
         isRead: false,
       })),
@@ -91,6 +93,7 @@ export class AdminNotificationsService {
       data: {
         entityId: input.entityId,
         entityType: input.entityType,
+        driverId: input.driverId,
         actionUrl: input.actionUrl,
       },
     };

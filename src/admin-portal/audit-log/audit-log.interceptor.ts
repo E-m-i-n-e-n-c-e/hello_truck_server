@@ -58,6 +58,9 @@ export class AuditLogInterceptor implements NestInterceptor {
         if (request.params.id) {
           description = description.replace(':id', request.params.id);
         }
+        if (request.params.field) {
+          description = description.replace(':field', request.params.field);
+        }
 
         // Extract entity info
         const entityId = request.params.id || request.params.driverId || request.params.bookingId;
@@ -66,11 +69,21 @@ export class AuditLogInterceptor implements NestInterceptor {
         // Capture after state if configured
         const afterSnapshot = auditMetadata.captureResponse ? response : undefined;
 
+        // Determine actual action type (for dynamic actions like document approval/rejection)
+        let actionType = auditMetadata.action;
+
+        // Special handling for document actions - check request body for actual action
+        if (request.body?.action === 'APPROVED') {
+          actionType = 'DOCUMENT_APPROVED';
+        } else if (request.body?.action === 'REJECTED') {
+          actionType = 'DOCUMENT_REJECTED';
+        }
+
         // Log asynchronously (don't await)
         this.auditLogService.log({
           userId: user.sub,
           role: user.role,
-          actionType: auditMetadata.action,
+          actionType,
           module: auditMetadata.module,
           description,
           ipAddress: request.ip || request.headers['x-forwarded-for'],

@@ -15,7 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { AdminRole, VerificationRequestStatus, FieldPhotoType } from '@prisma/client';
 import { AuditLogService, AuditActionTypes, AuditModules } from '../audit-log/audit-log.service';
-import { UploadPhotosDto } from './dto/upload-photos.dto';
+import { UploadPhotosRequestDto } from './dto/field-verification-request.dto';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
 
 @Injectable()
@@ -119,7 +119,7 @@ export class FieldVerificationService {
    * Upload field verification photos
    * Photos: VEHICLE_FRONT, VEHICLE_BACK, VEHICLE_LEFT, VEHICLE_RIGHT, DRIVER_WITH_VEHICLE, CHASSIS_NUMBER
    */
-  async uploadPhotos(dto: UploadPhotosDto, userId: string, userRole: AdminRole) {
+  async uploadPhotos(dto: UploadPhotosRequestDto, userId: string, userRole: AdminRole) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id: dto.verificationId },
     });

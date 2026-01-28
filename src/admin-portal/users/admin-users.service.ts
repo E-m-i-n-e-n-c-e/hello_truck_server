@@ -10,9 +10,7 @@ import { Injectable, ConflictException, NotFoundException, ForbiddenException } 
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminAuthService } from '../auth/admin-auth.service';
 import { AdminRole, Prisma } from '@prisma/client';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { ListUsersDto } from './dto/list-users.dto';
+import { CreateUserRequestDto, UpdateUserRequestDto, ListUsersRequestDto } from './dto/user-request.dto';
 
 // Define role hierarchy
 const ROLE_HIERARCHY: Record<AdminRole, AdminRole[]> = {
@@ -41,7 +39,7 @@ export class AdminUsersService {
   /**
    * List all admin users with optional filters
    */
-  async listUsers(filters: ListUsersDto) {
+  async listUsers(filters: ListUsersRequestDto) {
     const { role, search, isActive, page = 1, limit = 20 } = filters;
 
     const where: Prisma.AdminUserWhereInput = {};
@@ -121,7 +119,7 @@ export class AdminUsersService {
   /**
    * Create a new admin user
    */
-  async createUser(dto: CreateUserDto, creatorRole: AdminRole) {
+  async createUser(dto: CreateUserRequestDto, creatorRole: AdminRole) {
     // Check if creator can create this role
     if (!this.canManageRole(creatorRole, dto.role)) {
       throw new ForbiddenException(
@@ -159,16 +157,20 @@ export class AdminUsersService {
         role: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
-    return user;
+    return {
+      message: 'User created successfully',
+      user,
+    };
   }
 
   /**
    * Update an admin user
    */
-  async updateUser(id: string, dto: UpdateUserDto, currentUserId: string, currentUserRole: AdminRole) {
+  async updateUser(id: string, dto: UpdateUserRequestDto, currentUserId: string, currentUserRole: AdminRole) {
     // Cannot update your own role
     if (id === currentUserId && dto.role) {
       throw new ForbiddenException('Cannot change your own role');
@@ -216,7 +218,10 @@ export class AdminUsersService {
       },
     });
 
-    return updatedUser;
+    return {
+      message: 'User updated successfully',
+      user: updatedUser,
+    };
   }
 
   /**
@@ -254,16 +259,42 @@ export class AdminUsersService {
    * Reactivate a deactivated user
    */
   async reactivateUser(id: string) {
-    const user = await this.prisma.adminUser.findUnique({ where: { id } });
+    const user = await this.prisma.adminUser.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    await this.prisma.adminUser.update({
+    const updatedUser = await this.prisma.adminUser.update({
       where: { id },
       data: { isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
-    return { message: 'User reactivated successfully' };
+    return {
+      message: 'User reactivated successfully',
+      user: updatedUser,
+    };
   }
 }

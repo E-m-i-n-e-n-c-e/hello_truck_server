@@ -2,7 +2,11 @@ import { IsString, IsOptional, IsInt, Min, IsDateString } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-export class ListLogsDto {
+/**
+ * List audit logs with filters
+ * GET /admin-api/logs
+ */
+export class ListLogsRequestDto {
   @ApiProperty({ required: false, description: 'Filter by user ID' })
   @IsOptional()
   @IsString()
@@ -42,6 +46,11 @@ export class ListLogsDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiProperty({ required: false, description: 'Search by user name or email' })
+  @IsOptional()
+  @IsString()
+  userSearch?: string;
 
   @ApiProperty({ example: 1, required: false, default: 1 })
   @IsOptional()

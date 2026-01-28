@@ -77,6 +77,11 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const appMode = configService.get<string>('APP_MODE', 'app');
 
+  // Trust proxy - important for apps behind reverse proxies (Fly.io, nginx, etc.)
+  // This ensures correct client IP addresses and protocol detection
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
   // Enable cookie parser for JWT in cookies
   app.use(cookieParser());
 
@@ -85,14 +90,14 @@ async function bootstrap() {
     origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
+
       // Admin portal allowed origins
       const allowedOrigins = [
         'http://localhost:3000',
         'https://hello-truck-admin.vercel.app',
         'https://ht-server.fly.dev',
       ];
-      
+
       // Allow if origin is in the list
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);

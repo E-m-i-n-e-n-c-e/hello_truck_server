@@ -24,13 +24,24 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { AdminAuthService } from './admin-auth.service';
-import { LoginDto } from './dto/login.dto';
-import { UpsertFcmTokenDto } from './dto/upsert-fcm-token.dto';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { CurrentAdminUser } from './decorators/current-admin-user.decorator';
 import { AdminJwtPayload } from './admin-auth.service';
 import { AdminSessionService } from '../session/admin-session.service';
 import { ConfigService } from '@nestjs/config';
+import { Serialize } from '../common/interceptors/serialize.interceptor';
+import {
+  LoginRequestDto,
+  RefreshTokenRequestDto,
+  UpdateFcmTokenRequestDto,
+} from './dto/auth-request.dto';
+import {
+  LoginResponseDto,
+  RefreshTokenResponseDto,
+  CurrentUserResponseDto,
+  UpdateFcmTokenResponseDto,
+  LogoutResponseDto,
+} from './dto/auth-response.dto';
 
 @ApiTags('Admin Auth')
 @Controller('admin-api/auth')
@@ -43,7 +54,7 @@ export class AdminAuthController {
 
   private getCookieOptions() {
     const nodeEnv = this.configService.get('NODE_ENV');
-    
+
     return {
       httpOnly: true,
       // IMPORTANT: Set secure to false to allow HTTP localhost to receive cookies
@@ -56,14 +67,15 @@ export class AdminAuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Serialize(LoginResponseDto)
   @ApiOperation({ summary: 'Admin login with email and password' })
-  @ApiResponse({ status: 200, description: 'Login successful, sets HTTP-only cookies' })
+  @ApiResponse({ status: 200, description: 'Login successful, sets HTTP-only cookies', type: LoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(
-    @Body() loginDto: LoginDto,
+    @Body() loginDto: LoginRequestDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<LoginResponseDto> {
     // Extract user agent and IP
     const userAgent = req.headers['user-agent'];
     const ipAddress = req.ip || req.socket.remoteAddress;
@@ -99,14 +111,15 @@ export class AdminAuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Serialize(RefreshTokenResponseDto)
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  @ApiResponse({ status: 200, description: 'Access token refreshed successfully' })
+  @ApiResponse({ status: 200, description: 'Access token refreshed successfully', type: RefreshTokenResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refreshAccessToken(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-    @Body() body?: { refreshToken?: string },
-  ) {
+    @Body() body?: RefreshTokenRequestDto,
+  ): Promise<RefreshTokenResponseDto> {
     // Try to get refresh token from body first (for cross-origin), then from cookie
     const refreshToken = body?.refreshToken || req.cookies?.refreshToken;
 
@@ -125,7 +138,7 @@ export class AdminAuthController {
     });
 
     // Return access token in body for cross-origin requests
-    return { 
+    return {
       message: 'Access token refreshed successfully',
       accessToken: result.accessToken,
     };
@@ -133,53 +146,56 @@ export class AdminAuthController {
 
   @Get('me')
   @UseGuards(AdminAuthGuard)
+  @Serialize(CurrentUserResponseDto)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current admin user info' })
-  @ApiResponse({ status: 200, description: 'Returns current user info' })
+  @ApiResponse({ status: 200, description: 'Returns current user info', type: CurrentUserResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getCurrentUser(@CurrentAdminUser() user: AdminJwtPayload) {
+  async getCurrentUser(@CurrentAdminUser() user: AdminJwtPayload): Promise<CurrentUserResponseDto> {
     return this.authService.getCurrentUser(user.sub);
   }
 
   @Put('fcm-token')
   @UseGuards(AdminAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @Serialize(UpdateFcmTokenResponseDto)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update FCM token for web push notifications' })
-  @ApiResponse({ status: 200, description: 'FCM token updated successfully' })
+  @ApiResponse({ status: 200, description: 'FCM token updated successfully', type: UpdateFcmTokenResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateFcmToken(
     @Req() req: Request,
-    @Body() dto: UpsertFcmTokenDto,
-  ) {
+    @Body() dto: UpdateFcmTokenRequestDto,
+  ): Promise<UpdateFcmTokenResponseDto> {
     // Extract refresh token from cookie to identify the session
     const refreshToken = req.cookies?.refreshToken;
-    
+
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token cookie not found');
     }
 
     const session = await this.sessionService.getSessionByRefreshToken(refreshToken);
-    
+
     if (!session) {
       throw new UnauthorizedException('Session not found');
     }
 
     await this.sessionService.updateSessionFcmToken(session.id, dto.fcmToken);
-    
+
     return { message: 'FCM token updated successfully' };
   }
 
   @Post('logout')
   @UseGuards(AdminAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @Serialize(LogoutResponseDto)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout (delete session and clear cookies)' })
-  @ApiResponse({ status: 200, description: 'Logout successful' })
+  @ApiResponse({ status: 200, description: 'Logout successful', type: LogoutResponseDto })
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<LogoutResponseDto> {
     // Get refresh token from cookie
     const refreshToken = req.cookies?.refreshToken;
 

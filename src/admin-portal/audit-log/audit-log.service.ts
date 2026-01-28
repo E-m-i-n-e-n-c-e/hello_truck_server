@@ -8,7 +8,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminRole, Prisma } from '@prisma/client';
-import { ListLogsDto } from './dto/list-logs.dto';
+import { ListLogsRequestDto } from './dto/audit-log-request.dto';
 
 export interface CreateAuditLogInput {
   userId: string;
@@ -31,7 +31,6 @@ export const AuditActionTypes = {
   LOGOUT: 'LOGOUT',
 
   // Verification
-  VERIFICATION_CREATED: 'VERIFICATION_CREATED',
   VERIFICATION_ASSIGNED: 'VERIFICATION_ASSIGNED',
   DOCUMENT_APPROVED: 'DOCUMENT_APPROVED',
   DOCUMENT_REJECTED: 'DOCUMENT_REJECTED',
@@ -86,9 +85,12 @@ export class AuditLogService {
 
   /**
    * Create a new audit log entry
+   * Supports transaction context for atomic operations
    */
-  async log(input: CreateAuditLogInput): Promise<void> {
-    await this.prisma.auditLog.create({
+  async log(input: CreateAuditLogInput, tx?: Prisma.TransactionClient): Promise<void> {
+    const prisma = tx || this.prisma;
+
+    await prisma.auditLog.create({
       data: {
         userId: input.userId,
         role: input.role,
@@ -108,7 +110,7 @@ export class AuditLogService {
   /**
    * List audit logs with filters
    */
-  async listLogs(filters: ListLogsDto) {
+  async listLogs(filters: ListLogsRequestDto) {
     const {
       userId,
       actionType,
@@ -118,6 +120,7 @@ export class AuditLogService {
       startDate,
       endDate,
       search,
+      userSearch,
       page = 1,
       limit = 20,
     } = filters;
@@ -157,6 +160,17 @@ export class AuditLogService {
 
     if (search) {
       where.description = { contains: search, mode: 'insensitive' };
+    }
+
+    // User search filter - searches both name and email
+    if (userSearch) {
+      where.user = {
+        OR: [
+          { email: { contains: userSearch, mode: 'insensitive' } },
+          { firstName: { contains: userSearch, mode: 'insensitive' } },
+          { lastName: { contains: userSearch, mode: 'insensitive' } },
+        ],
+      };
     }
 
     const [logs, total] = await Promise.all([
@@ -212,7 +226,7 @@ export class AuditLogService {
   /**
    * Export logs to CSV format (returns data, UI handles download)
    */
-  async exportLogs(filters: ListLogsDto) {
+  async exportLogs(filters: ListLogsRequestDto) {
     // Limit export to last 30 days and max 10000 records
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -224,9 +238,24 @@ export class AuditLogService {
       },
     };
 
+    // Apply all filters
     if (filters.userId) where.userId = filters.userId;
     if (filters.actionType) where.actionType = filters.actionType;
     if (filters.module) where.module = filters.module;
+    if (filters.entityId) where.entityId = filters.entityId;
+    if (filters.entityType) where.entityType = filters.entityType;
+    if (filters.search) {
+      where.description = { contains: filters.search, mode: 'insensitive' };
+    }
+    if (filters.userSearch) {
+      where.user = {
+        OR: [
+          { email: { contains: filters.userSearch, mode: 'insensitive' } },
+          { firstName: { contains: filters.userSearch, mode: 'insensitive' } },
+          { lastName: { contains: filters.userSearch, mode: 'insensitive' } },
+        ],
+      };
+    }
 
     const logs = await this.prisma.auditLog.findMany({
       where,
