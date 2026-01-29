@@ -9,6 +9,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -117,7 +118,7 @@ export class FieldVerificationController {
     return this.service.requestRevert(id, dto.reason, user.userId, user.role);
   }
 
-  @Post(':id/photos/signed-url')
+  @Get(':id/photos/signed-url')
   @Roles(AdminRole.FIELD_AGENT, AdminRole.ADMIN, AdminRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
   @Serialize(GetSignedUrlResponseDto)
@@ -137,7 +138,7 @@ export class FieldVerificationController {
   })
   async getSignedUploadUrl(
     @Param('id') id: string,
-    @Body() dto: GetSignedUrlRequestDto,
+    @Query() dto: GetSignedUrlRequestDto,
     @CurrentAdminUser() user: { userId: string; role: AdminRole },
   ): Promise<GetSignedUrlResponseDto> {
     return this.service.getSignedUploadUrl(id, dto.photoType, dto.contentType, dto.fileName, user.userId);

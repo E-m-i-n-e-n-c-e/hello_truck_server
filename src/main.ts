@@ -95,6 +95,7 @@ async function bootstrap() {
       const allowedOrigins = [
         'http://localhost:3000',
         'https://hello-truck-admin.vercel.app',
+        'https://ht-admin-gilt.vercel.app',
         'https://ht-server.fly.dev',
       ];
 
