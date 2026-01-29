@@ -31,7 +31,7 @@ import {
   ListVerificationsRequestDto,
   DocumentActionRequestDto,
   AssignVerificationRequestDto,
-  RevertRequestDto,
+  VerificationRevertRequestDto,
   RevertDecisionRequestDto,
   RejectVerificationRequestDto,
 } from './dto/verification-request.dto';
@@ -235,7 +235,7 @@ export class VerificationController {
   @ApiResponse({ status: 400, description: 'Buffer window expired or invalid status' })
   async requestRevert(
     @Param('id') id: string,
-    @Body() dto: RevertRequestDto,
+    @Body() dto: VerificationRevertRequestDto,
     @CurrentAdminUser() user: AdminJwtPayload,
   ): Promise<RevertRequestResponseDto> {
     return this.verificationService.requestRevert(id, dto, user.sub);

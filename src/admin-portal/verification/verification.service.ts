@@ -22,7 +22,7 @@ import {
   ListVerificationsRequestDto,
   DocumentActionRequestDto,
   AssignVerificationRequestDto,
-  RevertRequestDto,
+  VerificationRevertRequestDto,
 } from './dto/verification-request.dto';
 import { ConfigService } from '@nestjs/config';
 import { VerificationQueueService } from './verification-queue.service';
@@ -472,6 +472,25 @@ export class VerificationService {
               firstName: true,
               lastName: true,
               role: true,
+              email: true,
+            },
+          },
+          approvedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+              email: true,
+            },
+          },
+          revertRequestedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+              email: true,
             },
           },
         },
@@ -523,6 +542,7 @@ export class VerificationService {
                 firstName: true,
                 lastName: true,
                 role: true,
+                email: true,
               },
             },
             approvedBy: {
@@ -531,6 +551,16 @@ export class VerificationService {
                 firstName: true,
                 lastName: true,
                 role: true,
+                email: true,
+              },
+            },
+            revertRequestedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                email: true,
               },
             },
             fieldPhotos: true,
@@ -749,13 +779,8 @@ export class VerificationService {
         });
       }
 
-      // 3. If rejected, update verification status
-      if (dto.action === DocumentActionType.REJECTED) {
-        await tx.driverVerificationRequest.update({
-          where: { id: verificationId },
-          data: { status: VerificationRequestStatus.REJECTED },
-        });
-      }
+      // Note: Individual document rejection does NOT change verification status
+      // Only the "Reject Driver" action changes verification status to REJECTED
     });
 
     // Capture after state
@@ -764,7 +789,6 @@ export class VerificationService {
       documentField,
       action: dto.action,
       documentStatus: dto.action === DocumentActionType.APPROVED ? 'VERIFIED' : 'REJECTED',
-      verificationStatus: dto.action === DocumentActionType.REJECTED ? 'REJECTED' : verification.status,
       rejectionReason: dto.rejectionReason,
       expiryDate: dto.expiryDate,
     };
@@ -1013,7 +1037,7 @@ export class VerificationService {
   /**
    * Request revert (within buffer window)
    */
-  async requestRevert(id: string, dto: RevertRequestDto, requestedById: string) {
+  async requestRevert(id: string, dto: VerificationRevertRequestDto, requestedById: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
       include: {

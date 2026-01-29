@@ -55,7 +55,7 @@ export class CompleteVerificationRequestDto {
  * Request revert for field verification
  * POST /admin-api/field-verification/:id/revert
  */
-export class RevertRequestDto {
+export class FieldVerificationRevertRequestDto {
   @ApiProperty({ description: 'Reason for revert request (min 10 chars)' })
   @IsString()
   @MinLength(10, { message: 'Reason must be at least 10 characters' })

@@ -99,7 +99,7 @@ export class RejectVerificationRequestDto {
 /**
  * Request revert (within buffer window)
  */
-export class RevertRequestDto {
+export class VerificationRevertRequestDto {
   @ApiProperty({ description: 'Reason for requesting revert (min 10 chars)' })
   @IsString()
   @MinLength(10, { message: 'Revert reason must be at least 10 characters' })

@@ -161,6 +161,10 @@ export class VerificationRequestDto {
   revertRequestedById: string | null;
 
   @Expose()
+  @Type(() => AdminUserInfoDto)
+  revertRequestedBy?: AdminUserInfoDto | null;
+
+  @Expose()
   revertRequestedAt: Date | null;
 
   @Expose()

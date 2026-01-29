@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AdminAuthService } from '../auth/admin-auth.service';
 import { AdminRole, Prisma } from '@prisma/client';
 import { CreateUserRequestDto, UpdateUserRequestDto, ListUsersRequestDto } from './dto/user-request.dto';
+import { AUDIT_METADATA_KEY } from '../audit-log/decorators/audit-log.decorator';
 
 // Define role hierarchy
 const ROLE_HIERARCHY: Record<AdminRole, AdminRole[]> = {
@@ -191,6 +192,16 @@ export class AdminUsersService {
       }
     }
 
+    // Capture before state
+    const beforeSnapshot = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+    };
+
     // Prepare update data
     const updateData: Prisma.AdminUserUpdateInput = {};
 
@@ -218,9 +229,24 @@ export class AdminUsersService {
       },
     });
 
+    // Capture after state
+    const afterSnapshot = {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      role: updatedUser.role,
+      isActive: updatedUser.isActive,
+    };
+
     return {
       message: 'User updated successfully',
       user: updatedUser,
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: id,
+      },
     };
   }
 
@@ -243,16 +269,43 @@ export class AdminUsersService {
       throw new ForbiddenException(`You cannot manage users with role ${user.role}`);
     }
 
+    // Capture before state
+    const beforeSnapshot = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+    };
+
     // Soft delete by setting isActive to false
-    await this.prisma.adminUser.update({
+    const updatedUser = await this.prisma.adminUser.update({
       where: { id },
       data: { isActive: false },
     });
 
+    // Capture after state
+    const afterSnapshot = {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      role: updatedUser.role,
+      isActive: updatedUser.isActive,
+    };
+
     // TODO: Also invalidate all sessions for this user
     // await this.sessionService.deleteAllUserSessions(id);
 
-    return { message: 'User deactivated successfully' };
+    return {
+      message: 'User deactivated successfully',
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: id,
+      },
+    };
   }
 
   /**
@@ -277,6 +330,16 @@ export class AdminUsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Capture before state
+    const beforeSnapshot = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+    };
+
     const updatedUser = await this.prisma.adminUser.update({
       where: { id },
       data: { isActive: true },
@@ -292,9 +355,24 @@ export class AdminUsersService {
       },
     });
 
+    // Capture after state
+    const afterSnapshot = {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      role: updatedUser.role,
+      isActive: updatedUser.isActive,
+    };
+
     return {
       message: 'User reactivated successfully',
       user: updatedUser,
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: id,
+      },
     };
   }
 }

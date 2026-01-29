@@ -84,11 +84,42 @@ export class AuditLogService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Serialize data to plain JSON, removing any non-serializable properties
+   */
+  private serializeToJson(data: any): any {
+    if (data === null || data === undefined) {
+      return null;
+    }
+    // Use JSON.parse(JSON.stringify()) to ensure clean serialization
+    try {
+      const serialized = JSON.parse(JSON.stringify(data));
+      // Debug: Log if serialization resulted in empty object when input wasn't empty
+      if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+        const serializedKeys = Object.keys(serialized || {});
+        if (serializedKeys.length === 0) {
+          console.warn('[AuditLogService] Serialization resulted in empty object:', {
+            originalKeys: Object.keys(data),
+            originalData: data,
+          });
+        }
+      }
+      return serialized;
+    } catch (error) {
+      console.error('[AuditLogService] Failed to serialize audit snapshot:', error);
+      return null;
+    }
+  }
+
+  /**
    * Create a new audit log entry
    * Supports transaction context for atomic operations
    */
   async log(input: CreateAuditLogInput, tx?: Prisma.TransactionClient): Promise<void> {
     const prisma = tx || this.prisma;
+
+    // Serialize snapshots to ensure they're plain JSON objects
+    const beforeSnapshot = this.serializeToJson(input.beforeSnapshot);
+    const afterSnapshot = this.serializeToJson(input.afterSnapshot);
 
     await prisma.auditLog.create({
       data: {
@@ -99,8 +130,8 @@ export class AuditLogService {
         description: input.description,
         ipAddress: input.ipAddress,
         userAgent: input.userAgent,
-        beforeSnapshot: input.beforeSnapshot as Prisma.InputJsonValue,
-        afterSnapshot: input.afterSnapshot as Prisma.InputJsonValue,
+        beforeSnapshot: beforeSnapshot as Prisma.InputJsonValue,
+        afterSnapshot: afterSnapshot as Prisma.InputJsonValue,
         entityId: input.entityId,
         entityType: input.entityType,
       },

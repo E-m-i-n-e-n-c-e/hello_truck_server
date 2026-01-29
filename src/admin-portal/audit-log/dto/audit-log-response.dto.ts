@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose, Type, Transform } from 'class-transformer';
 import { AdminRole } from '@prisma/client';
 
 /**
@@ -47,9 +47,11 @@ export class AuditLogDto {
   userAgent: string | null;
 
   @Expose()
+  @Transform(({ value }) => value, { toClassOnly: true })
   beforeSnapshot: any | null;
 
   @Expose()
+  @Transform(({ value }) => value, { toClassOnly: true })
   afterSnapshot: any | null;
 
   @Expose()

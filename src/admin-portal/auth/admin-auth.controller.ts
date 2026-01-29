@@ -61,7 +61,7 @@ export class AdminAuthController {
       httpOnly: true,
       // IMPORTANT: Set secure to false to allow HTTP localhost to receive cookies
       // In production with HTTPS frontend, this should be true
-      secure: false,
+      secure: true,
       sameSite: 'none' as const, // 'none' required for cross-site cookies (must use with secure in prod)
       path: '/',
     };

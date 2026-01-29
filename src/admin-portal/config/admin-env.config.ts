@@ -23,8 +23,7 @@ const adminEnvSchema = z.object({
 
   // Admin JWT (separate from customer/driver JWT)
   ADMIN_JWT_SECRET: z.string().min(1, 'ADMIN_JWT_SECRET is required'),
-  ADMIN_JWT_EXPIRES_IN: z.string().default('1h'),
-
+  ADMIN_JWT_EXPIRES_IN: z.string().default('30m'),
   // LibreDesk Integration (optional in dev)
   LIBREDESK_API_URL: z.string().optional(),
   LIBREDESK_API_KEY: z.string().optional(),

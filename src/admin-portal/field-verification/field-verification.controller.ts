@@ -19,7 +19,7 @@ import { FieldVerificationService } from './field-verification.service';
 import {
   UploadPhotosRequestDto,
   CompleteVerificationRequestDto,
-  RevertRequestDto,
+  FieldVerificationRevertRequestDto,
   GetSignedUrlRequestDto,
 } from './dto/field-verification-request.dto';
 import {
@@ -111,7 +111,7 @@ export class FieldVerificationController {
   @ApiOperation({ summary: 'Request revert for field verification' })
   async requestRevert(
     @Param('id') id: string,
-    @Body() dto: RevertRequestDto,
+    @Body() dto: FieldVerificationRevertRequestDto,
     @CurrentAdminUser() user: { userId: string; role: AdminRole },
   ): Promise<RevertResponseDto> {
     return this.service.requestRevert(id, dto.reason, user.userId, user.role);

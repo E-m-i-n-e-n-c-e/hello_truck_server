@@ -713,6 +713,7 @@ model AdminUser {
   auditLogs             AuditLog[]
   assignedVerifications DriverVerificationRequest[] @relation("AssignedTo")
   approvedVerifications DriverVerificationRequest[] @relation("ApprovedBy")
+  revertRequestedVerifications DriverVerificationRequest[] @relation("RevertRequestedBy")
   createdRefunds        AdminRefundRequest[]        @relation("CreatedBy")
   approvedRefunds       AdminRefundRequest[]        @relation("ApprovedBy")
   notifications         AdminNotification[]
@@ -781,6 +782,7 @@ model DriverVerificationRequest {
   bufferExpiresAt      DateTime?
   revertReason         String?
   revertRequestedById  String?
+  revertRequestedBy    AdminUser?                  @relation("RevertRequestedBy", fields: [revertRequestedById], references: [id])
   revertRequestedAt    DateTime?
   approvedAt           DateTime?
   approvedById         String?

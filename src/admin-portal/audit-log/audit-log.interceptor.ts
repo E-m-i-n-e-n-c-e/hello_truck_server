@@ -19,7 +19,7 @@ import {
   CallHandler,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Observable, tap, map } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { AuditLogService } from './audit-log.service';
 import { AUDIT_LOG_KEY, AuditLogMetadata, AUDIT_METADATA_KEY } from './decorators/audit-log.decorator';
 import { AdminJwtPayload } from '../auth/admin-auth.service';
@@ -51,16 +51,6 @@ export class AuditLogInterceptor implements NestInterceptor {
       : undefined;
 
     return next.handle().pipe(
-      map((response) => {
-        // If captureSnapshots is enabled and response has audit metadata, extract and remove it
-        if (auditMetadata.captureSnapshots && response && typeof response === 'object' && AUDIT_METADATA_KEY in response) {
-          const { [AUDIT_METADATA_KEY]: snapshotMetadata, ...cleanResponse } = response;
-          // Store metadata for logging, return clean response
-          (response as any).__extractedMetadata = snapshotMetadata;
-          return cleanResponse;
-        }
-        return response;
-      }),
       tap((response) => {
         // For login endpoint, extract user from response since request.user doesn't exist yet
         let logUserId = user?.sub;
@@ -94,20 +84,20 @@ export class AuditLogInterceptor implements NestInterceptor {
         let beforeSnapshotData = beforeSnapshot;
         let afterSnapshotData = auditMetadata.captureResponse ? response : undefined;
 
-        // If enhanced snapshots were provided by service, use those instead
-        const extractedMetadata = (response as any)?.__extractedMetadata;
-        if (extractedMetadata) {
-          if (extractedMetadata.beforeSnapshot) {
-            beforeSnapshotData = extractedMetadata.beforeSnapshot;
+        // If enhanced snapshots were provided by service, check for audit metadata
+        if (auditMetadata.captureSnapshots && response && typeof response === 'object') {
+          const snapshotMetadata = (response as any)[AUDIT_METADATA_KEY];
+          if (snapshotMetadata) {
+            if (snapshotMetadata.beforeSnapshot) {
+              beforeSnapshotData = snapshotMetadata.beforeSnapshot;
+            }
+            if (snapshotMetadata.afterSnapshot) {
+              afterSnapshotData = snapshotMetadata.afterSnapshot;
+            }
+            if (snapshotMetadata.entityId) {
+              entityId = snapshotMetadata.entityId;
+            }
           }
-          if (extractedMetadata.afterSnapshot) {
-            afterSnapshotData = extractedMetadata.afterSnapshot;
-          }
-          if (extractedMetadata.entityId) {
-            entityId = extractedMetadata.entityId;
-          }
-          // Clean up temporary metadata property
-          delete (response as any).__extractedMetadata;
         }
 
         const entityType = auditMetadata.entityType;

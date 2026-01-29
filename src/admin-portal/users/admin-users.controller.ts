@@ -81,7 +81,6 @@ export class AdminUsersController {
     module: AuditModules.USER_MANAGEMENT,
     description: 'Created new user',
     entityType: 'USER',
-    captureRequest: true,
     captureResponse: true,
   })
   @ApiOperation({ summary: 'Create new admin user' })
@@ -102,8 +101,7 @@ export class AdminUsersController {
     module: AuditModules.USER_MANAGEMENT,
     description: 'Updated user :id',
     entityType: 'USER',
-    captureRequest: true,
-    captureResponse: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Update admin user' })
   @ApiResponse({ status: 200, description: 'User updated successfully', type: UpdateUserResponseDto })
@@ -125,7 +123,7 @@ export class AdminUsersController {
     module: AuditModules.USER_MANAGEMENT,
     description: 'Deactivated user :id',
     entityType: 'USER',
-    captureResponse: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Deactivate admin user (soft delete)' })
   @ApiResponse({ status: 200, description: 'User deactivated successfully', type: DeactivateUserResponseDto })
@@ -146,7 +144,7 @@ export class AdminUsersController {
     module: AuditModules.USER_MANAGEMENT,
     description: 'Reactivated user :id',
     entityType: 'USER',
-    captureResponse: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Reactivate a deactivated user' })
   @ApiResponse({ status: 200, description: 'User reactivated successfully', type: ReactivateUserResponseDto })
