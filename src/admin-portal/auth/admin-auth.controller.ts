@@ -30,6 +30,8 @@ import { AdminJwtPayload } from './admin-auth.service';
 import { AdminSessionService } from '../session/admin-session.service';
 import { ConfigService } from '@nestjs/config';
 import { Serialize } from '../common/interceptors/serialize.interceptor';
+import { AuditLog } from '../audit-log/decorators/audit-log.decorator';
+import { AuditActionTypes, AuditModules } from '../audit-log/audit-log.service';
 import {
   LoginRequestDto,
   RefreshTokenRequestDto,
@@ -68,6 +70,12 @@ export class AdminAuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Serialize(LoginResponseDto)
+  @AuditLog({
+    action: AuditActionTypes.LOGIN,
+    module: AuditModules.AUTH,
+    description: 'User logged in',
+    captureRequest: false, // Don't capture password
+  })
   @ApiOperation({ summary: 'Admin login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful, sets HTTP-only cookies', type: LoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
@@ -189,6 +197,11 @@ export class AdminAuthController {
   @UseGuards(AdminAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Serialize(LogoutResponseDto)
+  @AuditLog({
+    action: AuditActionTypes.LOGOUT,
+    module: AuditModules.AUTH,
+    description: 'User logged out',
+  })
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout (delete session and clear cookies)' })
   @ApiResponse({ status: 200, description: 'Logout successful', type: LogoutResponseDto })

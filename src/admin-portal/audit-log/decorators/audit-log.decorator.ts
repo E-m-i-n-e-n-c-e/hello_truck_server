@@ -11,11 +11,13 @@
  *   entityType: 'DRIVER',
  *   captureRequest: true,
  *   captureResponse: true,
+ *   captureSnapshots: true, // Enable before/after snapshot capture from service
  * })
  */
 import { SetMetadata } from '@nestjs/common';
 
 export const AUDIT_LOG_KEY = 'audit_log';
+export const AUDIT_METADATA_KEY = '__auditMetadata';
 
 export interface AuditLogMetadata {
   action: string;
@@ -24,6 +26,13 @@ export interface AuditLogMetadata {
   entityType?: string;
   captureRequest?: boolean;
   captureResponse?: boolean;
+  captureSnapshots?: boolean; // If true, expects service to return { data, __auditMetadata }
+}
+
+export interface AuditSnapshotMetadata {
+  beforeSnapshot?: any;
+  afterSnapshot?: any;
+  entityId?: string;
 }
 
 export const AuditLog = (metadata: AuditLogMetadata) =>

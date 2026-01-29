@@ -5,8 +5,12 @@
  * This includes: Super Admin, Admin, Agent, Field Agent, and Customer Support.
  * Uses metadata to determine what to log.
  *
+ * Supports two modes for capturing snapshots:
+ * 1. Standard: Captures request/response as-is (captureRequest/captureResponse)
+ * 2. Enhanced: Services return { data, __auditMetadata } with before/after snapshots (captureSnapshots)
+ *
  * Usage:
- * @AuditLog({ action: 'DOCUMENT_APPROVED', module: 'VERIFICATION' })
+ * @AuditLog({ action: 'DOCUMENT_APPROVED', module: 'VERIFICATION', captureSnapshots: true })
  */
 import {
   Injectable,
@@ -15,9 +19,9 @@ import {
   CallHandler,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, map } from 'rxjs';
 import { AuditLogService } from './audit-log.service';
-import { AUDIT_LOG_KEY, AuditLogMetadata } from './decorators/audit-log.decorator';
+import { AUDIT_LOG_KEY, AuditLogMetadata, AUDIT_METADATA_KEY } from './decorators/audit-log.decorator';
 import { AdminJwtPayload } from '../auth/admin-auth.service';
 
 @Injectable()
@@ -41,15 +45,38 @@ export class AuditLogInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user: AdminJwtPayload | undefined = request.user;
 
-    // Capture before state if needed
+    // Capture before state if needed (standard mode)
     const beforeSnapshot = auditMetadata.captureRequest
       ? { params: request.params, body: request.body }
       : undefined;
 
     return next.handle().pipe(
+      map((response) => {
+        // If captureSnapshots is enabled and response has audit metadata, extract and remove it
+        if (auditMetadata.captureSnapshots && response && typeof response === 'object' && AUDIT_METADATA_KEY in response) {
+          const { [AUDIT_METADATA_KEY]: snapshotMetadata, ...cleanResponse } = response;
+          // Store metadata for logging, return clean response
+          (response as any).__extractedMetadata = snapshotMetadata;
+          return cleanResponse;
+        }
+        return response;
+      }),
       tap((response) => {
-        // Only log if user is authenticated
-        if (!user) return;
+        // For login endpoint, extract user from response since request.user doesn't exist yet
+        let logUserId = user?.sub;
+        let logUserRole = user?.role;
+
+        // Special handling for LOGIN action - extract from response
+        if (auditMetadata.action === 'LOGIN' && response && typeof response === 'object') {
+          const loginResponse = response as any;
+          if (loginResponse.user) {
+            logUserId = loginResponse.user.id;
+            logUserRole = loginResponse.user.role;
+          }
+        }
+
+        // Only log if we have a user ID (either from auth or from login response)
+        if (!logUserId || !logUserRole) return;
 
         // Build description
         let description = auditMetadata.description || `${auditMetadata.action} action performed`;
@@ -62,12 +89,28 @@ export class AuditLogInterceptor implements NestInterceptor {
           description = description.replace(':field', request.params.field);
         }
 
-        // Extract entity info
-        const entityId = request.params.id || request.params.driverId || request.params.bookingId;
-        const entityType = auditMetadata.entityType;
+        // Extract entity info and snapshots
+        let entityId = request.params.id || request.params.driverId || request.params.bookingId;
+        let beforeSnapshotData = beforeSnapshot;
+        let afterSnapshotData = auditMetadata.captureResponse ? response : undefined;
 
-        // Capture after state if configured
-        const afterSnapshot = auditMetadata.captureResponse ? response : undefined;
+        // If enhanced snapshots were provided by service, use those instead
+        const extractedMetadata = (response as any)?.__extractedMetadata;
+        if (extractedMetadata) {
+          if (extractedMetadata.beforeSnapshot) {
+            beforeSnapshotData = extractedMetadata.beforeSnapshot;
+          }
+          if (extractedMetadata.afterSnapshot) {
+            afterSnapshotData = extractedMetadata.afterSnapshot;
+          }
+          if (extractedMetadata.entityId) {
+            entityId = extractedMetadata.entityId;
+          }
+          // Clean up temporary metadata property
+          delete (response as any).__extractedMetadata;
+        }
+
+        const entityType = auditMetadata.entityType;
 
         // Determine actual action type (for dynamic actions like document approval/rejection)
         let actionType = auditMetadata.action;
@@ -81,15 +124,15 @@ export class AuditLogInterceptor implements NestInterceptor {
 
         // Log asynchronously (don't await)
         this.auditLogService.log({
-          userId: user.sub,
-          role: user.role,
+          userId: logUserId,
+          role: logUserRole,
           actionType,
           module: auditMetadata.module,
           description,
           ipAddress: request.ip || request.headers['x-forwarded-for'],
           userAgent: request.headers['user-agent'],
-          beforeSnapshot,
-          afterSnapshot,
+          beforeSnapshot: beforeSnapshotData,
+          afterSnapshot: afterSnapshotData,
           entityId,
           entityType,
         }).catch((err) => {

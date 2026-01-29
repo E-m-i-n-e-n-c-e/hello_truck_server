@@ -80,7 +80,7 @@ async function bootstrap() {
   // Trust proxy - important for apps behind reverse proxies (Fly.io, nginx, etc.)
   // This ensures correct client IP addresses and protocol detection
   const expressApp = app.getHttpAdapter().getInstance();
-  expressApp.set('trust proxy', 1);
+  expressApp.set('trust proxy', true);
 
   // Enable cookie parser for JWT in cookies
   app.use(cookieParser());

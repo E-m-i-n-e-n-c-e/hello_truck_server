@@ -143,7 +143,7 @@ export class VerificationController {
     module: AuditModules.VERIFICATION,
     description: 'Assigned verification to agent',
     entityType: 'VERIFICATION',
-    captureRequest: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Assign verification to an agent' })
   @ApiResponse({ status: 200, description: 'Verification assigned' })
@@ -164,7 +164,7 @@ export class VerificationController {
     module: AuditModules.VERIFICATION,
     description: 'Document action performed on :field for verification :id',
     entityType: 'VERIFICATION',
-    captureRequest: true,
+    captureSnapshots: true,
   })
   @ApiParam({ name: 'field', description: 'Document field: license, rcBook, fc, insurance, aadhar, selfie' })
   @ApiOperation({ summary: 'Approve or reject a specific document' })
@@ -187,7 +187,7 @@ export class VerificationController {
     module: AuditModules.VERIFICATION,
     description: 'Approved verification (buffer started)',
     entityType: 'VERIFICATION',
-    captureResponse: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Approve entire verification (starts 1-hour buffer)' })
   @ApiResponse({ status: 200, description: 'Verification approved, buffer started' })
@@ -207,7 +207,7 @@ export class VerificationController {
     module: AuditModules.VERIFICATION,
     description: 'Rejected verification',
     entityType: 'VERIFICATION',
-    captureRequest: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Reject entire verification' })
   @ApiResponse({ status: 200, description: 'Verification rejected' })
@@ -228,7 +228,7 @@ export class VerificationController {
     module: AuditModules.VERIFICATION,
     description: 'Requested verification revert',
     entityType: 'VERIFICATION',
-    captureRequest: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Request revert (only within buffer window)' })
   @ApiResponse({ status: 200, description: 'Revert request submitted' })
@@ -250,7 +250,7 @@ export class VerificationController {
     module: AuditModules.VERIFICATION,
     description: 'Handled revert request',
     entityType: 'VERIFICATION',
-    captureRequest: true,
+    captureSnapshots: true,
   })
   @ApiOperation({ summary: 'Approve or reject revert request (Admin only)' })
   @ApiResponse({ status: 200, description: 'Revert decision applied' })

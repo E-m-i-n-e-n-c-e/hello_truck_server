@@ -31,6 +31,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentAdminUser } from '../auth/decorators/current-admin-user.decorator';
 import { AdminJwtPayload } from '../auth/admin-auth.service';
 import { Serialize } from '../common/interceptors/serialize.interceptor';
+import { AuditLog } from '../audit-log/decorators/audit-log.decorator';
+import { AuditActionTypes, AuditModules } from '../audit-log/audit-log.service';
 import {
   CreateUserRequestDto,
   UpdateUserRequestDto,
@@ -74,6 +76,14 @@ export class AdminUsersController {
   @Post()
   @Roles(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
   @Serialize(CreateUserResponseDto)
+  @AuditLog({
+    action: AuditActionTypes.USER_CREATED,
+    module: AuditModules.USER_MANAGEMENT,
+    description: 'Created new user',
+    entityType: 'USER',
+    captureRequest: true,
+    captureResponse: true,
+  })
   @ApiOperation({ summary: 'Create new admin user' })
   @ApiResponse({ status: 201, description: 'User created successfully', type: CreateUserResponseDto })
   @ApiResponse({ status: 409, description: 'Email already in use' })
@@ -87,6 +97,14 @@ export class AdminUsersController {
   @Patch(':id')
   @Roles(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
   @Serialize(UpdateUserResponseDto)
+  @AuditLog({
+    action: AuditActionTypes.USER_UPDATED,
+    module: AuditModules.USER_MANAGEMENT,
+    description: 'Updated user :id',
+    entityType: 'USER',
+    captureRequest: true,
+    captureResponse: true,
+  })
   @ApiOperation({ summary: 'Update admin user' })
   @ApiResponse({ status: 200, description: 'User updated successfully', type: UpdateUserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
@@ -102,6 +120,13 @@ export class AdminUsersController {
   @Roles(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @Serialize(DeactivateUserResponseDto)
+  @AuditLog({
+    action: AuditActionTypes.USER_DEACTIVATED,
+    module: AuditModules.USER_MANAGEMENT,
+    description: 'Deactivated user :id',
+    entityType: 'USER',
+    captureResponse: true,
+  })
   @ApiOperation({ summary: 'Deactivate admin user (soft delete)' })
   @ApiResponse({ status: 200, description: 'User deactivated successfully', type: DeactivateUserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
@@ -116,6 +141,13 @@ export class AdminUsersController {
   @Post(':id/reactivate')
   @Roles(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
   @Serialize(ReactivateUserResponseDto)
+  @AuditLog({
+    action: AuditActionTypes.USER_REACTIVATED,
+    module: AuditModules.USER_MANAGEMENT,
+    description: 'Reactivated user :id',
+    entityType: 'USER',
+    captureResponse: true,
+  })
   @ApiOperation({ summary: 'Reactivate a deactivated user' })
   @ApiResponse({ status: 200, description: 'User reactivated successfully', type: ReactivateUserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })

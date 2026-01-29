@@ -29,6 +29,7 @@ import { VerificationQueueService } from './verification-queue.service';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
 import { FcmEventType } from '../types/fcm.types';
 import { AdminNotificationEvent } from '../types/admin-notification.types';
+import { AUDIT_METADATA_KEY } from '../audit-log/decorators/audit-log.decorator';
 
 // Document field names that match DriverDocuments columns
 export const DOCUMENT_FIELDS = ['license', 'rcBook', 'fc', 'insurance', 'aadhar', 'selfie'] as const;
@@ -585,12 +586,32 @@ export class VerificationService {
   async assignVerification(id: string, dto: AssignVerificationRequestDto, assignedById: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
-      include: { driver: true },
+      include: {
+        driver: true,
+        assignedTo: true,
+      },
     });
 
     if (!verification) {
       throw new NotFoundException('Verification request not found');
     }
+
+    // Capture before state
+    const beforeSnapshot = {
+      verificationId: id,
+      status: verification.status,
+      assignedTo: verification.assignedTo ? {
+        id: verification.assignedTo.id,
+        name: `${verification.assignedTo.firstName} ${verification.assignedTo.lastName}`,
+        email: verification.assignedTo.email,
+        role: verification.assignedTo.role,
+      } : null,
+      driver: {
+        id: verification.driver.id,
+        name: `${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+        phoneNumber: verification.driver.phoneNumber,
+      },
+    };
 
     const updated = await this.prisma.driverVerificationRequest.update({
       where: { id },
@@ -599,16 +620,21 @@ export class VerificationService {
         status: VerificationRequestStatus.IN_REVIEW,
       },
       include: {
-        assignedTo: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-          },
-        },
+        assignedTo: true,
       },
     });
+
+    // Capture after state
+    const afterSnapshot = {
+      verificationId: id,
+      status: updated.status,
+      assignedTo: updated.assignedTo ? {
+        id: updated.assignedTo.id,
+        name: `${updated.assignedTo.firstName} ${updated.assignedTo.lastName}`,
+        email: updated.assignedTo.email,
+        role: updated.assignedTo.role,
+      } : null,
+    };
 
     // Notify assigned agent (fire-and-forget)
     if (updated.assignedTo) {
@@ -632,7 +658,14 @@ export class VerificationService {
       });
     }
 
-    return updated;
+    return {
+      ...updated,
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: id,
+      },
+    };
   }
 
   /**
@@ -667,6 +700,22 @@ export class VerificationService {
       throw new BadRequestException('Rejection reason must be at least 10 characters');
     }
 
+    // Capture before state
+    const statusField = DOCUMENT_STATUS_MAP[documentField];
+    const beforeSnapshot = {
+      verificationId,
+      documentField,
+      driver: {
+        id: verification.driver.id,
+        name: `${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+        phoneNumber: verification.driver.phoneNumber,
+      },
+      documentStatus: statusField && statusField !== 'aadhar' && statusField !== 'selfie'
+        ? verification.driver.documents[statusField]
+        : 'N/A',
+      verificationStatus: verification.status,
+    };
+
     // Execute all database operations in a transaction
     await this.prisma.$transaction(async (tx) => {
       // 1. Create document action record
@@ -681,7 +730,6 @@ export class VerificationService {
       });
 
       // 2. Update the actual document status in DriverDocuments
-      const statusField = DOCUMENT_STATUS_MAP[documentField];
       if (statusField && statusField !== 'aadhar' && statusField !== 'selfie') {
         const newStatus = dto.action === DocumentActionType.APPROVED
           ? VerificationStatus.VERIFIED
@@ -710,6 +758,17 @@ export class VerificationService {
       }
     });
 
+    // Capture after state
+    const afterSnapshot = {
+      verificationId,
+      documentField,
+      action: dto.action,
+      documentStatus: dto.action === DocumentActionType.APPROVED ? 'VERIFIED' : 'REJECTED',
+      verificationStatus: dto.action === DocumentActionType.REJECTED ? 'REJECTED' : verification.status,
+      rejectionReason: dto.rejectionReason,
+      expiryDate: dto.expiryDate,
+    };
+
     // Fire-and-forget: Notify driver about document rejection (outside transaction)
     if (dto.action === DocumentActionType.REJECTED) {
       this.firebaseService.notifyAllSessions(
@@ -733,7 +792,15 @@ export class VerificationService {
       });
     }
 
-    return { success: true, message: `Document ${dto.action.toLowerCase()}` };
+    return {
+      success: true,
+      message: `Document ${dto.action.toLowerCase()}`,
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: verificationId,
+      },
+    };
   }
 
   /**
@@ -744,7 +811,13 @@ export class VerificationService {
   async approveVerification(id: string, approvedById: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
-      include: { driver: { include: { documents: true } } },
+      include: {
+        driver: {
+          include: {
+            documents: true,
+          },
+        },
+      },
     });
 
     if (!verification) {
@@ -755,9 +828,27 @@ export class VerificationService {
       throw new BadRequestException('Verification already finalized');
     }
 
-    // Calculate buffer expiry
-    const bufferExpiresAt = new Date();
-    bufferExpiresAt.setMinutes(bufferExpiresAt.getMinutes() + this.bufferDurationMinutes);
+    // Capture before state
+    const beforeSnapshot = {
+      verificationId: id,
+      status: verification.status,
+      driver: {
+        id: verification.driver.id,
+        name: `${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+        phoneNumber: verification.driver.phoneNumber,
+        verificationStatus: verification.driver.verificationStatus,
+      },
+      documents: verification.driver.documents ? {
+        licenseStatus: verification.driver.documents.licenseStatus,
+        rcBookStatus: verification.driver.documents.rcBookStatus,
+        fcStatus: verification.driver.documents.fcStatus,
+        insuranceStatus: verification.driver.documents.insuranceStatus,
+      } : null,
+      bufferExpiresAt: verification.bufferExpiresAt,
+    };
+
+    // Calculate buffer expiry - exactly 60 minutes from now
+    const bufferExpiresAt = new Date(Date.now() + this.bufferDurationMinutes * 60 * 1000);
 
     // Update verification status to APPROVED (starts buffer) and create action log
     const [updated] = await this.prisma.$transaction([
@@ -779,6 +870,15 @@ export class VerificationService {
         },
       }),
     ]);
+
+    // Capture after state
+    const afterSnapshot = {
+      verificationId: id,
+      status: updated.status,
+      bufferExpiresAt: bufferExpiresAt.toISOString(),
+      bufferDurationMinutes: this.bufferDurationMinutes,
+      approvedAt: updated.approvedAt?.toISOString(),
+    };
 
     // DO NOT update driver status yet - stays PENDING during buffer
     // DO NOT update document statuses yet - stay PENDING during buffer
@@ -808,6 +908,11 @@ export class VerificationService {
       ...updated,
       bufferExpiresAt,
       bufferDurationMinutes: this.bufferDurationMinutes,
+      __auditMetadata: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: id,
+      },
     };
   }
 
@@ -817,7 +922,9 @@ export class VerificationService {
   async rejectVerification(id: string, rejectionReason: string, rejectedById: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
-      include: { driver: true },
+      include: {
+        driver: true,
+      },
     });
 
     if (!verification) {
@@ -827,6 +934,18 @@ export class VerificationService {
     if (!rejectionReason || rejectionReason.length < 10) {
       throw new BadRequestException('Rejection reason must be at least 10 characters');
     }
+
+    // Capture before state
+    const beforeSnapshot = {
+      verificationId: id,
+      status: verification.status,
+      driver: {
+        id: verification.driver.id,
+        name: `${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+        phoneNumber: verification.driver.phoneNumber,
+        verificationStatus: verification.driver.verificationStatus,
+      },
+    };
 
     // Update verification, create action log, and update driver status in transaction
     const [updated] = await this.prisma.$transaction([
@@ -851,6 +970,16 @@ export class VerificationService {
       }),
     ]);
 
+    // Capture after state
+    const afterSnapshot = {
+      verificationId: id,
+      status: updated.status,
+      rejectionReason,
+      driver: {
+        verificationStatus: 'REJECTED',
+      },
+    };
+
     // Fire-and-forget: Notify driver about rejection (outside transaction)
     this.firebaseService.notifyAllSessions(
       verification.driver.id,
@@ -871,7 +1000,14 @@ export class VerificationService {
       this.logger.error(`Failed to notify driver ${verification.driver.id} about rejection`, error);
     });
 
-    return updated;
+    return {
+      ...updated,
+      __auditMetadata: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: id,
+      },
+    };
   }
 
   /**
@@ -880,6 +1016,9 @@ export class VerificationService {
   async requestRevert(id: string, dto: RevertRequestDto, requestedById: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
+      include: {
+        driver: true,
+      },
     });
 
     if (!verification) {
@@ -899,6 +1038,19 @@ export class VerificationService {
     if (!dto.reason || dto.reason.length < 10) {
       throw new BadRequestException('Revert reason must be at least 10 characters');
     }
+
+    // Capture before state
+    const beforeSnapshot = {
+      verificationId: id,
+      status: verification.status,
+      driver: {
+        id: verification.driver.id,
+        name: `${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+        phoneNumber: verification.driver.phoneNumber,
+      },
+      bufferExpiresAt: verification.bufferExpiresAt?.toISOString(),
+      approvedAt: verification.approvedAt?.toISOString(),
+    };
 
     // Cancel pending finalization job
     await this.verificationQueue.cancelVerificationFinalization(id);
@@ -924,7 +1076,22 @@ export class VerificationService {
       }),
     ]);
 
-    return updated;
+    // Capture after state
+    const afterSnapshot = {
+      verificationId: id,
+      status: updated.status,
+      revertReason: dto.reason,
+      revertRequestedAt: updated.revertRequestedAt?.toISOString(),
+    };
+
+    return {
+      ...updated,
+      __auditMetadata: {
+        beforeSnapshot,
+        afterSnapshot,
+        entityId: id,
+      },
+    };
   }
 
   /**
@@ -938,7 +1105,13 @@ export class VerificationService {
 
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
-      include: { driver: { include: { documents: true } } },
+      include: {
+        driver: {
+          include: {
+            documents: true,
+          },
+        },
+      },
     });
 
     if (!verification) {
@@ -948,6 +1121,25 @@ export class VerificationService {
     if (verification.status !== VerificationRequestStatus.REVERT_REQUESTED) {
       throw new BadRequestException('Verification is not pending revert approval');
     }
+
+    // Capture before state
+    const beforeSnapshot = {
+      verificationId: id,
+      status: verification.status,
+      revertReason: verification.revertReason,
+      driver: {
+        id: verification.driver.id,
+        name: `${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+        phoneNumber: verification.driver.phoneNumber,
+        verificationStatus: verification.driver.verificationStatus,
+      },
+      documents: verification.driver.documents ? {
+        licenseStatus: verification.driver.documents.licenseStatus,
+        rcBookStatus: verification.driver.documents.rcBookStatus,
+        fcStatus: verification.driver.documents.fcStatus,
+        insuranceStatus: verification.driver.documents.insuranceStatus,
+      } : null,
+    };
 
     if (approve) {
       // Revert everything back to pending and create action log
@@ -987,7 +1179,31 @@ export class VerificationService {
         });
       }
 
-      return { success: true, message: 'Revert approved - verification reset to pending' };
+      // Capture after state for approval
+      const afterSnapshot = {
+        verificationId: id,
+        status: 'REVERTED',
+        decision: 'APPROVED',
+        driver: {
+          verificationStatus: 'PENDING',
+        },
+        documents: {
+          licenseStatus: 'PENDING',
+          rcBookStatus: 'PENDING',
+          fcStatus: 'PENDING',
+          insuranceStatus: 'PENDING',
+        },
+      };
+
+      return {
+        success: true,
+        message: 'Revert approved - verification reset to pending',
+        [AUDIT_METADATA_KEY]: {
+          beforeSnapshot,
+          afterSnapshot,
+          entityId: id,
+        },
+      };
     } else {
       // Reject revert - restore to approved and create action log
       await this.prisma.$transaction([
@@ -1009,7 +1225,23 @@ export class VerificationService {
         }),
       ]);
 
-      return { success: true, message: 'Revert rejected - verification remains approved' };
+      // Capture after state for rejection
+      const afterSnapshot = {
+        verificationId: id,
+        status: 'APPROVED',
+        decision: 'REJECTED',
+        revertReason: null,
+      };
+
+      return {
+        success: true,
+        message: 'Revert rejected - verification remains approved',
+        [AUDIT_METADATA_KEY]: {
+          beforeSnapshot,
+          afterSnapshot,
+          entityId: id,
+        },
+      };
     }
   }
 
@@ -1030,35 +1262,41 @@ export class VerificationService {
 
     // Only finalize if still in APPROVED status (not reverted)
     if (verification.status !== VerificationRequestStatus.APPROVED) {
+      this.logger.log(`Verification ${verificationId} is no longer APPROVED (${verification.status}), skipping finalization`);
       return; // Skip - status changed (likely reverted)
     }
 
-    // Update verification to FINAL_APPROVED
-    await this.prisma.driverVerificationRequest.update({
-      where: { id: verificationId },
-      data: { status: VerificationRequestStatus.FINAL_APPROVED },
-    });
-
-    // NOW update driver status to VERIFIED (driver can now accept rides)
-    await this.prisma.driver.update({
-      where: { id: verification.driver.id },
-      data: { verificationStatus: VerificationStatus.VERIFIED },
-    });
-
-    // NOW update all document statuses to VERIFIED
-    if (verification.driver.documents) {
-      await this.prisma.driverDocuments.update({
-        where: { id: verification.driver.documents.id },
-        data: {
-          licenseStatus: VerificationStatus.VERIFIED,
-          rcBookStatus: VerificationStatus.VERIFIED,
-          fcStatus: VerificationStatus.VERIFIED,
-          insuranceStatus: VerificationStatus.VERIFIED,
-        },
+    // Execute all updates in a transaction to ensure atomicity
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Update verification to FINAL_APPROVED
+      await tx.driverVerificationRequest.update({
+        where: { id: verificationId },
+        data: { status: VerificationRequestStatus.FINAL_APPROVED },
       });
-    }
 
-    // Notify driver that they can now accept rides
+      // 2. Update driver status to VERIFIED (driver can now accept rides)
+      await tx.driver.update({
+        where: { id: verification.driver.id },
+        data: { verificationStatus: VerificationStatus.VERIFIED },
+      });
+
+      // 3. Update all document statuses to VERIFIED
+      if (verification.driver.documents) {
+        await tx.driverDocuments.update({
+          where: { id: verification.driver.documents.id },
+          data: {
+            licenseStatus: VerificationStatus.VERIFIED,
+            rcBookStatus: VerificationStatus.VERIFIED,
+            fcStatus: VerificationStatus.VERIFIED,
+            insuranceStatus: VerificationStatus.VERIFIED,
+          },
+        });
+      }
+    });
+
+    this.logger.log(`Successfully finalized verification ${verificationId} - driver ${verification.driver.id} is now VERIFIED`);
+
+    // Fire-and-forget: Notify driver that they can now accept rides (outside transaction)
     this.firebaseService.notifyAllSessions(
       verification.driver.id,
       'driver',
@@ -1073,7 +1311,9 @@ export class VerificationService {
         },
       },
       this.prisma,
-    );
+    ).catch(error => {
+      this.logger.error(`Failed to notify driver ${verification.driver.id} about finalization`, error);
+    });
   }
 
   /**
