@@ -16,6 +16,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, seconds } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { APP_GUARD } from '@nestjs/core';
 import { validateAdminEnv } from './config/admin-env.config';
 
 // Local Prisma and Redis modules for admin portal
@@ -33,6 +34,7 @@ import { AdminRefundModule } from './refund/admin-refund.module';
 import { SupportModule } from './support/support.module';
 import { FieldVerificationModule } from './field-verification/field-verification.module';
 import { AdminNotificationsModule } from './notifications/admin-notifications.module';
+import { AdminThrottlerGuard } from './guards/admin-throttler.guard';
 
 @Module({
   imports: [
@@ -48,7 +50,7 @@ import { AdminNotificationsModule } from './notifications/admin-notifications.mo
     // Rate limiting
     ThrottlerModule.forRoot([{
       ttl: seconds(60),
-      limit: 100, // Lower limit for admin - more sensitive operations
+      limit: 100,
     }]),
 
     // Local infrastructure (Prisma, Redis) - independent from main app
@@ -68,6 +70,11 @@ import { AdminNotificationsModule } from './notifications/admin-notifications.mo
     AdminNotificationsModule, // Admin in-app notifications
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AdminThrottlerGuard,
+    },
+  ],
 })
 export class AdminPortalModule {}

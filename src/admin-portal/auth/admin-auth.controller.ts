@@ -23,6 +23,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { Throttle, seconds } from '@nestjs/throttler';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { CurrentAdminUser } from './decorators/current-admin-user.decorator';
@@ -46,6 +47,7 @@ import {
 } from './dto/auth-response.dto';
 
 @ApiTags('Admin Auth')
+@Throttle({ default: { limit: 10, ttl: seconds(60) } })
 @Controller('admin-api/auth')
 export class AdminAuthController {
   constructor(
