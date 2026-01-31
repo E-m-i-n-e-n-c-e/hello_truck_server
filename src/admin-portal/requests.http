@@ -1,0 +1,134 @@
+### Admin Portal API Testing
+### Base URL
+@baseUrl = https://ht-admin.fly.dev
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbWt3czRvcG8wMDAwd3U4a251dnF1bmZ1IiwiZW1haWwiOiJrc3Nha2hpbHJhakBnbWFpbC5jb20iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJpYXQiOjE3Njk2ODYzMzEsImV4cCI6MTc2OTY4NzIzMX0.QSdFxqLzSd6v57v-7ZP9ypIn1NP1J3eSLye3TZORDzU
+
+### ============================================
+### 1. LOGIN (Get Token First)
+### ============================================
+POST {{baseUrl}}/admin-api/auth/login
+Content-Type: application/json
+
+{
+  "email": "kssakhilraj@gmail.com",
+  "password": "test123"
+}
+
+### ============================================
+### 2. Get Pending Verifications (to find a driver ID)
+### ============================================
+GET {{baseUrl}}/admin-api/verifications/pending-documents
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 3. Get Driver Details (to see document status)
+### ============================================
+GET {{baseUrl}}/admin-api/verifications/driver/DRIVER_ID_HERE
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 4. DOCUMENT ACTION - Approve (This should create audit log with snapshots)
+### ============================================
+POST {{baseUrl}}/admin-api/verifications/DRIVER_ID_HERE/document/license
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "APPROVED",
+  "remarks": "Document looks good"
+}
+
+### ============================================
+### 5. DOCUMENT ACTION - Reject (This should create audit log with snapshots)
+### ============================================
+POST {{baseUrl}}/admin-api/verifications/DRIVER_ID_HERE/document/license
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "action": "REJECTED",
+  "remarks": "Document is blurry, please reupload"
+}
+
+### ============================================
+### 6. List Audit Logs (Check if snapshots are present)
+### ============================================
+GET {{baseUrl}}/admin-api/logs?page=1&limit=100
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 7. Get Specific Audit Log by ID
+### ============================================
+GET {{baseUrl}}/admin-api/logs/LOG_ID_HERE
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 8. Create User (This should also create audit log)
+### ============================================
+POST {{baseUrl}}/admin-api/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "test.agent@hellotruck.com",
+  "password": "Test@123",
+  "firstName": "Test",
+  "lastName": "Agent",
+  "role": "AGENT"
+}
+
+### ============================================
+### 9. Update User (This should create audit log with before/after)
+### ============================================
+PATCH {{baseUrl}}/admin-api/users/USER_ID_HERE
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Updated",
+  "lastName": "Name"
+}
+
+### ============================================
+### 10. Assign Verification (This should create audit log)
+### ============================================
+POST {{baseUrl}}/admin-api/verifications/assign
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "driverId": "DRIVER_ID_HERE",
+  "agentId": "AGENT_ID_HERE"
+}
+
+### ============================================
+### TESTING WORKFLOW
+### ============================================
+### Step 1: Login to get token
+### Step 2: Get pending verifications to find a driver ID
+### Step 3: Perform document action (approve/reject)
+### Step 4: Check audit logs to see if beforeSnapshot and afterSnapshot are populated
+### Step 5: Get specific log by ID to see full details
+
+### ============================================
+### EXPECTED BEHAVIOR
+### ============================================
+### When you approve/reject a document:
+### - beforeSnapshot should contain the document status BEFORE the action
+### - afterSnapshot should contain the document status AFTER the action
+###
+### Example beforeSnapshot:
+### {
+###   "status": "PENDING",
+###   "remarks": null,
+###   "reviewedAt": null,
+###   "reviewedBy": null
+### }
+###
+### Example afterSnapshot:
+### {
+###   "status": "APPROVED",
+###   "remarks": "Document looks good",
+###   "reviewedAt": "2026-01-29T10:30:00.000Z",
+###   "reviewedBy": "admin-user-id"
+### }
