@@ -8,9 +8,10 @@
  * Initializes its own Firebase Admin instance to work
  * independently when APP_MODE=admin.
  */
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
+import { OAuth2Client } from 'google-auth-library';
 import { v4 as uuidv4 } from 'uuid';
 import { AppMessagingPayload } from '../types/fcm.types';
 import { AdminMessagingPayload } from '../types/admin-notification.types';
@@ -23,6 +24,7 @@ export class AdminFirebaseService implements OnModuleInit {
   private readonly logger = new Logger(AdminFirebaseService.name);
   private app: admin.app.App | null = null;
   private readonly storageBucket: string;
+  private googleClient: OAuth2Client | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -33,6 +35,14 @@ export class AdminFirebaseService implements OnModuleInit {
 
   async onModuleInit() {
     try {
+      // Initialize Google Auth Client (independent of Firebase Admin SDK init)
+      const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+      if (!googleClientId) {
+        this.logger.warn('GOOGLE_CLIENT_ID not configured; Google token verification will be unavailable');
+      } else {
+        this.googleClient = new OAuth2Client(googleClientId);
+      }
+
       // Check if admin app is already initialized
       const existingApp = admin.apps.find(app => app?.name === 'admin-portal');
       if (existingApp) {
@@ -61,6 +71,39 @@ export class AdminFirebaseService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Failed to initialize Firebase Admin SDK', error);
       // Don't throw - allow admin portal to work without Firebase
+    }
+  }
+
+  async verifyGoogleIdToken(idToken: string): Promise<{ email: string; emailVerified: boolean; name?: string }>
+  {
+    if (!this.googleClient) {
+      throw new BadRequestException('Google token verification not configured');
+    }
+
+    const audience = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!audience) {
+      throw new BadRequestException('Google token verification not configured');
+    }
+
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new BadRequestException('Invalid token payload');
+      }
+
+      return {
+        email: payload.email || '',
+        emailVerified: payload.email_verified || false,
+        name: payload.name,
+      };
+    } catch (error) {
+      this.logger.error('Failed to verify Google ID token', error);
+      throw new BadRequestException('Invalid Google ID token');
     }
   }
 

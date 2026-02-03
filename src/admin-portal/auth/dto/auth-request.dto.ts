@@ -43,3 +43,26 @@ export class UpdateFcmTokenRequestDto {
 export class LogoutRequestDto {
   // No fields - uses refresh token from cookie
 }
+
+/**
+ * Password Recovery Reset Request DTO
+ *
+ * Resets an admin password after verifying a Google ID token.
+ */
+export class PasswordRecoveryResetRequestDto {
+  @ApiProperty({ example: 'admin@example.com' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({ description: 'Google ID token (JWT) from client sign-in' })
+  @IsString()
+  @IsNotEmpty()
+  googleIdToken: string;
+
+  @ApiProperty({ example: 'NewPassword123!' })
+  @IsString()
+  @MinLength(8)
+  @IsNotEmpty()
+  newPassword: string;
+}

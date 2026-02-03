@@ -37,6 +37,7 @@ import {
   LoginRequestDto,
   RefreshTokenRequestDto,
   UpdateFcmTokenRequestDto,
+  PasswordRecoveryResetRequestDto,
 } from './dto/auth-request.dto';
 import {
   LoginResponseDto,
@@ -44,6 +45,7 @@ import {
   CurrentUserResponseDto,
   UpdateFcmTokenResponseDto,
   LogoutResponseDto,
+  PasswordRecoveryResetResponseDto,
 } from './dto/auth-response.dto';
 
 @ApiTags('Admin Auth')
@@ -224,5 +226,35 @@ export class AdminAuthController {
     res.clearCookie('refreshToken', { path: '/' });
 
     return { message: 'Logged out successfully' };
+  }
+
+  @Post('password-recovery/reset')
+  @HttpCode(HttpStatus.OK)
+  @Serialize(PasswordRecoveryResetResponseDto)
+  @Throttle({ default: { limit: 5, ttl: seconds(60) } })
+  @AuditLog({
+    action: AuditActionTypes.PASSWORD_RECOVERY_RESET,
+    module: AuditModules.AUTH,
+    description: 'Password reset via Google verification',
+    captureRequest: false, // never capture newPassword/googleIdToken
+    captureResponse: false,
+  })
+  @ApiOperation({ summary: 'Reset admin password after Google sign-in verification' })
+  @ApiResponse({ status: 200, description: 'Password updated successfully', type: PasswordRecoveryResetResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid request or Google token' })
+  @ApiResponse({ status: 401, description: 'Email/token mismatch or user not allowed' })
+  async passwordRecoveryReset(
+    @Req() req: Request,
+    @Body() dto: PasswordRecoveryResetRequestDto,
+  ): Promise<PasswordRecoveryResetResponseDto> {
+    const user = await this.authService.resetPasswordWithGoogle(dto.email, dto.newPassword, dto.googleIdToken);
+
+    // Set request.user so AuditLogInterceptor can log this unauthenticated flow
+    (req as any).user = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    return { message: 'Password updated successfully' };
   }
 }

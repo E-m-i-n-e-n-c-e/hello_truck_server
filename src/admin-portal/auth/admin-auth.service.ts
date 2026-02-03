@@ -12,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminSessionService } from '../session/admin-session.service';
+import { AdminFirebaseService } from '../firebase/admin-firebase.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { AdminRole } from '@prisma/client';
@@ -47,6 +48,7 @@ export class AdminAuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly sessionService: AdminSessionService,
+    private readonly adminFirebaseService: AdminFirebaseService,
   ) {}
 
   /**
@@ -181,5 +183,47 @@ export class AdminAuthService {
   async hashPassword(password: string): Promise<string> {
     const saltRounds = 10;
     return bcrypt.hash(password, saltRounds);
+  }
+
+  async resetPasswordWithGoogle(
+    email: string,
+    newPassword: string,
+    googleIdToken: string,
+  ): Promise<{ id: string; email: string; role: AdminRole }> {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const googleData = await this.adminFirebaseService.verifyGoogleIdToken(googleIdToken);
+
+    if (!googleData.email || !googleData.emailVerified) {
+      throw new UnauthorizedException('Google account email is not verified');
+    }
+
+    if (googleData.email.toLowerCase().trim() !== normalizedEmail) {
+      throw new UnauthorizedException('Google account email does not match');
+    }
+
+    const user = await this.prisma.adminUser.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid email');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is deactivated. Contact administrator.');
+    }
+
+    const passwordHash = await this.hashPassword(newPassword);
+
+    await this.prisma.adminUser.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    // Invalidate all existing sessions after password change
+    await this.sessionService.deleteAllUserSessions(user.id);
+
+    return { id: user.id, email: user.email, role: user.role };
   }
 }

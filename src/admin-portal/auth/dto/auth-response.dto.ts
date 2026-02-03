@@ -96,3 +96,12 @@ export class LogoutResponseDto {
   @Expose()
   message: string;
 }
+
+/**
+ * Password Recovery Reset Response DTO
+ */
+export class PasswordRecoveryResetResponseDto {
+  @ApiProperty()
+  @Expose()
+  message: string;
+}

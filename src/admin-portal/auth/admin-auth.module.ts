@@ -16,10 +16,12 @@ import { AdminAuthController } from './admin-auth.controller';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AdminFirebaseModule } from '../firebase/admin-firebase.module';
 
 @Module({
   imports: [
     PrismaModule,
+    AdminFirebaseModule,
     PassportModule.register({ defaultStrategy: 'admin-jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
