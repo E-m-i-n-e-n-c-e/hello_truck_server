@@ -43,7 +43,6 @@ export class AuditLogInterceptor implements NestInterceptor {
     }
 
     const request = context.switchToHttp().getRequest();
-    const user: AdminJwtPayload | undefined = request.user;
 
     // Capture before state if needed (standard mode)
     const beforeSnapshot = auditMetadata.captureRequest
@@ -53,6 +52,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap((response) => {
         // For login endpoint, extract user from response since request.user doesn't exist yet
+        const user: AdminJwtPayload | undefined = request.user;
         let logUserId = user?.sub;
         let logUserRole = user?.role;
 

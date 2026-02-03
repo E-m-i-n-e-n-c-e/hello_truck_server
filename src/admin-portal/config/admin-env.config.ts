@@ -38,6 +38,9 @@ const adminEnvSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().min(1, 'FIREBASE_PROJECT_ID is required'),
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1, 'FIREBASE_SERVICE_ACCOUNT_PATH is required'),
   FIREBASE_STORAGE_BUCKET: z.string().min(1, 'FIREBASE_STORAGE_BUCKET is required'),
+
+  // Google (admin portal password recovery)
+  ADMIN_GOOGLE_CLIENT_ID: z.string().min(1, 'ADMIN_GOOGLE_CLIENT_ID is required'),
 });
 
 export type AdminEnvironmentVariables = z.infer<typeof adminEnvSchema>;

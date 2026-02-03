@@ -233,7 +233,7 @@ export class AdminAuthController {
   @Serialize(PasswordRecoveryResetResponseDto)
   @Throttle({ default: { limit: 5, ttl: seconds(60) } })
   @AuditLog({
-    action: AuditActionTypes.PASSWORD_RECOVERY_RESET,
+    action: AuditActionTypes.PASSWORD_RESET,
     module: AuditModules.AUTH,
     description: 'Password reset via Google verification',
     captureRequest: false, // never capture newPassword/googleIdToken

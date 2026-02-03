@@ -36,9 +36,9 @@ export class AdminFirebaseService implements OnModuleInit {
   async onModuleInit() {
     try {
       // Initialize Google Auth Client (independent of Firebase Admin SDK init)
-      const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+      const googleClientId = this.configService.get<string>('ADMIN_GOOGLE_CLIENT_ID');
       if (!googleClientId) {
-        this.logger.warn('GOOGLE_CLIENT_ID not configured; Google token verification will be unavailable');
+        this.logger.warn('ADMIN_GOOGLE_CLIENT_ID not configured; Google token verification will be unavailable');
       } else {
         this.googleClient = new OAuth2Client(googleClientId);
       }
@@ -80,7 +80,7 @@ export class AdminFirebaseService implements OnModuleInit {
       throw new BadRequestException('Google token verification not configured');
     }
 
-    const audience = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    const audience = this.configService.get<string>('ADMIN_GOOGLE_CLIENT_ID');
     if (!audience) {
       throw new BadRequestException('Google token verification not configured');
     }
