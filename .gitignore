@@ -64,3 +64,6 @@ fly.toml
 # . files
 .*
 *.json
+
+# Deployer
+/hello_truck_deployer

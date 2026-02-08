@@ -94,9 +94,16 @@ export class FirebaseService implements OnModuleInit {
 
   async verifyGoogleIdToken(idToken: string): Promise<{ email: string; emailVerified: boolean; name?: string }> {
     try {
+      const audiences = [
+        this.configService.get<string>('GOOGLE_CLIENT_ID') || '691159300275-37gn4bpd7jrkld0cmot36vl181s3tsf3.apps.googleusercontent.com',
+        this.configService.get('GOOGLE_WEB_CLIENT_ID'),
+        this.configService.get('GOOGLE_ANDROID_CLIENT_ID'),
+        this.configService.get('GOOGLE_IOS_CLIENT_ID'),
+      ];
+
       const ticket = await this.googleClient.verifyIdToken({
         idToken,
-        audience: this.configService.get<string>('GOOGLE_CLIENT_ID') || '691159300275-37gn4bpd7jrkld0cmot36vl181s3tsf3.apps.googleusercontent.com',
+        audience: audiences,
       });
 
       const payload = ticket.getPayload();

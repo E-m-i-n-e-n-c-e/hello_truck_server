@@ -39,8 +39,13 @@ const envSchema = z.object({
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1, 'FIREBASE_SERVICE_ACCOUNT_PATH is required'),
   FIREBASE_STORAGE_BUCKET: z.string().min(1, 'FIREBASE_STORAGE_BUCKET is required'),
 
-  // Google
+  // Client id used for initialization
   GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
+
+  // Google - Platform-specific client IDs
+  GOOGLE_WEB_CLIENT_ID: z.string().min(1, 'GOOGLE_WEB_CLIENT_ID is required'),
+  GOOGLE_ANDROID_CLIENT_ID: z.string().min(1, 'GOOGLE_ANDROID_CLIENT_ID is required'),
+  GOOGLE_IOS_CLIENT_ID: z.string().min(1, 'GOOGLE_IOS_CLIENT_ID is required'),
 
   // Storage
   BUCKET_NAME: z.string().min(1, 'BUCKET_NAME is required'),
