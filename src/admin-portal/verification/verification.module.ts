@@ -16,7 +16,7 @@ import { VerificationController } from './verification.controller';
 import { VerificationService } from './verification.service';
 import { VerificationQueueService, VERIFICATION_QUEUE_NAME } from './verification-queue.service';
 import { VerificationQueueProcessor } from './verification-queue.processor';
-import { VerificationAssignmentCron } from './verification-assignment.cron';
+import { VerificationCron } from './verification.cron';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AdminFirebaseModule } from '../firebase/admin-firebase.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
@@ -53,7 +53,7 @@ import { RedisService } from '../redis/redis.service';
     VerificationService,
     VerificationQueueService,
     VerificationQueueProcessor,
-    VerificationAssignmentCron,
+    VerificationCron,
   ],
   exports: [VerificationService],
 })
