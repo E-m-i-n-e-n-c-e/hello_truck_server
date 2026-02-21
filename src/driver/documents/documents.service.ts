@@ -12,6 +12,9 @@ import { DriverDocuments, Prisma, VerificationStatus } from '@prisma/client';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import * as crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { EnvironmentVariables } from 'src/config/env.config';
+import { createLibreDeskTicket } from 'src/common/utils/libredesk.util';
 
 @Injectable()
 export class DocumentsService {
@@ -22,6 +25,7 @@ export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly firebaseService: FirebaseService,
+    private readonly configService: ConfigService<EnvironmentVariables>,
   ) {
     // Get encryption key from environment variable
     const key = process.env.AADHAR_ENCRYPTION_KEY;
@@ -300,6 +304,9 @@ export class DocumentsService {
       const driver = await this.prisma.driver.findUnique({
         where: { id: driverId },
         select: {
+          firstName: true,
+          lastName: true,
+          phoneNumber: true,
           verificationStatus: true,
           verificationRequests: {
             where: {
@@ -327,12 +334,36 @@ export class DocumentsService {
         ? 'EXISTING_DRIVER'
         : 'NEW_DRIVER';
 
-      // Create PENDING verification request
+      const driverName = driver.lastName ? `${driver.firstName} ${driver.lastName}`: driver.firstName;
+
+      // Create LibreDesk ticket first
+      const ticketId = await createLibreDeskTicket(
+        {
+          driverName: driverName || 'Unknown Driver',
+          driverPhone: driver.phoneNumber,
+          driverId,
+          verificationType,
+          verificationId: '', // Will be set after verification request creation
+        },
+        {
+          apiUrl: this.configService.get('LIBREDESK_API_URL', { infer: true })!,
+          apiKey: this.configService.get('LIBREDESK_API_KEY', { infer: true })!,
+          apiSecret: this.configService.get('LIBREDESK_API_SECRET', {
+            infer: true,
+          })!,
+          inboxId: this.configService.get('LIBREDESK_INBOX_ID', {
+            infer: true,
+          })!,
+        },
+      );
+
+      // Create PENDING verification request with ticket ID
       await this.prisma.driverVerificationRequest.create({
         data: {
           driverId,
           verificationType,
           status: 'PENDING',
+          ticketId,
         },
       });
     } catch (error) {

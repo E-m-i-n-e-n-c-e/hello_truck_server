@@ -60,6 +60,12 @@ const envSchema = z.object({
   CANCELLATION_MIN_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(0.2), // 20% minimum (after calculation)
   CANCELLATION_MAX_CHARGE_PERCENT: z.coerce.number().min(0).max(1).default(1), // 100% maximum
   CANCELLATION_CHARGE_INCREMENT_PER_MIN: z.coerce.number().min(0).max(1).default(0.1), // 10% per minute from booking creation
+
+  // LibreDesk
+  LIBREDESK_API_URL: z.string().url().min(1, 'LIBREDESK_API_URL is required'),
+  LIBREDESK_API_KEY: z.string().min(1, 'LIBREDESK_API_KEY is required'),
+  LIBREDESK_API_SECRET: z.string().min(1, 'LIBREDESK_API_SECRET is required'),
+  LIBREDESK_INBOX_ID: z.coerce.number().min(1, 'LIBREDESK_INBOX_ID is required'),
 });
 
 // Export the inferred type
