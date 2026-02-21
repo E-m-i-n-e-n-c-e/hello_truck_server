@@ -130,9 +130,7 @@ export class DocumentsService {
 
       // Auto-create verification request (fire-and-forget)
       // Don't await - let it run in background
-      this.autoCreateVerificationRequest(driverId).catch(() => {
-        // Silently fail - this is best-effort
-      });
+      this.autoCreateVerificationRequest(driverId);
 
       return documents;
     } catch (error) {
@@ -285,9 +283,7 @@ export class DocumentsService {
 
     // Auto-create verification request for re-verification (fire-and-forget)
     // Don't await - let it run in background
-    this.autoCreateVerificationRequest(driverId).catch(() => {
-      // Silently fail - this is best-effort
-    });
+    this.autoCreateVerificationRequest(driverId);
 
     return updatedDocuments;
   }
@@ -343,7 +339,6 @@ export class DocumentsService {
           driverPhone: driver.phoneNumber,
           driverId,
           verificationType,
-          verificationId: '', // Will be set after verification request creation
         },
         {
           apiUrl: this.configService.get('LIBREDESK_API_URL', { infer: true })!,
