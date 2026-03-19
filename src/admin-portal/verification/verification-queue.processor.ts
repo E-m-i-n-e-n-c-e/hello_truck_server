@@ -9,15 +9,15 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { VERIFICATION_QUEUE_NAME, VerificationJobData } from './verification-queue.service';
-import { VerificationService } from './verification.service';
+import { VERIFICATION_QUEUE_NAME, VerificationJobData } from './services/verification-queue.service';
+import { AdminVerificationService } from './services/admin-verification.service';
 
 @Processor(VERIFICATION_QUEUE_NAME)
 export class VerificationQueueProcessor extends WorkerHost {
   private readonly logger = new Logger(VerificationQueueProcessor.name);
 
   constructor(
-    private readonly verificationService: VerificationService,
+    private readonly adminVerificationService: AdminVerificationService,
   ) {
     super();
   }
@@ -26,7 +26,7 @@ export class VerificationQueueProcessor extends WorkerHost {
     this.logger.log(`Processing verification finalization job for ${job.data.verificationId}`);
 
     try {
-      await this.verificationService.finalizeVerificationById(job.data.verificationId);
+      await this.adminVerificationService.finalizeVerificationById(job.data.verificationId);
       this.logger.log(`Successfully finalized verification ${job.data.verificationId}`);
     } catch (error) {
       this.logger.error(`Failed to finalize verification ${job.data.verificationId}`, error);

@@ -53,7 +53,7 @@ Driver Details:
 Action Required:
 Please review and verify the driver's documents in the admin portal.
 
-Admin Portal Link: https://ht-admin-gilt.vercel.app//verifications/driver/${driverId}
+Admin Portal Link: https://ht-admin-gilt.vercel.app/verifications/request/${requestId}
   `.trim();
 
   const credentials = Buffer.from(

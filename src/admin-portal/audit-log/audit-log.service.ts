@@ -37,6 +37,9 @@ export const AuditActionTypes = {
   DOCUMENT_REJECTED: 'DOCUMENT_REJECTED',
   VERIFICATION_APPROVED: 'VERIFICATION_APPROVED',
   VERIFICATION_REJECTED: 'VERIFICATION_REJECTED',
+  VERIFICATION_REQUEST_CREATED: 'VERIFICATION_REQUEST_CREATED',
+  DOCUMENT_DECISION_REVERTED: 'DOCUMENT_DECISION_REVERTED',
+  DRIVER_REJECTION_REVERTED: 'DRIVER_REJECTION_REVERTED',
   REVERT_REQUESTED: 'REVERT_REQUESTED',
   REVERT_APPROVED: 'REVERT_APPROVED',
   REVERT_REJECTED: 'REVERT_REJECTED',
@@ -83,6 +86,70 @@ export const AuditModules = {
 @Injectable()
 export class AuditLogService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private buildWhere(filters: ListLogsRequestDto): Prisma.AuditLogWhereInput {
+    const {
+      userId,
+      actionType,
+      module,
+      entityId,
+      entityType,
+      startDate,
+      endDate,
+      search,
+      userSearch,
+    } = filters;
+
+    const where: Prisma.AuditLogWhereInput = {};
+
+    if (userId) {
+      where.userId = userId;
+    }
+
+    if (actionType) {
+      where.actionType = actionType;
+    }
+
+    if (module) {
+      where.module = module;
+    }
+
+    if (entityId) {
+      where.entityId = entityId;
+    }
+
+    if (entityType) {
+      where.entityType = entityType;
+    }
+
+    if (startDate || endDate) {
+      where.timestamp = {};
+      if (startDate) {
+        where.timestamp.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.timestamp.lte = endOfDay;
+      }
+    }
+
+    if (search) {
+      where.description = { contains: search, mode: 'insensitive' };
+    }
+
+    if (userSearch) {
+      where.user = {
+        OR: [
+          { email: { contains: userSearch, mode: 'insensitive' } },
+          { firstName: { contains: userSearch, mode: 'insensitive' } },
+          { lastName: { contains: userSearch, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    return where;
+  }
 
   /**
    * Serialize data to plain JSON, removing any non-serializable properties
@@ -143,67 +210,8 @@ export class AuditLogService {
    * List audit logs with filters
    */
   async listLogs(filters: ListLogsRequestDto) {
-    const {
-      userId,
-      actionType,
-      module,
-      entityId,
-      entityType,
-      startDate,
-      endDate,
-      search,
-      userSearch,
-      page = 1,
-      limit = 20,
-    } = filters;
-
-    const where: Prisma.AuditLogWhereInput = {};
-
-    if (userId) {
-      where.userId = userId;
-    }
-
-    if (actionType) {
-      where.actionType = actionType;
-    }
-
-    if (module) {
-      where.module = module;
-    }
-
-    if (entityId) {
-      where.entityId = entityId;
-    }
-
-    if (entityType) {
-      where.entityType = entityType;
-    }
-
-    // Date range filter (mandatory in UI, but optional in API)
-    if (startDate || endDate) {
-      where.timestamp = {};
-      if (startDate) {
-        where.timestamp.gte = new Date(startDate);
-      }
-      if (endDate) {
-        where.timestamp.lte = new Date(endDate);
-      }
-    }
-
-    if (search) {
-      where.description = { contains: search, mode: 'insensitive' };
-    }
-
-    // User search filter - searches both name and email
-    if (userSearch) {
-      where.user = {
-        OR: [
-          { email: { contains: userSearch, mode: 'insensitive' } },
-          { firstName: { contains: userSearch, mode: 'insensitive' } },
-          { lastName: { contains: userSearch, mode: 'insensitive' } },
-        ],
-      };
-    }
+    const { page = 1, limit = 20 } = filters;
+    const where = this.buildWhere(filters);
 
     const [logs, total] = await Promise.all([
       this.prisma.auditLog.findMany({
@@ -259,35 +267,7 @@ export class AuditLogService {
    * Export logs to CSV format (returns data, UI handles download)
    */
   async exportLogs(filters: ListLogsRequestDto) {
-    // Limit export to last 30 days and max 10000 records
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const where: Prisma.AuditLogWhereInput = {
-      timestamp: {
-        gte: filters.startDate ? new Date(filters.startDate) : thirtyDaysAgo,
-        lte: filters.endDate ? new Date(filters.endDate) : new Date(),
-      },
-    };
-
-    // Apply all filters
-    if (filters.userId) where.userId = filters.userId;
-    if (filters.actionType) where.actionType = filters.actionType;
-    if (filters.module) where.module = filters.module;
-    if (filters.entityId) where.entityId = filters.entityId;
-    if (filters.entityType) where.entityType = filters.entityType;
-    if (filters.search) {
-      where.description = { contains: filters.search, mode: 'insensitive' };
-    }
-    if (filters.userSearch) {
-      where.user = {
-        OR: [
-          { email: { contains: filters.userSearch, mode: 'insensitive' } },
-          { firstName: { contains: filters.userSearch, mode: 'insensitive' } },
-          { lastName: { contains: filters.userSearch, mode: 'insensitive' } },
-        ],
-      };
-    }
+    const where = this.buildWhere(filters);
 
     const logs = await this.prisma.auditLog.findMany({
       where,
@@ -301,7 +281,6 @@ export class AuditLogService {
         },
       },
       orderBy: { timestamp: 'desc' },
-      take: 10000,
     });
 
     return logs.map((log) => ({

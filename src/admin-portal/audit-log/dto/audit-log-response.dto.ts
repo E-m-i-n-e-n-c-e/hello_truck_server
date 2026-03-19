@@ -181,4 +181,16 @@ export class GetArchivedLogsResponseDto {
 export class TriggerArchivalResponseDto {
   @Expose()
   archived: number;
+
+  @Expose()
+  filePath: string | null;
+
+  @Expose()
+  fileUrl: string | null;
+
+  @Expose()
+  deletedFrom: string | null;
+
+  @Expose()
+  deletedTo: string | null;
 }

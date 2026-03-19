@@ -66,3 +66,9 @@ export class ListLogsRequestDto {
   @Min(1)
   limit?: number = 20;
 }
+
+export class TriggerAuditArchiveRequestDto {
+  @ApiProperty({ description: 'Archive and delete logs older than this date (ISO string)', example: '2026-01-31' })
+  @IsDateString()
+  cutoffDate: string;
+}

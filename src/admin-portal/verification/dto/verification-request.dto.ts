@@ -1,7 +1,8 @@
 import { IsString, IsEnum, IsOptional, MinLength, IsInt, Min, IsDateString, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { DriverVerificationType, VerificationRequestStatus, DocumentActionType } from '@prisma/client';
+import { DriverVerificationType, VerificationRequestStatus, DocumentActionType, VerificationStatus } from '@prisma/client';
+import { ToBoolean } from 'src/common/decorators/to-boolean.decorator';
 
 /**
  * List verifications with filters
@@ -42,6 +43,26 @@ export class ListVerificationsRequestDto {
   @IsString()
   search?: string;
 
+  @ApiProperty({ required: false, description: 'Filter by driver verification status', enum: VerificationStatus })
+  @IsOptional()
+  @IsEnum(VerificationStatus)
+  driverVerificationStatus?: VerificationStatus;
+
+  @ApiProperty({ required: false, description: 'Filter by whether there is an active request' })
+  @IsOptional()
+  @ToBoolean()
+  hasActiveRequest?: boolean;
+
+  @ApiProperty({ required: false, description: 'Filter by whether request is assigned' })
+  @IsOptional()
+  @ToBoolean()
+  isAssigned?: boolean;
+
+  @ApiProperty({ required: false, description: 'Filter by whether driver has pending documents' })
+  @IsOptional()
+  @ToBoolean()
+  hasPendingDocuments?: boolean;
+
   @ApiProperty({ example: 1, required: false, default: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -57,13 +78,75 @@ export class ListVerificationsRequestDto {
   limit?: number = 20;
 }
 
+export class ListVerificationDriversRequestDto {
+  @ApiProperty({ required: false, description: 'Search by driver name or phone number' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiProperty({ required: false, enum: VerificationStatus })
+  @IsOptional()
+  @IsEnum(VerificationStatus)
+  driverVerificationStatus?: VerificationStatus;
+
+  @ApiProperty({ required: false, enum: VerificationRequestStatus })
+  @IsOptional()
+  @IsEnum(VerificationRequestStatus)
+  requestStatus?: VerificationRequestStatus;
+
+  @ApiProperty({ required: false, enum: DriverVerificationType })
+  @IsOptional()
+  @IsEnum(DriverVerificationType)
+  verificationType?: DriverVerificationType;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @ToBoolean()
+  hasActiveRequest?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @ToBoolean()
+  isAssigned?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @ToBoolean()
+  hasPendingDocuments?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  assignedToId?: string;
+
+  @ApiProperty({ example: 1, required: false, default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiProperty({ example: 20, required: false, default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 20;
+}
+
+export class CreateVerificationRequestDto {
+  @ApiProperty({ description: 'Driver ID to create request for' })
+  @IsString()
+  driverId: string;
+}
+
 /**
  * Assign verification to agent
  */
 export class AssignVerificationRequestDto {
-  @ApiProperty({ description: 'Admin user ID to assign the verification to' })
+  @ApiProperty({ description: 'Email of the admin/agent/field-agent to assign the verification to' })
   @IsString()
-  assignedToId: string;
+  email: string;
 }
 
 /**
@@ -113,4 +196,11 @@ export class RevertDecisionRequestDto {
   @ApiProperty({ description: 'true to approve revert, false to reject' })
   @IsBoolean()
   approve: boolean;
+}
+
+export class RevertDocumentRejectionRequestDto {
+  @ApiProperty({ required: false, description: 'Optional note for reverting document rejection' })
+  @IsOptional()
+  @IsString()
+  note?: string;
 }

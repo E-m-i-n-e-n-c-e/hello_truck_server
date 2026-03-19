@@ -7,9 +7,10 @@
  * - GET /admin-api/logs/export - Export logs as CSV data
  * - GET /admin-api/logs/archive - List archived files
  * - GET /admin-api/logs/archive/:dateKey - Get archived logs for a date
- * - POST /admin-api/logs/archive/trigger - Manually trigger archival (Super Admin)
+ * - POST /admin-api/logs/archive/trigger - Manually trigger archival
  */
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -23,7 +24,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { AdminRole } from '@prisma/client';
 import { AuditLogService } from './audit-log.service';
 import { AuditLogArchiveService } from './audit-log-archive.service';
-import { ListLogsRequestDto } from './dto/audit-log-request.dto';
+import {
+  ListLogsRequestDto,
+  TriggerAuditArchiveRequestDto,
+} from './dto/audit-log-request.dto';
 import {
   ListLogsResponseDto,
   GetLogByIdResponseDto,
@@ -58,7 +62,7 @@ export class AuditLogController {
 
   @Get('export')
   @Serialize(ExportLogsResponseDto)
-  @ApiOperation({ summary: 'Export audit logs (last 30 days, max 10000 records)' })
+  @ApiOperation({ summary: 'Export all audit logs matching the applied filters' })
   @ApiResponse({ status: 200, description: 'Returns logs data for CSV export' })
   async exportLogs(@Query() query: ListLogsRequestDto): Promise<ExportLogsResponseDto> {
     const logs = await this.auditLogService.exportLogs(query);
@@ -89,13 +93,14 @@ export class AuditLogController {
   }
 
   @Post('archive/trigger')
-  @Roles(AdminRole.SUPER_ADMIN) // Only Super Admin can manually trigger
   @HttpCode(HttpStatus.OK)
   @Serialize(TriggerArchivalResponseDto)
-  @ApiOperation({ summary: 'Manually trigger log archival (Super Admin only)' })
-  @ApiResponse({ status: 200, description: 'Returns count of archived logs' })
-  async triggerArchival(): Promise<TriggerArchivalResponseDto> {
-    return this.archiveService.triggerArchival();
+  @ApiOperation({ summary: 'Manually archive and delete audit logs older than a selected cutoff date' })
+  @ApiResponse({ status: 200, description: 'Returns archive details and CSV file link' })
+  async triggerArchival(
+    @Body() dto: TriggerAuditArchiveRequestDto,
+  ): Promise<TriggerArchivalResponseDto> {
+    return this.archiveService.triggerArchival(dto.cutoffDate);
   }
 
   @Get(':id')
@@ -106,4 +111,3 @@ export class AuditLogController {
     return this.auditLogService.getLogById(id);
   }
 }
-

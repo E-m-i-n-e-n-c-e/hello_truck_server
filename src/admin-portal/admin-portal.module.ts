@@ -32,7 +32,6 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { VerificationModule } from './verification/verification.module';
 import { AdminRefundModule } from './refund/admin-refund.module';
 import { SupportModule } from './support/support.module';
-import { FieldVerificationModule } from './field-verification/field-verification.module';
 import { AdminNotificationsModule } from './notifications/admin-notifications.module';
 import { AdminThrottlerGuard } from './guards/admin-throttler.guard';
 
@@ -66,7 +65,6 @@ import { AdminThrottlerGuard } from './guards/admin-throttler.guard';
     VerificationModule,      // Driver verification workflow
     AdminRefundModule,       // Refund management
     SupportModule,           // Customer support dashboard
-    FieldVerificationModule, // Field agent verification
     AdminNotificationsModule, // Admin in-app notifications
   ],
   controllers: [],

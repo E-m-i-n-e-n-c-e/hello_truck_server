@@ -6,13 +6,22 @@
  * - Archives logs older than 90 days to Firebase Storage
  * - Deletes archived logs from the database
  *
- * Archived files are stored as: audit-logs/archive/{year}/{month}/audit-logs-{date}.json
+ * Archived files are stored as CSV under audit-logs/archive/{year}/{month}/...
  */
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
+
+interface ArchiveAuditLogsResult {
+  archived: number;
+  filePath: string | null;
+  fileUrl: string | null;
+  deletedFrom: string | null;
+  deletedTo: string | null;
+}
 
 @Injectable()
 export class AuditLogArchiveService {
@@ -37,49 +46,22 @@ export class AuditLogArchiveService {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);
-
-      // Find logs older than retention period
-      const logsToArchive = await this.prisma.auditLog.findMany({
-        where: {
+      const result = await this.archiveLogsForWhere(
+        {
           timestamp: { lt: cutoffDate },
         },
-        include: {
-          user: {
-            select: {
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-        },
-        orderBy: { timestamp: 'asc' },
-      });
+        'cron',
+      );
 
-      if (logsToArchive.length === 0) {
+      if (result.archived === 0) {
         this.logger.log('No logs to archive');
-        return { archived: 0 };
+      } else {
+        this.logger.log(
+          `Archived and deleted ${result.archived} logs to ${result.filePath}`,
+        );
       }
 
-      this.logger.log(`Found ${logsToArchive.length} logs to archive`);
-
-      // Group logs by date for easier retrieval
-      const logsByDate = this.groupLogsByDate(logsToArchive);
-
-      // Upload each date's logs to storage
-      for (const [dateKey, logs] of Object.entries(logsByDate)) {
-        await this.uploadToStorage(dateKey, logs);
-      }
-
-      // Delete archived logs from database
-      const deleteResult = await this.prisma.auditLog.deleteMany({
-        where: {
-          timestamp: { lt: cutoffDate },
-        },
-      });
-
-      this.logger.log(`Archived and deleted ${deleteResult.count} logs`);
-
-      return { archived: deleteResult.count };
+      return result;
     } catch (error) {
       this.logger.error('Failed to archive audit logs', error);
       throw error;
@@ -87,20 +69,25 @@ export class AuditLogArchiveService {
   }
 
   /**
-   * Group logs by date (YYYY-MM-DD)
+   * Manual trigger for archival older than a selected cutoff date.
    */
-  private groupLogsByDate(logs: any[]): Record<string, any[]> {
-    const grouped: Record<string, any[]> = {};
+  async triggerArchival(cutoffDate: string): Promise<ArchiveAuditLogsResult> {
+    const cutoff = new Date(cutoffDate);
 
-    for (const log of logs) {
-      const dateKey = log.timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(this.formatLogForArchive(log));
+    if (Number.isNaN(cutoff.getTime())) {
+      throw new BadRequestException('Invalid archive cutoff date');
     }
 
-    return grouped;
+    cutoff.setHours(0, 0, 0, 0);
+
+    return this.archiveLogsForWhere(
+      {
+        timestamp: {
+          lt: cutoff,
+        },
+      },
+      'manual',
+    );
   }
 
   /**
@@ -127,45 +114,133 @@ export class AuditLogArchiveService {
   }
 
   /**
-   * Upload logs to Firebase Storage
+   * Convert logs into CSV content for storage.
    */
-  private async uploadToStorage(dateKey: string, logs: any[]): Promise<void> {
-    if (!this.firebaseService.isInitialized()) {
-      this.logger.warn('Firebase not initialized, skipping upload');
-      return;
-    }
+  private buildCsv(logs: any[]): string {
+    const headers = [
+      'ID',
+      'Timestamp',
+      'User ID',
+      'User Email',
+      'User Name',
+      'Role',
+      'Action Type',
+      'Module',
+      'Description',
+      'Entity Type',
+      'Entity ID',
+      'IP Address',
+      'User Agent',
+      'Before Snapshot',
+      'After Snapshot',
+    ];
 
-    try {
-      // Create path: audit-logs/archive/2026/01/audit-logs-2026-01-15.json
-      const [year, month] = dateKey.split('-');
-      const filePath = `audit-logs/archive/${year}/${month}/audit-logs-${dateKey}.json`;
+    const escapeCsv = (value: unknown) => {
+      if (value === null || value === undefined) return '';
+      const stringValue =
+        typeof value === 'string' ? value : JSON.stringify(value);
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    };
 
-      // Check if file already exists (in case of re-runs)
-      const existingLogs = await this.firebaseService.downloadJson<any[]>(filePath);
-      if (existingLogs) {
-        logs = [...existingLogs, ...logs];
-      }
+    const rows = logs.map((log) => {
+      const formatted = this.formatLogForArchive(log);
+      return [
+        formatted.id,
+        formatted.timestamp,
+        formatted.userId,
+        formatted.userEmail,
+        formatted.userName,
+        formatted.role,
+        formatted.actionType,
+        formatted.module,
+        formatted.description,
+        formatted.entityType,
+        formatted.entityId,
+        formatted.ipAddress,
+        formatted.userAgent,
+        formatted.beforeSnapshot,
+        formatted.afterSnapshot,
+      ].map(escapeCsv).join(',');
+    });
 
-      // Upload JSON
-      const success = await this.firebaseService.uploadJson(filePath, logs, {
-        logsCount: logs.length.toString(),
-        archiveDate: new Date().toISOString(),
-      });
-
-      if (success) {
-        this.logger.log(`Uploaded ${logs.length} logs to ${filePath}`);
-      }
-    } catch (error) {
-      this.logger.error(`Failed to upload logs for ${dateKey}`, error);
-      throw error;
-    }
+    return [headers.map((header) => `"${header}"`).join(','), ...rows].join('\n');
   }
 
   /**
-   * Manual trigger for archival (Super Admin only)
+   * Shared archival function used by both cron and manual trigger.
    */
-  async triggerArchival(): Promise<{ archived: number }> {
-    return this.archiveOldLogs();
+  private async archiveLogsForWhere(
+    where: { timestamp: Prisma.DateTimeFilter },
+    trigger: 'cron' | 'manual',
+  ): Promise<ArchiveAuditLogsResult> {
+    const logsToArchive = await this.prisma.auditLog.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    if (logsToArchive.length === 0) {
+      return {
+        archived: 0,
+        filePath: null,
+        fileUrl: null,
+        deletedFrom: null,
+        deletedTo: null,
+      };
+    }
+
+    if (!this.firebaseService.isInitialized()) {
+      throw new BadRequestException('Firebase storage is not initialized');
+    }
+
+    const oldestTimestamp = logsToArchive[0].timestamp;
+    const newestTimestamp = logsToArchive[logsToArchive.length - 1].timestamp;
+    const oldestDate = oldestTimestamp.toISOString().split('T')[0];
+    const newestDate = newestTimestamp.toISOString().split('T')[0];
+    const archiveStamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const [year, month] = oldestDate.split('-');
+    const filePath = `audit-logs/archive/${year}/${month}/audit-logs-${oldestDate}-to-${newestDate}-${trigger}-${archiveStamp}.csv`;
+    const csvContent = this.buildCsv(logsToArchive);
+
+    const fileUrl = await this.firebaseService.uploadTextFile(
+      filePath,
+      csvContent,
+      'text/csv',
+      {
+        logsCount: logsToArchive.length.toString(),
+        archiveTrigger: trigger,
+        deletedFrom: oldestTimestamp.toISOString(),
+        deletedTo: newestTimestamp.toISOString(),
+      },
+    );
+
+    if (!fileUrl) {
+      throw new BadRequestException('Failed to upload archive CSV');
+    }
+
+    await this.prisma.auditLog.deleteMany({
+      where: {
+        id: {
+          in: logsToArchive.map((log) => log.id),
+        },
+      },
+    });
+
+    return {
+      archived: logsToArchive.length,
+      filePath,
+      fileUrl,
+      deletedFrom: oldestTimestamp.toISOString(),
+      deletedTo: newestTimestamp.toISOString(),
+    };
   }
 
   /**

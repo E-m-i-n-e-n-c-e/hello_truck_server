@@ -281,6 +281,47 @@ export class AdminFirebaseService implements OnModuleInit {
   }
 
   /**
+   * Upload plain text content to storage and return a Firebase download URL.
+   */
+  async uploadTextFile(
+    filePath: string,
+    content: string,
+    contentType: string,
+    metadata?: Record<string, string>,
+  ): Promise<string | null> {
+    const bucket = this.getBucket();
+    if (!bucket) {
+      this.logger.warn('Storage bucket not available, skipping upload');
+      return null;
+    }
+
+    try {
+      const token = uuidv4();
+      const file = bucket.file(filePath);
+
+      await file.save(content, {
+        contentType,
+        metadata: {
+          metadata: {
+            ...metadata,
+            uploadedAt: new Date().toISOString(),
+            firebaseStorageDownloadTokens: token,
+          },
+        },
+      });
+
+      const encodedPath = encodeURIComponent(filePath);
+      const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${token}`;
+
+      this.logger.log(`Uploaded text file to ${filePath}`);
+      return publicUrl;
+    } catch (error) {
+      this.logger.error(`Failed to upload ${filePath}`, error);
+      return null;
+    }
+  }
+
+  /**
    * Download JSON data from storage
    */
   async downloadJson<T = any>(filePath: string): Promise<T | null> {

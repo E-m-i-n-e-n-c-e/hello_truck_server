@@ -112,6 +112,23 @@ export class FieldPhotoDto {
   uploadedAt: Date;
 }
 
+export class VerificationEligibilityDto {
+  @Expose()
+  hasActiveRequest: boolean;
+
+  @Expose()
+  canCreateRequest: boolean;
+
+  @Expose()
+  hasAllRequiredFieldPhotos: boolean;
+
+  @Expose()
+  canVerify: boolean;
+
+  @Expose()
+  canRevertRejectedDriver: boolean;
+}
+
 /**
  * Verification request (used in list and detail responses)
  */
@@ -139,7 +156,7 @@ export class VerificationRequestDto {
 
   @Expose()
   @Type(() => AdminUserInfoDto)
-  assignedTo: AdminUserInfoDto | null;
+  assignedTo?: AdminUserInfoDto | null;
 
   @Expose()
   approvedById: string | null;
@@ -493,6 +510,16 @@ export class ListPendingDocumentsResponseDto {
   pagination: PaginationDto;
 }
 
+export class ListVerificationDriversResponseDto {
+  @Expose()
+  @Type(() => DriverDetailDto)
+  drivers: DriverDetailDto[];
+
+  @Expose()
+  @Type(() => PaginationDto)
+  pagination: PaginationDto;
+}
+
 /**
  * Response: List verifications
  * GET /admin-api/verifications
@@ -513,6 +540,16 @@ export class ListVerificationsResponseDto {
  * GET /admin-api/verifications/drivers/:driverId/details
  */
 export class GetDriverForVerificationResponseDto extends DriverDetailDto {}
+
+export class VerificationDetailResponseDto extends DriverDetailDto {
+  @Expose()
+  @Type(() => VerificationRequestDto)
+  currentVerification: VerificationRequestDto | null;
+
+  @Expose()
+  @Type(() => VerificationEligibilityDto)
+  eligibility: VerificationEligibilityDto;
+}
 
 /**
 /**
@@ -643,4 +680,16 @@ export class RevertDecisionResponseDto {
 
   @Expose()
   message: string;
+}
+
+export class CreateVerificationResponseDto {
+  @Expose()
+  created: boolean;
+
+  @Expose()
+  message: string;
+
+  @Expose()
+  @Type(() => VerificationRequestDto)
+  request: VerificationRequestDto | null;
 }

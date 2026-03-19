@@ -12,9 +12,11 @@
  */
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { VerificationController } from './verification.controller';
-import { VerificationService } from './verification.service';
-import { VerificationQueueService, VERIFICATION_QUEUE_NAME } from './verification-queue.service';
+import { AgentVerificationController } from './controllers/agent-verification.controller';
+import { AdminVerificationService } from './services/admin-verification.service';
+import { AgentVerificationService } from './services/agent-verification.service';
+import { FieldVerificationService } from './services/field-verification.service';
+import { VerificationQueueService, VERIFICATION_QUEUE_NAME } from './services/verification-queue.service';
 import { VerificationQueueProcessor } from './verification-queue.processor';
 import { VerificationCron } from './verification.cron';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -22,6 +24,7 @@ import { AdminFirebaseModule } from '../firebase/admin-firebase.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { RedisModule } from '../redis/redis.module';
 import { RedisService } from '../redis/redis.service';
+import { AdminVerificationController } from './controllers/admin-verification.controller';
 
 @Module({
   imports: [
@@ -48,14 +51,15 @@ import { RedisService } from '../redis/redis.service';
       },
     }),
   ],
-  controllers: [VerificationController],
+  controllers: [AdminVerificationController, AgentVerificationController],
   providers: [
-    VerificationService,
+    AdminVerificationService,
+    AgentVerificationService,
+    FieldVerificationService,
     VerificationQueueService,
     VerificationQueueProcessor,
     VerificationCron,
   ],
-  exports: [VerificationService],
+  exports: [AdminVerificationService, AgentVerificationService],
 })
 export class VerificationModule {}
-

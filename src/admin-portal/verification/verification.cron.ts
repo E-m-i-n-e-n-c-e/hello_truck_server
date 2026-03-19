@@ -9,7 +9,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { VerificationRequestStatus } from '@prisma/client';
-import { VerificationService } from './verification.service';
+import { AdminVerificationService } from './services/admin-verification.service';
 
 @Injectable()
 export class VerificationCron {
@@ -17,7 +17,7 @@ export class VerificationCron {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly verificationService: VerificationService,
+    private readonly adminVerificationService: AdminVerificationService,
   ) {}
 
   /**
@@ -61,7 +61,7 @@ export class VerificationCron {
       // Process each verification using the service method
       for (const verification of expiredVerifications) {
         try {
-          await this.verificationService.finalizeVerificationById(verification.id);
+          await this.adminVerificationService.finalizeVerificationById(verification.id);
           this.logger.log(
             `Successfully finalized verification ${verification.id} - driver ${verification.driverId} is now VERIFIED`,
           );
