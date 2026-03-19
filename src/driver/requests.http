@@ -1,6 +1,6 @@
 
 # Check server url https://hello-truck-server.fly.dev/
-@base_url = https://hello-truck-server1.fly.dev
+@base_url = http://localhost:3000
 
 POST {{base_url}}/auth/driver/send-otp
 Content-Type: application/json
@@ -47,4 +47,68 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRya
 ### Get Address
 GET http://localhost:3000/driver/address
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImRkZDRjMTdkLTUxMzMtNDU4NS04Nzk3LTA5ODdhYWIzNWM1ZCIsImlhdCI6MTc2NTgwNjc3MSwiZXhwIjoxNzY1ODA3NjcxfQ.TYdMVTEP13_ZYkXxZqVaOTweSzlvAB5JNcP3gG0Y5iY
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImZhNjNiZmQxLTc2NTctNGQxNi1hNTZhLWRiMThiYjU4MTk1YyIsImlzQWN0aXZlIjp0cnVlLCJpYXQiOjE3NzE2NzA0MDIsImV4cCI6MTc3MTY3NDAwMn0.9XrVIHqpzRWOqYT3Sv-7_hqlx_nr665zQvm-MojRdsk
+
+### ===== DOCUMENTS & LIBREDESK INTEGRATION =====
+
+### Create Driver Documents (triggers LibreDesk ticket creation)
+POST {{base_url}}/driver/documents
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImZhNjNiZmQxLTc2NTctNGQxNi1hNTZhLWRiMThiYjU4MTk1YyIsImlzQWN0aXZlIjp0cnVlLCJpYXQiOjE3NzE2NzA0MDIsImV4cCI6MTc3MTY3NDAwMn0.9XrVIHqpzRWOqYT3Sv-7_hqlx_nr665zQvm-MojRdsk
+
+{
+  "aadharNumber": "123456789012",
+  "panNumber": "ABCDE1234F",
+  "licenseNumber": "DL12345678901234",
+  "licenseUrl": "https://example.com/license.jpg",
+  "fcUrl": "https://example.com/fc.jpg",
+  "insuranceUrl": "https://example.com/insurance.jpg",
+  "rcBookUrl": "https://example.com/rcbook.jpg",
+  "suggestedLicenseExpiry": "2025-12-31",
+  "suggestedFcExpiry": "2025-06-30",
+  "suggestedInsuranceExpiry": "2025-03-31",
+  "suggestedRcBookExpiry": "2025-09-30"
+}
+
+### Get Driver Documents
+GET {{base_url}}/driver/documents
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImZhNjNiZmQxLTc2NTctNGQxNi1hNTZhLWRiMThiYjU4MTk1YyIsImlzQWN0aXZlIjp0cnVlLCJpYXQiOjE3NzE2NzA0MDIsImV4cCI6MTc3MTY3NDAwMn0.9XrVIHqpzRWOqYT3Sv-7_hqlx_nr665zQvm-MojRdsk
+
+### Update Driver Documents (triggers LibreDesk ticket creation for re-verification)
+PUT {{base_url}}/driver/documents
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImZhNjNiZmQxLTc2NTctNGQxNi1hNTZhLWRiMThiYjU4MTk1YyIsImlzQWN0aXZlIjp0cnVlLCJpYXQiOjE3NzE2NzA0MDIsImV4cCI6MTc3MTY3NDAwMn0.9XrVIHqpzRWOqYT3Sv-7_hqlx_nr665zQvm-MojRdsk
+
+{
+  "licenseUrl": "https://example.com/update-license.jpg",
+  "suggestedLicenseExpiry": "2027-12-31"
+}
+
+### Get Upload URL for Document
+POST {{base_url}}/driver/documents/upload-url
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImZhNjNiZmQxLTc2NTctNGQxNi1hNTZhLWRiMThiYjU4MTk1YyIsImlzQWN0aXZlIjp0cnVlLCJpYXQiOjE3NzE2NzA0MDIsImV4cCI6MTc3MTY3NDAwMn0.9XrVIHqpzRWOqYT3Sv-7_hqlx_nr665zQvm-MojRdsk
+
+{
+  "filePath": "driver-documents/license.jpg",
+  "type": "image/jpeg"
+}
+
+### Validate Aadhaar Number (check for duplicates)
+POST {{base_url}}/driver/documents/validate-aadhar
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImZhNjNiZmQxLTc2NTctNGQxNi1hNTZhLWRiMThiYjU4MTk1YyIsImlzQWN0aXZlIjp0cnVlLCJpYXQiOjE3NzE2NzA0MDIsImV4cCI6MTc3MTY3NDAwMn0.9XrVIHqpzRWOqYT3Sv-7_hqlx_nr665zQvm-MojRdsk
+
+{
+  "aadharNumber": "987654321098"
+}
+
+### Validate PAN Number (check for duplicates)
+POST {{base_url}}/driver/documents/validate-pan
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyVHlwZSI6ImRyaXZlciIsInVzZXJJZCI6ImExZjkzZTU2LTBmODktNDVkYy05OTk2LTAxN2Y4ODA1MjkzNCIsInBob25lTnVtYmVyIjoiNjMwMDA0NTkyOSIsImhhc0NvbXBsZXRlZE9uYm9hcmRpbmciOnRydWUsInNlc3Npb25JZCI6ImZhNjNiZmQxLTc2NTctNGQxNi1hNTZhLWRiMThiYjU4MTk1YyIsImlzQWN0aXZlIjp0cnVlLCJpYXQiOjE3NzE2NzA0MDIsImV4cCI6MTc3MTY3NDAwMn0.9XrVIHqpzRWOqYT3Sv-7_hqlx_nr665zQvm-MojRdsk
+
+{
+  "panNumber": "XYZTE9876A"
+}

@@ -294,7 +294,7 @@ export class DocumentsService {
    *
    * NOTE: We directly create the request here to avoid circular dependency with admin-portal module
    */
-  private async autoCreateVerificationRequest(driverId: string): Promise<void> {
+  async autoCreateVerificationRequest(driverId: string): Promise<void> {
     try {
       // Single query: Find driver and include existing verification requests with status filter
       const driver = await this.prisma.driver.findUnique({
@@ -307,7 +307,7 @@ export class DocumentsService {
           verificationRequests: {
             where: {
               status: {
-                in: ['PENDING', 'APPROVED', 'REVERT_REQUESTED'],
+                in: ['PENDING', 'APPROVED', 'REVERT_REQUESTED', 'REVERTED'],
               },
             },
             select: { id: true },
@@ -332,13 +332,23 @@ export class DocumentsService {
 
       const driverName = driver.lastName ? `${driver.firstName} ${driver.lastName}`: driver.firstName;
 
-      // Create LibreDesk ticket first
+      // Step 1: Create PENDING verification request WITHOUT ticket ID
+      const verificationRequest = await this.prisma.driverVerificationRequest.create({
+        data: {
+          driverId,
+          verificationType,
+          status: 'PENDING',
+        },
+      });
+
+      // Step 2: Create LibreDesk ticket with request ID
       const ticketId = await createLibreDeskTicket(
         {
           driverName: driverName || 'Unknown Driver',
           driverPhone: driver.phoneNumber,
           driverId,
           verificationType,
+          requestId: verificationRequest.id,
         },
         {
           apiUrl: this.configService.get('LIBREDESK_API_URL', { infer: true })!,
@@ -352,14 +362,10 @@ export class DocumentsService {
         },
       );
 
-      // Create PENDING verification request with ticket ID
-      await this.prisma.driverVerificationRequest.create({
-        data: {
-          driverId,
-          verificationType,
-          status: 'PENDING',
-          ticketId,
-        },
+      // Step 3: Update verification request with ticket ID
+      await this.prisma.driverVerificationRequest.update({
+        where: { id: verificationRequest.id },
+        data: { ticketId },
       });
     } catch (error) {
       // Silently fail - this is best-effort background task

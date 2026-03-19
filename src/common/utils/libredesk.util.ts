@@ -10,6 +10,7 @@ interface CreateTicketParams {
   driverPhone: string;
   driverId: string;
   verificationType: string;
+  requestId: string;
 }
 
 interface LibreDeskConfig {
@@ -32,9 +33,10 @@ export async function createLibreDeskTicket(
     driverPhone,
     driverId,
     verificationType,
+    requestId,
   } = params;
 
-  console.log(`Creating LibreDesk ticket for driver: ${driverId}`);
+  console.log(`Creating LibreDesk ticket for driver: ${driverId}, request: ${requestId}`);
 
   const subject = `Driver Verification: ${driverName} (${verificationType})`;
   const content = `
@@ -46,6 +48,7 @@ Driver Details:
 - Name: ${driverName}
 - Phone: ${driverPhone}
 - Driver ID: ${driverId}
+- Request ID: ${requestId}
 
 Action Required:
 Please review and verify the driver's documents in the admin portal.

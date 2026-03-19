@@ -6,6 +6,7 @@ import { RedisModule } from '../redis/redis.module';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { BookingModule } from '../booking/booking.module';
 import { PaymentModule } from '../driver/payment/payment.module';
+import { DocumentsModule } from '../driver/documents/documents.module';
 import { DocumentCleanupService } from './services/document-cleanup.service';
 import { SessionCleanupService } from './services/session-cleanup.service';
 import { DriverCleanupService } from './services/driver-cleanup.service';
@@ -13,6 +14,7 @@ import { BookingCleanupService } from './services/booking-cleanup.service';
 import { LogCleanupService } from './services/log-cleanup.service';
 import { PayoutService } from './services/payout.service';
 import { RefundCronService } from './services/refund-cron.service';
+import { VerificationRequestService } from './services/verification-request.service';
 import { RedisService } from '../redis/redis.service';
 import { BookingRefundService } from 'src/booking/services/booking-refund.service';
 
@@ -24,6 +26,7 @@ import { BookingRefundService } from 'src/booking/services/booking-refund.servic
     FirebaseModule,
     BookingModule,
     PaymentModule,
+    DocumentsModule,
   ],
   providers: [
     CronService,
@@ -35,6 +38,7 @@ import { BookingRefundService } from 'src/booking/services/booking-refund.servic
     RedisService,
     PayoutService,
     RefundCronService,
+    VerificationRequestService,
     BookingRefundService,
   ],
 })
