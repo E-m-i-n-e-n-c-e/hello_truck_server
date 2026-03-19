@@ -622,11 +622,6 @@ export class AdminVerificationService {
       include: {
         documents: true,
         verificationRequests: {
-          where: {
-            status: {
-              in: ACTIVE_VERIFICATION_REQUEST_STATUSES,
-            },
-          },
           orderBy: { createdAt: 'desc' },
           take: 1,
           include: {
@@ -649,7 +644,7 @@ export class AdminVerificationService {
     }
 
     const existing = driver.verificationRequests[0] ?? null;
-    if (existing) {
+    if (existing && ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(existing.status)) {
       return {
         created: false,
         message: 'Active verification request already exists',
@@ -808,8 +803,14 @@ export class AdminVerificationService {
     currentVerification: any,
     latestFieldPhotos: any[],
   ) {
-    const hasActiveRequest = !!currentVerification &&
-      ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(currentVerification.status);
+    const editableStatuses: VerificationRequestStatus[] = [
+      VerificationRequestStatus.PENDING,
+      VerificationRequestStatus.IN_REVIEW,
+      VerificationRequestStatus.REVERTED,
+    ];
+
+    const hasActiveRequest =
+      !!currentVerification && ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(currentVerification.status);
 
     const hasPendingDocuments = !!driver.documents && [
       driver.documents.licenseStatus,
@@ -817,6 +818,13 @@ export class AdminVerificationService {
       driver.documents.fcStatus,
       driver.documents.insuranceStatus,
     ].some((status) => status === VerificationStatus.PENDING);
+
+    const hasAllRequiredDocumentsVerified = !!driver.documents && [
+      driver.documents.licenseStatus,
+      driver.documents.rcBookStatus,
+      driver.documents.fcStatus,
+      driver.documents.insuranceStatus,
+    ].every((status) => status === VerificationStatus.VERIFIED);
 
     const hasAllRequiredFieldPhotos = REQUIRED_FIELD_PHOTO_TYPES.every((type) =>
       latestFieldPhotos.some((photo) => photo.photoType === type),
@@ -837,15 +845,17 @@ export class AdminVerificationService {
           driver.verificationStatus !== VerificationStatus.REJECTED &&
           (driver.verificationStatus === VerificationStatus.PENDING || hasPendingDocuments),
         hasAllRequiredFieldPhotos,
-        canVerify:
+          canVerify:
+            !!currentVerification &&
+            hasAllRequiredDocumentsVerified &&
+            hasAllRequiredFieldPhotos &&
+            editableStatuses.includes(currentVerification.status),
+        canRejectDriver:
           !!currentVerification &&
-          hasAllRequiredFieldPhotos &&
-          [
-            VerificationRequestStatus.PENDING,
-            VerificationRequestStatus.IN_REVIEW,
-            VerificationRequestStatus.REVERTED,
-          ].includes(currentVerification.status),
+          currentVerification.status !== VerificationRequestStatus.REJECTED,
         canRevertRejectedDriver: driver.verificationStatus === VerificationStatus.REJECTED,
+        canUploadFieldPhotos:
+          !!currentVerification && editableStatuses.includes(currentVerification.status),
       },
     };
   }

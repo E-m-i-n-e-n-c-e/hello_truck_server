@@ -272,7 +272,7 @@ export class AgentVerificationService {
     }
 
     const latestFieldPhotos = await this.getLatestFieldPhotosForDriver(verification.driverId);
-    return this.toVerificationDetail(verification.driver, verification, latestFieldPhotos);
+    return this.toVerificationDetail(verification.driver, verification, latestFieldPhotos, userId, userRole);
   }
 
   async documentAction(
@@ -280,6 +280,7 @@ export class AgentVerificationService {
     field: DocumentField,
     dto: DocumentActionRequestDto,
     userId: string,
+    userRole?: AdminRole,
   ) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id: verificationId },
@@ -289,6 +290,8 @@ export class AgentVerificationService {
     if (!verification) {
       throw new NotFoundException('Verification request not found');
     }
+
+    await this.assertCanMutateDocuments(verification, userId, userRole);
 
     if (!verification.driver.documents) {
       throw new BadRequestException('Driver has no documents uploaded');
@@ -385,6 +388,7 @@ export class AgentVerificationService {
     field: DocumentField,
     _dto: RevertDocumentRejectionRequestDto,
     userId: string,
+    userRole?: AdminRole,
   ) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id: verificationId },
@@ -394,6 +398,8 @@ export class AgentVerificationService {
     if (!verification) {
       throw new NotFoundException('Verification request not found');
     }
+
+    await this.assertCanMutateDocuments(verification, userId, userRole);
 
     const statusField = DOCUMENT_STATUS_MAP[field];
     if (!statusField || !verification.driver.documents) {
@@ -465,9 +471,19 @@ export class AgentVerificationService {
     const hasAllRequiredFieldPhotos = REQUIRED_FIELD_PHOTO_TYPES.every((type) =>
       latestFieldPhotos.some((photo) => photo.photoType === type),
     );
+    const hasAllRequiredDocumentsVerified = !!verification.driver.documents && [
+      verification.driver.documents.licenseStatus,
+      verification.driver.documents.rcBookStatus,
+      verification.driver.documents.fcStatus,
+      verification.driver.documents.insuranceStatus,
+    ].every((status) => status === VerificationStatus.VERIFIED);
 
     if (!hasAllRequiredFieldPhotos) {
       throw new BadRequestException('All 6 field photos are required before approval');
+    }
+
+    if (!hasAllRequiredDocumentsVerified) {
+      throw new BadRequestException('All required documents must be approved before driver approval');
     }
 
     const approvableStatuses: VerificationRequestStatus[] = [
@@ -519,6 +535,90 @@ export class AgentVerificationService {
           verificationId: id,
           status: updated.status,
           bufferExpiresAt,
+        },
+        entityId: id,
+      },
+    };
+  }
+
+  async rejectDriver(id: string, reason: string, rejectedById: string, rejectedByRole?: AdminRole) {
+    const verification = await this.prisma.driverVerificationRequest.findUnique({
+      where: { id },
+      include: {
+        driver: true,
+      },
+    });
+
+    if (!verification) {
+      throw new NotFoundException('Verification request not found');
+    }
+
+    await this.assertCanRejectDriver(verification, rejectedById, rejectedByRole);
+
+    if (!reason || reason.length < 10) {
+      throw new BadRequestException('Rejection reason must be at least 10 characters');
+    }
+
+    const beforeSnapshot = {
+      verificationId: id,
+      status: verification.status,
+      driverVerificationStatus: verification.driver.verificationStatus,
+    };
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.driverVerificationRequest.update({
+        where: { id },
+        data: {
+          status: VerificationRequestStatus.REJECTED,
+          revertReason: reason,
+          bufferExpiresAt: null,
+        },
+      }),
+      this.prisma.verificationAction.create({
+        data: {
+          verificationRequestId: id,
+          actionType: 'REJECTED',
+          reason,
+          actionById: rejectedById,
+        },
+      }),
+      this.prisma.driver.update({
+        where: { id: verification.driver.id },
+        data: { verificationStatus: VerificationStatus.REJECTED },
+      }),
+    ]);
+
+    await this.verificationQueue.cancelVerificationFinalization(id);
+
+    this.firebaseService
+      .notifyAllSessions(
+        verification.driver.id,
+        'driver',
+        {
+          notification: {
+            title: 'Verification Rejected',
+            body: `Your verification was rejected: ${reason}`,
+          },
+          data: {
+            event: FcmEventType.DriverVerificationUpdate,
+            status: 'REJECTED',
+            reason,
+          },
+        },
+        this.prisma,
+      )
+      .catch((error) => {
+        this.logger.error(`Failed to notify driver ${verification.driver.id} about rejection`, error);
+      });
+
+    return {
+      ...updated,
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot,
+        afterSnapshot: {
+          verificationId: id,
+          status: updated.status,
+          driverVerificationStatus: VerificationStatus.REJECTED,
         },
         entityId: id,
       },
@@ -586,6 +686,107 @@ export class AgentVerificationService {
         entityId: id,
       },
     };
+  }
+
+  private async assertCanMutateDocuments(
+    verification: {
+      id: string;
+      driverId: string;
+      status: VerificationRequestStatus;
+      assignedToId: string | null;
+    },
+    userId?: string,
+    userRole?: AdminRole,
+  ) {
+    const editableStatuses: VerificationRequestStatus[] = [
+      VerificationRequestStatus.PENDING,
+      VerificationRequestStatus.IN_REVIEW,
+      VerificationRequestStatus.REVERTED,
+    ];
+
+    if (!editableStatuses.includes(verification.status)) {
+      throw new ForbiddenException('Documents can only be modified on an active editable verification request');
+    }
+
+    if (userRole !== AdminRole.AGENT && userRole !== AdminRole.FIELD_AGENT) {
+      return;
+    }
+
+    if (!userId || verification.assignedToId !== userId) {
+      throw new ForbiddenException('You can only modify documents for verification requests assigned to you');
+    }
+
+    const latestRequest = await this.prisma.driverVerificationRequest.findFirst({
+      where: {
+        driverId: verification.driverId,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        assignedToId: true,
+        status: true,
+      },
+    });
+
+    if (!latestRequest || latestRequest.id !== verification.id) {
+      throw new ForbiddenException('You can only modify documents for the driver\'s latest verification request');
+    }
+
+    if (latestRequest.assignedToId !== userId) {
+      throw new ForbiddenException('You can only modify documents for verification requests assigned to you');
+    }
+  }
+
+  private async assertCanRejectDriver(
+    verification: {
+      id: string;
+      driverId: string;
+      status: VerificationRequestStatus;
+      assignedToId: string | null;
+    },
+    userId?: string,
+    userRole?: AdminRole,
+  ) {
+    if (userRole !== AdminRole.AGENT && userRole !== AdminRole.FIELD_AGENT) {
+      if (verification.status === VerificationRequestStatus.REJECTED) {
+        throw new ForbiddenException('Driver is already rejected');
+      }
+      return;
+    }
+
+    const editableStatuses: VerificationRequestStatus[] = [
+      VerificationRequestStatus.PENDING,
+      VerificationRequestStatus.IN_REVIEW,
+      VerificationRequestStatus.REVERTED,
+    ];
+
+    if (!editableStatuses.includes(verification.status)) {
+      throw new ForbiddenException('Driver can only be rejected on an active editable verification request');
+    }
+
+    if (!userId || verification.assignedToId !== userId) {
+      throw new ForbiddenException('You can only reject drivers for verification requests assigned to you');
+    }
+
+    const latestRequest = await this.prisma.driverVerificationRequest.findFirst({
+      where: {
+        driverId: verification.driverId,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        assignedToId: true,
+        status: true,
+      },
+    });
+
+    if (!latestRequest || latestRequest.id !== verification.id) {
+      throw new ForbiddenException('You can only reject the driver on the latest verification request');
+    }
+
+    if (latestRequest.assignedToId !== userId) {
+      throw new ForbiddenException('You can only reject drivers for verification requests assigned to you');
+    }
   }
 
   uploadPhotos(verificationId: string, dto: any, userId: string, role: AdminRole) {
@@ -712,17 +913,41 @@ export class AgentVerificationService {
     };
   }
 
-  private toVerificationDetail(driver: any, verification: any, latestFieldPhotos: any[]) {
-    const hasPendingDocuments = !!driver.documents && [
+  private toVerificationDetail(
+    driver: any,
+    verification: any,
+    latestFieldPhotos: any[],
+    userId?: string,
+    userRole?: AdminRole,
+  ) {
+    const editableStatuses: VerificationRequestStatus[] = [
+      VerificationRequestStatus.PENDING,
+      VerificationRequestStatus.IN_REVIEW,
+      VerificationRequestStatus.REVERTED,
+    ];
+
+    const hasAllRequiredDocumentsVerified = !!driver.documents && [
       driver.documents.licenseStatus,
       driver.documents.rcBookStatus,
       driver.documents.fcStatus,
       driver.documents.insuranceStatus,
-    ].some((status) => status === VerificationStatus.PENDING);
+    ].every((status) => status === VerificationStatus.VERIFIED);
 
     const hasAllRequiredFieldPhotos = REQUIRED_FIELD_PHOTO_TYPES.every((type) =>
       latestFieldPhotos.some((photo) => photo.photoType === type),
     );
+
+    const latestActiveRequest = (driver.verificationRequests ?? []).find((request: any) =>
+      ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(request.status),
+    );
+    const isLatestActiveRequest = !!latestActiveRequest && latestActiveRequest.id === verification.id;
+    const isAgentRole = userRole === AdminRole.AGENT || userRole === AdminRole.FIELD_AGENT;
+    const canRejectDriver = isAgentRole
+      ? editableStatuses.includes(verification.status) &&
+        !!userId &&
+        verification.assignedToId === userId &&
+        isLatestActiveRequest
+      : verification.status !== VerificationRequestStatus.REJECTED;
 
     return {
       ...driver,
@@ -735,14 +960,12 @@ export class AgentVerificationService {
         canCreateRequest: false,
         hasAllRequiredFieldPhotos,
         canVerify:
+          hasAllRequiredDocumentsVerified &&
           hasAllRequiredFieldPhotos &&
-          hasPendingDocuments !== false &&
-          ([
-            VerificationRequestStatus.PENDING,
-            VerificationRequestStatus.IN_REVIEW,
-            VerificationRequestStatus.REVERTED,
-          ] as VerificationRequestStatus[]).includes(verification.status),
+          editableStatuses.includes(verification.status),
+        canRejectDriver,
         canRevertRejectedDriver: false,
+        canUploadFieldPhotos: editableStatuses.includes(verification.status),
       },
     };
   }

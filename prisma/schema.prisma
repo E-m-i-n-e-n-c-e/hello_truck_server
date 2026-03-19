@@ -845,6 +845,8 @@ model FieldVerificationPhoto {
   uploadedAt            DateTime                  @default(now())
 
   @@index([verificationRequestId])
+  @@index([verificationRequestId, uploadedAt])
+  @@index([verificationRequestId, photoType, uploadedAt])
   @@map("field_verification_photos")
 }
 

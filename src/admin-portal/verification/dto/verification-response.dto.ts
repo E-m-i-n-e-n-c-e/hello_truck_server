@@ -126,7 +126,13 @@ export class VerificationEligibilityDto {
   canVerify: boolean;
 
   @Expose()
+  canRejectDriver: boolean;
+
+  @Expose()
   canRevertRejectedDriver: boolean;
+
+  @Expose()
+  canUploadFieldPhotos: boolean;
 }
 
 /**

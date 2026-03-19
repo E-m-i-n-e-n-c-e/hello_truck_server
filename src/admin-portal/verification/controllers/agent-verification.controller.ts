@@ -15,6 +15,7 @@ import { AgentVerificationService } from '../services/agent-verification.service
 import {
   DocumentActionRequestDto,
   ListVerificationsRequestDto,
+  RejectVerificationRequestDto,
   RevertDocumentRejectionRequestDto,
   VerificationRevertRequestDto,
 } from '../dto/verification-request.dto';
@@ -22,6 +23,7 @@ import {
   ApproveVerificationResponseDto,
   DocumentActionResponseDto,
   ListVerificationsResponseDto,
+  RejectVerificationResponseDto,
   RevertRequestResponseDto,
   VerificationDetailResponseDto,
 } from '../dto/verification-response.dto';
@@ -89,7 +91,7 @@ export class AgentVerificationController {
     @Body() dto: DocumentActionRequestDto,
     @CurrentAdminUser() user: AdminJwtPayload,
   ): Promise<DocumentActionResponseDto> {
-    return this.agentVerificationService.documentAction(id, field, dto, user.sub);
+    return this.agentVerificationService.documentAction(id, field, dto, user.sub, user.role);
   }
 
   @Post('requests/:id/documents/:field/revert')
@@ -109,7 +111,7 @@ export class AgentVerificationController {
     @Body() dto: RevertDocumentRejectionRequestDto,
     @CurrentAdminUser() user: AdminJwtPayload,
   ): Promise<DocumentActionResponseDto> {
-    return this.agentVerificationService.revertDocumentDecision(id, field, dto, user.sub);
+    return this.agentVerificationService.revertDocumentDecision(id, field, dto, user.sub, user.role);
   }
 
   @Post('requests/:id/approve')
@@ -128,6 +130,25 @@ export class AgentVerificationController {
     @CurrentAdminUser() user: AdminJwtPayload,
   ): Promise<ApproveVerificationResponseDto> {
     return this.agentVerificationService.approveVerification(id, user.sub);
+  }
+
+  @Post('requests/:id/reject-driver')
+  @HttpCode(HttpStatus.OK)
+  @Serialize(RejectVerificationResponseDto)
+  @ApiOperation({ summary: 'Reject whole driver verification' })
+  @AuditLog({
+    action: AuditActionTypes.VERIFICATION_REJECTED,
+    module: AuditModules.VERIFICATION,
+    description: 'Driver verification :id rejected',
+    entityType: 'VERIFICATION_REQUEST',
+    captureSnapshots: true,
+  })
+  async rejectDriver(
+    @Param('id') id: string,
+    @Body() dto: RejectVerificationRequestDto,
+    @CurrentAdminUser() user: AdminJwtPayload,
+  ): Promise<RejectVerificationResponseDto> {
+    return this.agentVerificationService.rejectDriver(id, dto.reason, user.sub, user.role);
   }
 
   @Post('requests/:id/revert-request')

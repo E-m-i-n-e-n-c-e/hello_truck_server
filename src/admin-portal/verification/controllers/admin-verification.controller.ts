@@ -17,14 +17,12 @@ import {
   AssignVerificationRequestDto,
   CreateVerificationRequestDto,
   ListVerificationDriversRequestDto,
-  RejectVerificationRequestDto,
   RevertDecisionRequestDto,
 } from '../dto/verification-request.dto';
 import {
   AssignVerificationResponseDto,
   CreateVerificationResponseDto,
   ListVerificationDriversResponseDto,
-  RejectVerificationResponseDto,
   RevertDecisionResponseDto,
   VerificationDetailResponseDto,
 } from '../dto/verification-response.dto';
@@ -96,25 +94,6 @@ export class AdminVerificationController {
     @CurrentAdminUser() user: AdminJwtPayload,
   ): Promise<AssignVerificationResponseDto> {
     return this.adminVerificationService.assignVerification(id, dto, user.sub);
-  }
-
-  @Post('requests/:id/reject-driver')
-  @HttpCode(HttpStatus.OK)
-  @Serialize(RejectVerificationResponseDto)
-  @ApiOperation({ summary: 'Reject whole driver verification' })
-  @AuditLog({
-    action: AuditActionTypes.VERIFICATION_REJECTED,
-    module: AuditModules.VERIFICATION,
-    description: 'Driver verification :id rejected',
-    entityType: 'VERIFICATION_REQUEST',
-    captureSnapshots: true,
-  })
-  async rejectDriver(
-    @Param('id') id: string,
-    @Body() dto: RejectVerificationRequestDto,
-    @CurrentAdminUser() user: AdminJwtPayload,
-  ): Promise<RejectVerificationResponseDto> {
-    return this.adminVerificationService.rejectDriver(id, dto.reason, user.sub);
   }
 
   @Post('drivers/:driverId/revert-rejection')
