@@ -127,24 +127,24 @@ export class AdminVerificationService {
     // Get total count
     const total = await this.prisma.driver.count({ where });
 
-    // Fetch paginated drivers
+    // Fetch paginated drivers with proper ordering
     const drivers = await this.prisma.driver.findMany({
       where,
       include: this.driverInclude(),
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        {
+          profileCreatedAt: 'desc',
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
       skip: (page - 1) * limit,
       take: limit,
     });
 
-    // Sort by latest verification request createdAt, fallback to driver createdAt
-    const sortedDrivers = drivers.sort((a, b) => {
-      const aLatestRequestCreatedAt = a.verificationRequests?.[0]?.createdAt ?? a.createdAt;
-      const bLatestRequestCreatedAt = b.verificationRequests?.[0]?.createdAt ?? b.createdAt;
-      return new Date(bLatestRequestCreatedAt).getTime() - new Date(aLatestRequestCreatedAt).getTime();
-    });
-
     return {
-      drivers: sortedDrivers as any,
+      drivers: drivers as any,
       pagination: {
         page,
         limit,

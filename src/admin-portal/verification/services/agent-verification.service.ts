@@ -54,7 +54,7 @@ export class AgentVerificationService {
     private readonly firebaseService: AdminFirebaseService,
     private readonly fieldVerificationService: FieldVerificationService,
   ) {
-    this.bufferDurationMinutes = 1;
+    this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
   }
 
   async listRequests(filters: ListVerificationsRequestDto, userId?: string, userRole?: AdminRole) {
