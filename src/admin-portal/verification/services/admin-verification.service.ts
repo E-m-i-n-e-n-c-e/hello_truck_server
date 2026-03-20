@@ -97,49 +97,54 @@ export class AdminVerificationService {
           };
     }
 
+    // Build verificationRequests filter
+    const verificationRequestsFilter: any = {};
+    if (requestStatus) {
+      verificationRequestsFilter.status = requestStatus;
+    }
+    if (verificationType) {
+      verificationRequestsFilter.verificationType = verificationType;
+    }
+    if (assignedToId) {
+      verificationRequestsFilter.assignedToId = assignedToId;
+    }
+    if (isAssigned !== undefined) {
+      verificationRequestsFilter.assignedToId = isAssigned ? { not: null } : null;
+    }
+    if (hasActiveRequest !== undefined) {
+      if (hasActiveRequest) {
+        verificationRequestsFilter.status = { in: ACTIVE_VERIFICATION_REQUEST_STATUSES };
+      } else {
+        verificationRequestsFilter.status = { notIn: ACTIVE_VERIFICATION_REQUEST_STATUSES };
+      }
+    }
+
+    // Apply verificationRequests filter if any conditions exist
+    if (Object.keys(verificationRequestsFilter).length > 0) {
+      where.verificationRequests = { some: verificationRequestsFilter };
+    }
+
+    // Get total count
+    const total = await this.prisma.driver.count({ where });
+
+    // Fetch paginated drivers
     const drivers = await this.prisma.driver.findMany({
       where,
       include: this.driverInclude(),
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    const filteredDrivers = drivers.filter((driver) => {
-      const latestRequest = driver.verificationRequests?.[0] ?? null;
-
-      if (requestStatus && latestRequest?.status !== requestStatus) {
-        return false;
-      }
-
-      if (verificationType && latestRequest?.verificationType !== verificationType) {
-        return false;
-      }
-
-      if (assignedToId && latestRequest?.assignedToId !== assignedToId) {
-        return false;
-      }
-
-      if (isAssigned !== undefined) {
-        const assigned = !!latestRequest?.assignedToId;
-        if (assigned !== isAssigned) {
-          return false;
-        }
-      }
-
-      if (hasActiveRequest !== undefined) {
-        const active = !!latestRequest && ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(latestRequest.status);
-        if (active !== hasActiveRequest) {
-          return false;
-        }
-      }
-
-      return true;
+    // Sort by latest verification request createdAt, fallback to driver createdAt
+    const sortedDrivers = drivers.sort((a, b) => {
+      const aLatestRequestCreatedAt = a.verificationRequests?.[0]?.createdAt ?? a.createdAt;
+      const bLatestRequestCreatedAt = b.verificationRequests?.[0]?.createdAt ?? b.createdAt;
+      return new Date(bLatestRequestCreatedAt).getTime() - new Date(aLatestRequestCreatedAt).getTime();
     });
-
-    const total = filteredDrivers.length;
-    const paginatedDrivers = filteredDrivers.slice((page - 1) * limit, page * limit);
 
     return {
-      drivers: paginatedDrivers as any,
+      drivers: sortedDrivers as any,
       pagination: {
         page,
         limit,
@@ -752,6 +757,7 @@ export class AdminVerificationService {
       address: true,
       verificationRequests: {
         orderBy: { createdAt: 'desc' },
+        take: 1,
         include: {
           assignedTo: {
             select: {

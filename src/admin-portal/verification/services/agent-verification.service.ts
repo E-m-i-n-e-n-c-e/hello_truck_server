@@ -54,7 +54,7 @@ export class AgentVerificationService {
     private readonly firebaseService: AdminFirebaseService,
     private readonly fieldVerificationService: FieldVerificationService,
   ) {
-    this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
+    this.bufferDurationMinutes = 1;
   }
 
   async listRequests(filters: ListVerificationsRequestDto, userId?: string, userRole?: AdminRole) {
@@ -90,7 +90,7 @@ export class AgentVerificationService {
       where.assignedToId = isAssigned ? { not: null } : null;
     }
 
-    if (hasActiveRequest !== undefined) {
+    if (hasActiveRequest !== undefined && !status) {
       where.status = hasActiveRequest
         ? { in: ACTIVE_VERIFICATION_REQUEST_STATUSES }
         : { notIn: ACTIVE_VERIFICATION_REQUEST_STATUSES };
@@ -861,6 +861,7 @@ export class AgentVerificationService {
       address: true,
       verificationRequests: {
         orderBy: { createdAt: 'desc' },
+        take: 1,
         include: {
           assignedTo: {
             select: {
