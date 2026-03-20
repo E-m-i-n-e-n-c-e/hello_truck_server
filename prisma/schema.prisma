@@ -799,6 +799,7 @@ model DriverVerificationRequest {
   @@index([status])
   @@index([assignedToId])
   @@index([createdAt])
+  @@index([driverId, createdAt(sort: Desc)])
 }
 
 // Tracks individual document approval/rejection actions

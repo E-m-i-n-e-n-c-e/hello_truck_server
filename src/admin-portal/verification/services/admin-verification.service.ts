@@ -59,92 +59,128 @@ export class AdminVerificationService {
       limit = 20,
     } = filters;
 
-    const where: Prisma.DriverWhereInput = {
-      firstName: { not: null },
-    };
+    const offset = (page - 1) * limit;
+    const conditions: Prisma.Sql[] = [Prisma.sql`d."firstName" IS NOT NULL`];
 
+    // Search filter
     if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { phoneNumber: { contains: search } },
-      ];
+      const searchPattern = `%${search}%`;
+      conditions.push(Prisma.sql`(
+        d."firstName" ILIKE ${searchPattern} OR
+        d."lastName" ILIKE ${searchPattern} OR
+        d."phoneNumber" LIKE ${searchPattern}
+      )`);
     }
 
+    // Driver verification status
     if (driverVerificationStatus) {
-      where.verificationStatus = driverVerificationStatus;
+      conditions.push(Prisma.sql`d."verificationStatus" = ${driverVerificationStatus}::"VerificationStatus"`);
     }
 
+    // Pending documents filter
     if (hasPendingDocuments !== undefined) {
-      where.documents = hasPendingDocuments
-        ? {
-            OR: [
-              { licenseStatus: VerificationStatus.PENDING },
-              { rcBookStatus: VerificationStatus.PENDING },
-              { fcStatus: VerificationStatus.PENDING },
-              { insuranceStatus: VerificationStatus.PENDING },
-            ],
-          }
-        : {
-            NOT: {
-              OR: [
-                { licenseStatus: VerificationStatus.PENDING },
-                { rcBookStatus: VerificationStatus.PENDING },
-                { fcStatus: VerificationStatus.PENDING },
-                { insuranceStatus: VerificationStatus.PENDING },
-              ],
-            },
-          };
-    }
-
-    // Build verificationRequests filter
-    const verificationRequestsFilter: any = {};
-    if (requestStatus) {
-      verificationRequestsFilter.status = requestStatus;
-    }
-    if (verificationType) {
-      verificationRequestsFilter.verificationType = verificationType;
-    }
-    if (assignedToId) {
-      verificationRequestsFilter.assignedToId = assignedToId;
-    }
-    if (isAssigned !== undefined) {
-      verificationRequestsFilter.assignedToId = isAssigned ? { not: null } : null;
-    }
-    if (hasActiveRequest !== undefined) {
-      if (hasActiveRequest) {
-        verificationRequestsFilter.status = { in: ACTIVE_VERIFICATION_REQUEST_STATUSES };
+      if (hasPendingDocuments) {
+        conditions.push(Prisma.sql`(
+          doc."licenseStatus" = 'PENDING'::"VerificationStatus" OR
+          doc."rcBookStatus" = 'PENDING'::"VerificationStatus" OR
+          doc."fcStatus" = 'PENDING'::"VerificationStatus" OR
+          doc."insuranceStatus" = 'PENDING'::"VerificationStatus"
+        )`);
       } else {
-        verificationRequestsFilter.status = { notIn: ACTIVE_VERIFICATION_REQUEST_STATUSES };
+        conditions.push(Prisma.sql`(
+          doc."licenseStatus" != 'PENDING'::"VerificationStatus" AND
+          doc."rcBookStatus" != 'PENDING'::"VerificationStatus" AND
+          doc."fcStatus" != 'PENDING'::"VerificationStatus" AND
+          doc."insuranceStatus" != 'PENDING'::"VerificationStatus"
+        )`);
       }
     }
 
-    // Apply verificationRequests filter if any conditions exist
-    if (Object.keys(verificationRequestsFilter).length > 0) {
-      where.verificationRequests = { some: verificationRequestsFilter };
+    // Latest request filters
+    if (requestStatus) {
+      conditions.push(Prisma.sql`latest_vr.status = ${requestStatus}::"VerificationRequestStatus"`);
     }
 
-    // Get total count
-    const total = await this.prisma.driver.count({ where });
+    if (verificationType) {
+      conditions.push(Prisma.sql`latest_vr."verificationType" = ${verificationType}::"DriverVerificationType"`);
+    }
 
-    // Fetch paginated drivers with proper ordering
+    if (hasActiveRequest !== undefined) {
+      if (hasActiveRequest) {
+        conditions.push(Prisma.sql`latest_vr.status = ANY(${ACTIVE_VERIFICATION_REQUEST_STATUSES}::"VerificationRequestStatus"[])`);
+      } else {
+        conditions.push(Prisma.sql`(latest_vr.status IS NULL OR latest_vr.status != ALL(${ACTIVE_VERIFICATION_REQUEST_STATUSES}::"VerificationRequestStatus"[]))`);
+      }
+    }
+
+    if (isAssigned !== undefined) {
+      if (isAssigned) {
+        conditions.push(Prisma.sql`latest_vr."assignedToId" IS NOT NULL`);
+      } else {
+        conditions.push(Prisma.sql`(latest_vr."assignedToId" IS NULL OR latest_vr.id IS NULL)`);
+      }
+    }
+
+    if (assignedToId) {
+      conditions.push(Prisma.sql`latest_vr."assignedToId" = ${assignedToId}`);
+    }
+
+    const whereClause =
+      conditions.length > 0
+        ? Prisma.sql`WHERE ${Prisma.join(conditions, ` AND `)}`
+        : Prisma.empty;
+
+    // Query to get driver IDs with filters applied on LATEST request only
+    const query = Prisma.sql`
+      WITH driver_data AS (
+        SELECT
+          d.id,
+          COUNT(*) OVER() as total_count
+        FROM "Driver" d
+        LEFT JOIN "DriverDocuments" doc ON doc."driverId" = d.id
+        LEFT JOIN LATERAL (
+          SELECT *
+          FROM "DriverVerificationRequest" vr
+          WHERE vr."driverId" = d.id
+          ORDER BY vr."createdAt" DESC
+          LIMIT 1
+        ) latest_vr ON true
+        ${whereClause}
+        ORDER BY COALESCE(latest_vr."createdAt", d."profileCreatedAt", d."createdAt") DESC
+        LIMIT ${limit} OFFSET ${offset}
+      )
+      SELECT * FROM driver_data
+    `;
+
+    const result = await this.prisma.$queryRaw<Array<{ id: string; total_count: bigint }>>(query);
+
+    const total = result.length > 0 ? Number(result[0].total_count) : 0;
+    const driverIds = result.map((r) => r.id);
+
+    if (driverIds.length === 0) {
+      return {
+        drivers: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+    }
+
+    // Fetch full driver data with relations using Prisma
     const drivers = await this.prisma.driver.findMany({
-      where,
+      where: { id: { in: driverIds } },
       include: this.driverInclude(),
-      orderBy: [
-        {
-          profileCreatedAt: 'desc',
-        },
-        {
-          createdAt: 'desc',
-        },
-      ],
-      skip: (page - 1) * limit,
-      take: limit,
     });
 
+    // Sort to match the order from the query
+    const driverMap = new Map(drivers.map((d) => [d.id, d]));
+    const sortedDrivers = driverIds.map((id) => driverMap.get(id)!).filter(Boolean);
+
     return {
-      drivers: drivers as any,
+      drivers: sortedDrivers as any,
       pagination: {
         page,
         limit,
