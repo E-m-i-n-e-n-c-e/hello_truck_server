@@ -182,6 +182,12 @@ export class AdminVerificationService {
       throw new NotFoundException('Verification request not found');
     }
 
+    // Prevent assigning/reassigning when the latest request is not active
+    // (i.e. rejected or final approved).
+    if (!ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(verification.status)) {
+      throw new BadRequestException('Cannot assign verification request unless it is active');
+    }
+
     const assignee = await this.prisma.adminUser.findUnique({
       where: {
         email: dto.email.trim().toLowerCase(),
@@ -708,6 +714,14 @@ export class AdminVerificationService {
         verificationRequest: {
           select: {
             id: true,
+          },
+        },
+        uploadedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
           },
         },
       },

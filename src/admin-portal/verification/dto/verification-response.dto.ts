@@ -109,6 +109,10 @@ export class FieldPhotoDto {
   uploadedById: string;
 
   @Expose()
+  @Type(() => AdminUserInfoDto)
+  uploadedBy?: AdminUserInfoDto;
+
+  @Expose()
   uploadedAt: Date;
 }
 

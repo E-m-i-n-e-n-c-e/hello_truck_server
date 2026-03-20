@@ -719,6 +719,7 @@ model AdminUser {
   notifications         AdminNotification[]
   documentActions       VerificationDocumentAction[]
   verificationActions   VerificationAction[]        // Driver-level verification actions
+  uploadedFieldPhotos  FieldVerificationPhoto[]    @relation("UploadedBy")
 }
 
 // Admin Sessions - JWT-based sessions for web portal
@@ -842,6 +843,7 @@ model FieldVerificationPhoto {
   photoType             FieldPhotoType
   url                   String
   uploadedById          String
+  uploadedBy            AdminUser                 @relation("UploadedBy", fields: [uploadedById], references: [id])
   uploadedAt            DateTime                  @default(now())
 
   @@index([verificationRequestId])

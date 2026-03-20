@@ -825,6 +825,14 @@ export class AgentVerificationService {
             id: true,
           },
         },
+        uploadedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
       },
       orderBy: { uploadedAt: 'desc' },
     });
