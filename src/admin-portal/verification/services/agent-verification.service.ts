@@ -366,6 +366,24 @@ export class AgentVerificationService {
           this.logger.error(`Failed to notify driver ${verification.driver.id} about document rejection`, error);
         });
     }
+    if (dto.action === DocumentActionType.APPROVED) {
+      this.firebaseService
+        .notifyAllSessions(
+          verification.driver.id,
+          'driver',
+          {
+            data: {
+              event: FcmEventType.DriverVerificationUpdate,
+              documentField: field,
+              status: 'APPROVED',
+            },
+          },
+          this.prisma,
+        )
+        .catch((error) => {
+          this.logger.error(`Failed to notify driver ${verification.driver.id} about document approval`, error);
+        });
+    }
 
     return {
       success: true,

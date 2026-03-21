@@ -1,6 +1,7 @@
-import { IsInt, IsOptional, IsBoolean, Min } from 'class-validator';
+import { IsInt, IsOptional, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { ToBoolean } from '../../../common/decorators/to-boolean.decorator';
 
 /**
  * Get Notifications Request DTO (Query params)
@@ -22,6 +23,6 @@ export class GetNotificationsRequestDto {
 
   @ApiProperty({ required: false, default: false })
   @IsOptional()
-  @IsBoolean()
+  @ToBoolean()
   unreadOnly?: boolean = false;
 }

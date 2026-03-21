@@ -264,6 +264,7 @@ export class AdminVerificationService {
       verificationId: id,
       status: verification.status,
       assignedToId: verification.assignedToId,
+      assignedToEmail: verification.assignedTo?.email,
     };
 
     const updated = await this.prisma.driverVerificationRequest.update({
@@ -296,7 +297,7 @@ export class AdminVerificationService {
         entityId: updated.id,
         entityType: 'VERIFICATION',
         driverId: verification.driver.id,
-        actionUrl: `/dashboard/verifications/request/${updated.id}`,
+        actionUrl: `/verifications/request/${updated.id}`,
       },
     });
 
@@ -312,7 +313,7 @@ export class AdminVerificationService {
             entityId: updated.id,
             entityType: 'VERIFICATION',
             driverId: verification.driver.id,
-            actionUrl: `/dashboard/verifications/request/${updated.id}`,
+            actionUrl: `/verifications/request/${updated.id}`,
           },
         })
         .catch((error) => {
@@ -331,88 +332,6 @@ export class AdminVerificationService {
           assignedToEmail: updated.assignedTo?.email ?? null,
         },
         entityId: updated.id,
-      },
-    };
-  }
-
-  async rejectDriver(id: string, reason: string, rejectedById: string) {
-    const verification = await this.prisma.driverVerificationRequest.findUnique({
-      where: { id },
-      include: {
-        driver: true,
-      },
-    });
-
-    if (!verification) {
-      throw new NotFoundException('Verification request not found');
-    }
-
-    if (!reason || reason.length < 10) {
-      throw new BadRequestException('Rejection reason must be at least 10 characters');
-    }
-
-    const beforeSnapshot = {
-      verificationId: id,
-      status: verification.status,
-      driverVerificationStatus: verification.driver.verificationStatus,
-    };
-
-    const [updated] = await this.prisma.$transaction([
-      this.prisma.driverVerificationRequest.update({
-        where: { id },
-        data: {
-          status: VerificationRequestStatus.REJECTED,
-          revertReason: reason,
-          bufferExpiresAt: null,
-        },
-      }),
-      this.prisma.verificationAction.create({
-        data: {
-          verificationRequestId: id,
-          actionType: 'REJECTED',
-          reason,
-          actionById: rejectedById,
-        },
-      }),
-      this.prisma.driver.update({
-        where: { id: verification.driver.id },
-        data: { verificationStatus: VerificationStatus.REJECTED },
-      }),
-    ]);
-
-    await this.verificationQueue.cancelVerificationFinalization(id);
-
-    this.firebaseService
-      .notifyAllSessions(
-        verification.driver.id,
-        'driver',
-        {
-          notification: {
-            title: 'Verification Rejected',
-            body: `Your verification was rejected: ${reason}`,
-          },
-          data: {
-            event: FcmEventType.DriverVerificationUpdate,
-            status: 'REJECTED',
-            reason,
-          },
-        },
-        this.prisma,
-      )
-      .catch((error) => {
-        this.logger.error(`Failed to notify driver ${verification.driver.id} about rejection`, error);
-      });
-
-    return {
-      ...updated,
-      [AUDIT_METADATA_KEY]: {
-        beforeSnapshot,
-        afterSnapshot: {
-          verificationId: id,
-          status: updated.status,
-          driverVerificationStatus: VerificationStatus.REJECTED,
-        },
-        entityId: id,
       },
     };
   }

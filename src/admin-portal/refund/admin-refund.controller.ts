@@ -34,6 +34,7 @@ import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentAdminUser } from '../auth/decorators/current-admin-user.decorator';
+import { AdminJwtPayload } from '../auth/admin-auth.service';
 
 @ApiTags('Refund Management')
 @Controller('admin-api/refunds')
@@ -48,9 +49,9 @@ export class AdminRefundController {
   @ApiResponse({ status: 201, description: 'Refund request created' })
   async createRefund(
     @Body() dto: CreateRefundDto,
-    @CurrentAdminUser() user: { userId: string; role: AdminRole },
+    @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    return this.refundService.createRefund(dto, user.userId, user.role);
+    return this.refundService.createRefund(dto, user.sub, user.role);
   }
 
   @Get()
@@ -76,9 +77,9 @@ export class AdminRefundController {
   @ApiResponse({ status: 200, description: 'Refund approved' })
   async approveRefund(
     @Param('id') id: string,
-    @CurrentAdminUser() user: { userId: string; role: AdminRole },
+    @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    return this.refundService.approveRefund(id, user.userId, user.role);
+    return this.refundService.approveRefund(id, user.sub, user.role);
   }
 
   @Post(':id/reject')
@@ -89,9 +90,9 @@ export class AdminRefundController {
   async rejectRefund(
     @Param('id') id: string,
     @Body() dto: RejectRefundDto,
-    @CurrentAdminUser() user: { userId: string; role: AdminRole },
+    @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    return this.refundService.rejectRefund(id, dto.reason, user.userId, user.role);
+    return this.refundService.rejectRefund(id, dto.reason, user.sub, user.role);
   }
 
   @Post(':id/revert')
@@ -102,9 +103,9 @@ export class AdminRefundController {
   async requestRevert(
     @Param('id') id: string,
     @Body() dto: RefundRevertRequestDto,
-    @CurrentAdminUser() user: { userId: string; role: AdminRole },
+    @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    return this.refundService.requestRevert(id, dto.reason, user.userId, user.role);
+    return this.refundService.requestRevert(id, dto.reason, user.sub, user.role);
   }
 
   @Post(':id/revert-decision')
@@ -115,8 +116,8 @@ export class AdminRefundController {
   async handleRevertDecision(
     @Param('id') id: string,
     @Body() dto: RefundRevertDecisionDto,
-    @CurrentAdminUser() user: { userId: string; role: AdminRole },
+    @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    return this.refundService.handleRevertDecision(id, dto.approve, user.userId, user.role);
+    return this.refundService.handleRevertDecision(id, dto.approve, user.sub, user.role);
   }
 }

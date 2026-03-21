@@ -1,11 +1,3 @@
-/**
- * Admin Notifications Controller
- *
- * Endpoints for managing admin in-app notifications:
- * - List notifications
- * - Mark as read
- * - Get unread count
- */
 import {
   Controller,
   Get,
@@ -18,13 +10,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminNotificationsService } from './admin-notifications.service';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { CurrentAdminUser } from '../auth/decorators/current-admin-user.decorator';
-import { AdminUser } from '@prisma/client';
+import { AdminJwtPayload } from '../auth/admin-auth.service';
 import { GetNotificationsRequestDto } from './dto/notification-request.dto';
 import {
   GetNotificationsResponseDto,
   GetUnreadCountResponseDto,
   MarkAsReadResponseDto,
   MarkAllAsReadResponseDto,
+  DashboardSummaryResponseDto,
 } from './dto/notification-response.dto';
 import { Serialize } from '../common/interceptors/serialize.interceptor';
 
@@ -35,21 +28,30 @@ import { Serialize } from '../common/interceptors/serialize.interceptor';
 export class AdminNotificationsController {
   constructor(private readonly notificationsService: AdminNotificationsService) {}
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Dashboard summary — role-differentiated stats + recent notifications' })
+  @Serialize(DashboardSummaryResponseDto)
+  async getSummary(
+    @CurrentAdminUser() user: AdminJwtPayload,
+  ): Promise<DashboardSummaryResponseDto> {
+    return this.notificationsService.getSummary(user.sub, user.role) as any;
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get notifications for current user' })
   @Serialize(GetNotificationsResponseDto)
   async getNotifications(
-    @CurrentAdminUser() user: AdminUser,
+    @CurrentAdminUser() user: AdminJwtPayload,
     @Query() query: GetNotificationsRequestDto,
   ): Promise<GetNotificationsResponseDto> {
-    return this.notificationsService.getNotifications(user.id, query);
+    return this.notificationsService.getNotifications(user.sub, query);
   }
 
   @Get('unread-count')
   @ApiOperation({ summary: 'Get unread notification count' })
   @Serialize(GetUnreadCountResponseDto)
-  async getUnreadCount(@CurrentAdminUser() user: AdminUser): Promise<GetUnreadCountResponseDto> {
-    const count = await this.notificationsService.getUnreadCount(user.id);
+  async getUnreadCount(@CurrentAdminUser() user: AdminJwtPayload): Promise<GetUnreadCountResponseDto> {
+    const count = await this.notificationsService.getUnreadCount(user.sub);
     return { count };
   }
 
@@ -58,17 +60,17 @@ export class AdminNotificationsController {
   @Serialize(MarkAsReadResponseDto)
   async markAsRead(
     @Param('id') id: string,
-    @CurrentAdminUser() user: AdminUser,
+    @CurrentAdminUser() user: AdminJwtPayload,
   ): Promise<MarkAsReadResponseDto> {
-    await this.notificationsService.markAsRead(id, user.id);
+    await this.notificationsService.markAsRead(id, user.sub);
     return { success: true };
   }
 
   @Post('read-all')
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @Serialize(MarkAllAsReadResponseDto)
-  async markAllAsRead(@CurrentAdminUser() user: AdminUser): Promise<MarkAllAsReadResponseDto> {
-    await this.notificationsService.markAllAsRead(user.id);
+  async markAllAsRead(@CurrentAdminUser() user: AdminJwtPayload): Promise<MarkAllAsReadResponseDto> {
+    await this.notificationsService.markAllAsRead(user.sub);
     return { success: true };
   }
 }

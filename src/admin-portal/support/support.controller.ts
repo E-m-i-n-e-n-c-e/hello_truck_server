@@ -21,6 +21,7 @@ import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentAdminUser } from '../auth/decorators/current-admin-user.decorator';
+import { AdminJwtPayload } from '../auth/admin-auth.service';
 
 @ApiTags('Customer Support')
 @Controller('admin-api/support')
@@ -62,9 +63,9 @@ export class SupportController {
   @ApiOperation({ summary: 'Fetch live driver location (logged)' })
   async getDriverLocation(
     @Param('id') id: string,
-    @CurrentAdminUser() user: { userId: string; role: AdminRole },
+    @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    return this.supportService.getDriverLocation(id, user.userId, user.role);
+    return this.supportService.getDriverLocation(id, user.sub, user.role);
   }
 
   @Post('notes')
@@ -72,10 +73,11 @@ export class SupportController {
   @ApiOperation({ summary: 'Create support note for a booking' })
   async createNote(
     @Body() dto: CreateNoteDto,
-    @CurrentAdminUser() user: { userId: string; role: AdminRole; firstName: string; lastName: string },
+    @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Support Agent';
-    return this.supportService.createNote(dto, user.userId, user.role, userName);
+    // AdminJwtPayload only carries sub/email/role — use email as fallback author name
+    const userName = user.email;
+    return this.supportService.createNote(dto, user.sub, user.role, userName);
   }
 
   @Get('notes/:bookingId')

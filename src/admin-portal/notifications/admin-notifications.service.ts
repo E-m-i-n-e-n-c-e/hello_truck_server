@@ -11,8 +11,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
-import { AdminRole } from '@prisma/client';
+import { AdminRole, VerificationRequestStatus } from '@prisma/client';
 import { AdminMessagingPayload } from '../types/admin-notification.types';
+
+const ACTIVE_STATUSES: VerificationRequestStatus[] = [
+  VerificationRequestStatus.PENDING,
+  VerificationRequestStatus.IN_REVIEW,
+  VerificationRequestStatus.REVERT_REQUESTED,
+  VerificationRequestStatus.REVERTED,
+  VerificationRequestStatus.APPROVED,
+];
 
 export interface AdminNotificationInput {
   title: string;
@@ -172,5 +180,110 @@ export class AdminNotificationsService {
     return this.prisma.adminNotification.count({
       where: { userId, isRead: false },
     });
+  }
+
+  /**
+   * Dashboard summary — role-differentiated.
+   *
+   * Two raw SQL queries run in parallel (Promise.all):
+   *  1. Notifications: window function counts total unread in one scan, LIMIT 5 rows returned.
+   *  2. Stats: conditional aggregation (COUNT FILTER) covers all counters in one table scan.
+   *
+   * Total: 2 round trips regardless of role.
+   */
+  async getSummary(userId: string, role: AdminRole) {
+    const isAdmin = role === AdminRole.ADMIN || role === AdminRole.SUPER_ADMIN;
+
+    // ── Query 1: notifications ────────────────────────────────────────────────
+    // Window function computes total unread across ALL user's rows (correct count),
+    // but only 5 rows are returned by LIMIT. Sort done in DB.
+    type NotifRow = {
+      id: string;
+      userId: string;
+      title: string;
+      message: string;
+      entityId: string | null;
+      entityType: string | null;
+      driverId: string | null;
+      actionUrl: string | null;
+      isRead: boolean;
+      createdAt: Date;
+      totalUnread: bigint;
+    };
+
+    // ── Query 2a (admin): single table scan, 6 conditional counters ───────────
+    type AdminStatsRow = {
+      totalActive: bigint;
+      unassigned: bigint;
+      inReview: bigint;
+      reverted: bigint;
+      revertRequested: bigint;
+      myAssignments: bigint;
+    };
+
+    // ── Query 2b (agent): single table scan, 4 conditional counters ───────────
+    type AgentStatsRow = {
+      myActive: bigint;
+      reverted: bigint;
+      inReview: bigint;
+      revertRequested: bigint;
+    };
+
+    const [notifRows, statsRows] = await Promise.all([
+      this.prisma.$queryRaw<NotifRow[]>`
+        SELECT
+          id,
+          "userId",
+          title,
+          message,
+          "entityId",
+          "entityType",
+          "driverId",
+          "actionUrl",
+          "isRead",
+          "createdAt",
+          COUNT(*) FILTER (WHERE "isRead" = false) OVER () AS "totalUnread"
+        FROM "AdminNotification"
+        WHERE "userId" = ${userId}
+        ORDER BY "createdAt" DESC
+        LIMIT 5
+      `,
+
+      isAdmin
+        ? this.prisma.$queryRaw<AdminStatsRow[]>`
+            SELECT
+              COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "totalActive",
+              COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" IS NULL) AS "unassigned",
+              COUNT(id) FILTER (WHERE status = 'IN_REVIEW'::"VerificationRequestStatus") AS "inReview",
+              COUNT(id) FILTER (WHERE status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
+              COUNT(id) FILTER (WHERE status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested",
+              COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" = ${userId}) AS "myAssignments"
+            FROM "DriverVerificationRequest"
+          `
+        : this.prisma.$queryRaw<AgentStatsRow[]>`
+            SELECT
+              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "myActive",
+              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
+              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'IN_REVIEW'::"VerificationRequestStatus") AS "inReview",
+              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested"
+            FROM "DriverVerificationRequest"
+          `,
+    ]);
+
+    // PostgreSQL COUNT returns BigInt — coerce all to Number
+    const unreadNotifications = notifRows.length > 0 ? Number(notifRows[0].totalUnread) : 0;
+    const recentNotifications = notifRows.map(({ totalUnread: _drop, ...n }) => n);
+
+    const rawStats = (statsRows as (AdminStatsRow | AgentStatsRow)[])[0] ?? {};
+    const stats = Object.fromEntries(
+      Object.entries(rawStats).map(([k, v]) => [k, Number(v)]),
+    );
+
+    return {
+      role: isAdmin ? ('admin' as const) : ('agent' as const),
+      stats,
+      recentNotifications,
+      unreadNotifications,
+    };
   }
 }

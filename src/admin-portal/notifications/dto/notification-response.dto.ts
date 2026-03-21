@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * Notification Response DTO
@@ -112,3 +112,64 @@ export class MarkAllAsReadResponseDto {
   @Expose()
   success: boolean;
 }
+
+// ─── Dashboard Summary DTOs ───────────────────────────────────────────────────
+
+/**
+ * Dashboard Stats DTO
+ * Consolidated stats for both ADMIN and AGENT roles
+ */
+export class DashboardStatsDto {
+  @ApiPropertyOptional({ description: 'All requests with an active status' })
+  @Expose()
+  totalActive?: number;
+
+  @ApiPropertyOptional({ description: 'Active requests with no assignee' })
+  @Expose()
+  unassigned?: number;
+
+  @ApiPropertyOptional({ description: 'Requests in IN_REVIEW status' })
+  @Expose()
+  inReview?: number;
+
+  @ApiPropertyOptional({ description: 'Requests in REVERTED status' })
+  @Expose()
+  reverted?: number;
+
+  @ApiPropertyOptional({ description: 'Requests in REVERT_REQUESTED status' })
+  @Expose()
+  revertRequested?: number;
+
+  @ApiPropertyOptional({ description: 'Requests assigned specifically to this admin' })
+  @Expose()
+  myAssignments?: number;
+
+  @ApiPropertyOptional({ description: 'All active requests assigned to me' })
+  @Expose()
+  myActive?: number;
+}
+
+/**
+ * Dashboard Summary Response DTO
+ * `role` discriminates the stats shape on the frontend.
+ */
+export class DashboardSummaryResponseDto {
+  @ApiProperty({ enum: ['admin', 'agent'], description: 'Identifies which stats shape is returned' })
+  @Expose()
+  role: 'admin' | 'agent';
+
+  @ApiProperty({ description: 'Role-specific verification stats', type: DashboardStatsDto })
+  @Expose()
+  @Type(() => DashboardStatsDto)
+  stats: DashboardStatsDto;
+
+  @ApiProperty({ type: [NotificationResponseDto], description: '5 most recent notifications for this user' })
+  @Expose()
+  @Type(() => NotificationResponseDto)
+  recentNotifications: NotificationResponseDto[];
+
+  @ApiProperty()
+  @Expose()
+  unreadNotifications: number;
+}
+
