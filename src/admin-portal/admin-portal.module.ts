@@ -34,6 +34,7 @@ import { AdminRefundModule } from './refund/admin-refund.module';
 import { SupportModule } from './support/support.module';
 import { AdminNotificationsModule } from './notifications/admin-notifications.module';
 import { AdminThrottlerGuard } from './guards/admin-throttler.guard';
+import { LibredeskModule } from './libredesk/libredesk.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { AdminThrottlerGuard } from './guards/admin-throttler.guard';
     AdminRefundModule,       // Refund management
     SupportModule,           // Customer support dashboard
     AdminNotificationsModule, // Admin in-app notifications
+    LibredeskModule,         // LibreDesk synchronization
   ],
   controllers: [],
   providers: [

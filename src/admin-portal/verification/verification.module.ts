@@ -25,6 +25,7 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
 import { RedisModule } from '../redis/redis.module';
 import { RedisService } from '../redis/redis.service';
 import { AdminVerificationController } from './controllers/admin-verification.controller';
+import { LibredeskModule } from '../libredesk/libredesk.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AdminVerificationController } from './controllers/admin-verification.co
     AdminFirebaseModule,
     AuditLogModule,
     RedisModule,
+    LibredeskModule,
     BullModule.registerQueueAsync({
       name: VERIFICATION_QUEUE_NAME,
       inject: [RedisService],

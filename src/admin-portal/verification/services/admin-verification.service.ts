@@ -30,6 +30,7 @@ import {
 } from '../utils/verification.constants';
 import { AdminNotificationEvent } from '../../types/admin-notification.types';
 import { FcmEventType } from '../../types/fcm.types';
+import { LibredeskService } from '../../libredesk/libredesk.service';
 
 @Injectable()
 export class AdminVerificationService {
@@ -41,6 +42,7 @@ export class AdminVerificationService {
     private readonly configService: ConfigService,
     private readonly verificationQueue: VerificationQueueService,
     private readonly firebaseService: AdminFirebaseService,
+    private readonly libredeskService: LibredeskService,
   ) {
     this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
   }
@@ -302,6 +304,10 @@ export class AdminVerificationService {
     });
 
     if (updated.assignedTo) {
+      if (updated.ticketId) {
+        this.libredeskService.assignConversation(updated.ticketId, assignee.email);
+      }
+
       this.firebaseService
         .notifyAdminSessions(updated.assignedTo.id, {
           notification: {

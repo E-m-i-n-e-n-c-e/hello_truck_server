@@ -92,19 +92,19 @@ Admin Portal Link: https://ht-admin-gilt.vercel.app/verifications/request/${requ
 
     // Handle different possible response structures
     let ticketId: string;
-    if (response.data.data && response.data.data.id) {
-      ticketId = response.data.data.id.toString();
-    } else if (response.data.conversation_id) {
-      ticketId = response.data.conversation_id.toString();
-    } else if (response.data.id) {
-      ticketId = response.data.id.toString();
+    if (response.data.data && response.data.data.uuid) {
+      ticketId = response.data.data.uuid;
+    } else if (response.data.uuid) {
+      ticketId = response.data.uuid;
+    } else if (response.data.conversation_uuid) {
+      ticketId = response.data.conversation_uuid;
     } else {
       console.error('Unexpected LibreDesk response structure:', response.data);
-      throw new Error('Could not find ticket ID in LibreDesk response');
+      throw new Error('Could not find ticket UUID in LibreDesk response');
     }
 
     console.log(
-      `LibreDesk ticket created successfully. Ticket ID: ${ticketId}`,
+      `LibreDesk ticket created successfully. Ticket UUID: ${ticketId}`,
     );
 
     return ticketId;
