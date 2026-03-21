@@ -18,9 +18,11 @@ import {
   Query,
   UseGuards,
   HttpCode,
+  Res,
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AdminRole } from '@prisma/client';
 import { AuditLogService } from './audit-log.service';
 import { AuditLogArchiveService } from './audit-log-archive.service';
@@ -61,12 +63,30 @@ export class AuditLogController {
   }
 
   @Get('export')
-  @Serialize(ExportLogsResponseDto)
-  @ApiOperation({ summary: 'Export all audit logs matching the applied filters' })
-  @ApiResponse({ status: 200, description: 'Returns logs data for CSV export' })
-  async exportLogs(@Query() query: ListLogsRequestDto): Promise<ExportLogsResponseDto> {
-    const logs = await this.auditLogService.exportLogs(query);
-    return { logs };
+  @ApiOperation({ summary: 'Export all audit logs matching the applied filters as CSV file' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns CSV file for download',
+    content: {
+      'text/csv': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  async exportLogs(
+    @Query() query: ListLogsRequestDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const csvBuffer = await this.auditLogService.exportLogs(query);
+    
+    const filename = `audit-logs-export-${new Date().toISOString().split('T')[0]}.csv`;
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvBuffer);
   }
 
   @Get('archive')

@@ -264,9 +264,9 @@ export class AuditLogService {
   }
 
   /**
-   * Export logs to CSV format (returns data, UI handles download)
+   * Export logs to CSV format (server-side generation, returns file)
    */
-  async exportLogs(filters: ListLogsRequestDto) {
+  async exportLogs(filters: ListLogsRequestDto): Promise<Buffer> {
     const where = this.buildWhere(filters);
 
     const logs = await this.prisma.auditLog.findMany({
@@ -274,6 +274,7 @@ export class AuditLogService {
       include: {
         user: {
           select: {
+            id: true,
             email: true,
             firstName: true,
             lastName: true,
@@ -283,18 +284,53 @@ export class AuditLogService {
       orderBy: { timestamp: 'desc' },
     });
 
-    return logs.map((log) => ({
-      id: log.id,
-      timestamp: log.timestamp.toISOString(),
-      user: log.user ? `${log.user.firstName} ${log.user.lastName}` : 'SYSTEM',
-      email: log.user ? log.user.email : 'SYSTEM@system',
-      role: log.role,
-      action: log.actionType,
-      module: log.module,
-      description: log.description,
-      entityType: log.entityType || '',
-      entityId: log.entityId || '',
-      ipAddress: log.ipAddress || '',
-    }));
+    // Build CSV with same format as archive
+    const headers = [
+      'ID',
+      'Timestamp',
+      'User ID',
+      'User Email',
+      'User Name',
+      'Role',
+      'Action Type',
+      'Module',
+      'Description',
+      'Entity Type',
+      'Entity ID',
+      'IP Address',
+      'User Agent',
+      'Before Snapshot',
+      'After Snapshot',
+    ];
+
+    const escapeCsv = (value: unknown) => {
+      if (value === null || value === undefined) return '';
+      const stringValue =
+        typeof value === 'string' ? value : JSON.stringify(value);
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    };
+
+    const rows = logs.map((log) => {
+      return [
+        log.id,
+        log.timestamp.toISOString(),
+        log.userId,
+        log.user ? log.user.email : 'SYSTEM@system',
+        log.user ? `${log.user.firstName} ${log.user.lastName}` : 'SYSTEM',
+        log.role,
+        log.actionType,
+        log.module,
+        log.description,
+        log.entityType,
+        log.entityId,
+        log.ipAddress,
+        log.userAgent,
+        log.beforeSnapshot,
+        log.afterSnapshot,
+      ].map(escapeCsv).join(',');
+    });
+
+    const csvContent = [headers.map((header) => `"${header}"`).join(','), ...rows].join('\n');
+    return Buffer.from(csvContent, 'utf-8');
   }
 }
