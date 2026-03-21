@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DocumentsService } from '../../driver/documents/documents.service';
+import { ACTIVE_VERIFICATION_REQUEST_STATUSES } from '../../admin-portal/verification/utils/verification.constants';
 
 @Injectable()
 export class VerificationRequestService {
@@ -13,16 +14,22 @@ export class VerificationRequestService {
 
   /**
    * Create verification requests for drivers who need them
-   * Targets drivers with PENDING status or PENDING documents but no active verification request
+   * Requirements:
+   * - No active verification request
+   * - Has PENDING verification status OR has PENDING documents
+   * - Has completed onboarding (firstName exists AND documents exist)
    */
   async createMissingVerificationRequests(): Promise<void> {
     try {
       this.logger.log('Checking for drivers needing verification requests...');
 
-      // Find drivers with PENDING verification status or PENDING documents
-      // who don't have an active verification request
+      // Find drivers who meet all criteria
       const driversNeedingVerification = await this.prisma.driver.findMany({
         where: {
+          // Must have completed onboarding
+          firstName: { not: null },
+          documents: { isNot: null },
+          // Must have PENDING status OR PENDING documents
           OR: [
             { verificationStatus: 'PENDING' },
             {
@@ -36,10 +43,11 @@ export class VerificationRequestService {
               },
             },
           ],
+          // No active verification request
           verificationRequests: {
             none: {
               status: {
-                in: ['PENDING', 'APPROVED', 'REVERT_REQUESTED', 'REVERTED'],
+                in: ACTIVE_VERIFICATION_REQUEST_STATUSES,
               },
             },
           },
