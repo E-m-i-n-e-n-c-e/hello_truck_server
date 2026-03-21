@@ -746,9 +746,9 @@ model AdminSession {
 
 // Audit Logs (Super Admin + Admin - immutable action log)
 model AuditLog {
-  id              String    @id @default(cuid())
-  userId          String
-  user            AdminUser @relation(fields: [userId], references: [id])
+  id              String     @id @default(cuid())
+  userId          String?
+  user            AdminUser? @relation(fields: [userId], references: [id])
   role            AdminRole
   actionType      String    // APPROVED, REJECTED, CREATED, REVERTED, VIEWED, LOGIN, LOGOUT
   module          String    // VERIFICATION, REFUND, SUPPORT, FIELD_VERIFICATION, AUTH, SYSTEM

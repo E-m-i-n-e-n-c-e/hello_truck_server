@@ -26,7 +26,7 @@ export class AuditLogDto {
   id: string;
 
   @Expose()
-  userId: string;
+  userId: string | null;
 
   @Expose()
   role: AdminRole;
@@ -65,7 +65,7 @@ export class AuditLogDto {
 
   @Expose()
   @Type(() => AuditLogUserDto)
-  user: AuditLogUserDto;
+  user: AuditLogUserDto | null;
 }
 
 /**

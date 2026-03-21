@@ -286,8 +286,8 @@ export class AuditLogService {
     return logs.map((log) => ({
       id: log.id,
       timestamp: log.timestamp.toISOString(),
-      user: `${log.user.firstName} ${log.user.lastName}`,
-      email: log.user.email,
+      user: log.user ? `${log.user.firstName} ${log.user.lastName}` : 'SYSTEM',
+      email: log.user ? log.user.email : 'SYSTEM@system',
       role: log.role,
       action: log.actionType,
       module: log.module,

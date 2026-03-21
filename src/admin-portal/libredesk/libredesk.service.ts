@@ -271,6 +271,13 @@ export class LibredeskService {
         return;
       }
 
+      const beforeSnapshot = {
+        verificationId: verification.id,
+        assignedToId: verification.assignedToId,
+        assignedToEmail: verification.assignedTo?.email ?? null,
+        status: verification.status,
+      };
+
       const updated = await this.prisma.driverVerificationRequest.update({
         where: { id: verification.id },
         data: {
@@ -280,6 +287,13 @@ export class LibredeskService {
               : verification.status,
         }
       });
+
+      const afterSnapshot = {
+        verificationId: updated.id,
+        assignedToId: updated.assignedToId,
+        assignedToEmail: assignee.email,
+        status: updated.status,
+      };
 
       // Notify new assignee in our dashboard
       await this.prisma.adminNotification.create({
@@ -292,6 +306,23 @@ export class LibredeskService {
           driverId: verification.driver.id,
           actionUrl: `/verifications/request/${updated.id}`,
         },
+      });
+
+      // Create audit log for webhook assignment (fire-and-forget, best effort)
+      this.prisma.auditLog.create({
+        data: {
+          userId: null,
+          role: AdminRole.SUPER_ADMIN,
+          actionType: 'VERIFICATION_ASSIGNED',
+          module: 'VERIFICATION',
+          description: `Verification ${verification.id} assigned to ${assignee.email} via Libredesk webhook`,
+          beforeSnapshot: beforeSnapshot as any,
+          afterSnapshot: afterSnapshot as any,
+          entityId: verification.id,
+          entityType: 'VERIFICATION_REQUEST',
+        },
+      }).catch((error) => {
+        this.logger.error(`Failed to create audit log for webhook assignment: ${error.message}`);
       });
 
       // Send Push Notification
