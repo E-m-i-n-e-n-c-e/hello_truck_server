@@ -230,6 +230,11 @@ export class AdminVerificationService {
     if (!ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(verification.status)) {
       throw new BadRequestException('Cannot assign verification request unless it is active');
     }
+    
+    // Prevent reassigning to same user
+    if (verification.assignedToId && dto.email.trim().toLowerCase() === verification.assignedTo?.email?.toLowerCase()) {
+      throw new BadRequestException('Verification is already assigned to this user');
+    }
 
     const assignee = await this.prisma.adminUser.findUnique({
       where: {
