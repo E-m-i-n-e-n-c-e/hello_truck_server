@@ -251,6 +251,15 @@ export class AdminNotificationsService {
 
       isAdmin
         ? this.prisma.$queryRaw<AdminStatsRow[]>`
+            WITH latest_requests AS (
+              SELECT DISTINCT ON ("driverId")
+                id,
+                "driverId",
+                status,
+                "assignedToId"
+              FROM "DriverVerificationRequest"
+              ORDER BY "driverId", "createdAt" DESC
+            )
             SELECT
               COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "totalActive",
               COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" IS NULL) AS "unassigned",
@@ -258,15 +267,24 @@ export class AdminNotificationsService {
               COUNT(id) FILTER (WHERE status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
               COUNT(id) FILTER (WHERE status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested",
               COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" = ${userId}) AS "myAssignments"
-            FROM "DriverVerificationRequest"
+            FROM latest_requests
           `
         : this.prisma.$queryRaw<AgentStatsRow[]>`
+            WITH latest_requests AS (
+              SELECT DISTINCT ON ("driverId")
+                id,
+                "driverId",
+                status,
+                "assignedToId"
+              FROM "DriverVerificationRequest"
+              ORDER BY "driverId", "createdAt" DESC
+            )
             SELECT
               COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "myActive",
               COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
               COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'IN_REVIEW'::"VerificationRequestStatus") AS "inReview",
               COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested"
-            FROM "DriverVerificationRequest"
+            FROM latest_requests
           `,
     ]);
 
