@@ -765,6 +765,22 @@ export class AgentVerificationService {
     userId?: string,
     userRole?: AdminRole,
   ) {
+    const latestRequest = await this.prisma.driverVerificationRequest.findFirst({
+      where: {
+        driverId: verification.driverId,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        assignedToId: true,
+        status: true,
+      },
+    });
+
+    if (!latestRequest || latestRequest.id !== verification.id) {
+      throw new ForbiddenException('You can only reject the driver on the latest verification request');
+    }
+
     if (userRole !== AdminRole.AGENT && userRole !== AdminRole.FIELD_AGENT) {
       if (verification.status === VerificationRequestStatus.REJECTED) {
         throw new ForbiddenException('Driver is already rejected');
@@ -784,22 +800,6 @@ export class AgentVerificationService {
 
     if (!userId || verification.assignedToId !== userId) {
       throw new ForbiddenException('You can only reject drivers for verification requests assigned to you');
-    }
-
-    const latestRequest = await this.prisma.driverVerificationRequest.findFirst({
-      where: {
-        driverId: verification.driverId,
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        assignedToId: true,
-        status: true,
-      },
-    });
-
-    if (!latestRequest || latestRequest.id !== verification.id) {
-      throw new ForbiddenException('You can only reject the driver on the latest verification request');
     }
 
     if (latestRequest.assignedToId !== userId) {
@@ -974,7 +974,8 @@ export class AgentVerificationService {
         !!userId &&
         verification.assignedToId === userId &&
         isLatestActiveRequest
-      : verification.status !== VerificationRequestStatus.REJECTED;
+      : isLatestActiveRequest &&
+        verification.status !== VerificationRequestStatus.REJECTED;
 
     return {
       ...driver,

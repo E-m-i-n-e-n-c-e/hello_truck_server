@@ -320,6 +320,11 @@ export class DocumentsService {
         return; // Driver not found, skip
       }
 
+      // Skip if driver is rejected
+      if (driver.verificationStatus === VerificationStatus.REJECTED) {
+        return; // Driver is rejected, skip auto-creation
+      }
+
       // Check if existing request found (count > 0)
       if (driver.verificationRequests && driver.verificationRequests.length > 0) {
         return; // Request already exists
