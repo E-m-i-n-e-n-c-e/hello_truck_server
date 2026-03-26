@@ -345,10 +345,10 @@ model Booking {
   customerWalletLogs CustomerWalletLog[]
   driverWalletLogs   DriverWalletLog[]
   invoices           Invoice[]
-  refundIntents      RefundIntent?
+  refundIntents      RefundIntent[]
   transactions       Transaction[]
   // Admin Portal Relations
-  adminRefundRequest AdminRefundRequest?
+  adminRefundRequests AdminRefundRequest[]
   supportNotes       SupportNote[]
 
   @@index([customerId, status])
@@ -472,7 +472,6 @@ model DriverWalletLog {
   driver        Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@index([driverId, createdAt])
-  @@index([createdAt])
 }
 
 model DriverPaymentLink {
@@ -498,12 +497,11 @@ model CustomerWalletLog {
   refundIntent   RefundIntent? @relation(fields: [refundIntentId], references: [id])
 
   @@index([customerId, createdAt])
-  @@index([createdAt])
 }
 
 model RefundIntent {
   id                   String              @id @default(uuid())
-  bookingId            String              @unique
+  bookingId            String
   customerId           String
   walletRefundAmount   Decimal             @db.Decimal(10, 2)
   razorpayRefundAmount Decimal             @db.Decimal(10, 2)
@@ -523,6 +521,7 @@ model RefundIntent {
   booking              Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   customer             Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
   transactions         Transaction[]
+  adminRefundRequest   AdminRefundRequest?
 
   @@index([status])
   @@index([bookingId])
@@ -716,6 +715,7 @@ model AdminUser {
   revertRequestedVerifications DriverVerificationRequest[] @relation("RevertRequestedBy")
   createdRefunds        AdminRefundRequest[]        @relation("CreatedBy")
   approvedRefunds       AdminRefundRequest[]        @relation("ApprovedBy")
+  revertRequestedRefunds AdminRefundRequest[]       @relation("RefundRevertRequestedBy")
   notifications         AdminNotification[]
   documentActions       VerificationDocumentAction[]
   verificationActions   VerificationAction[]        // Driver-level verification actions
@@ -740,7 +740,6 @@ model AdminSession {
 
   @@index([adminUserId])
   @@index([expiresAt])
-  @@index([refreshTokenHash])
   @@index([fcmToken])
 }
 
@@ -795,11 +794,11 @@ model DriverVerificationRequest {
   documentActions      VerificationDocumentAction[]
   verificationActions  VerificationAction[]         // Driver-level actions (approve, reject, revert)
 
-  @@index([driverId])
   @@index([status])
   @@index([assignedToId])
   @@index([createdAt])
   @@index([driverId, createdAt(sort: Desc)])
+  @@index([driverId])
 }
 
 // Tracks individual document approval/rejection actions
@@ -857,13 +856,14 @@ model FieldVerificationPhoto {
 // This adds admin workflow, buffer, revert functionality
 model AdminRefundRequest {
   id                  String            @id @default(cuid())
-  bookingId           String            @unique
+  bookingId           String
   booking             Booking           @relation(fields: [bookingId], references: [id])
   customerId          String
   customer            Customer          @relation(fields: [customerId], references: [id])
   driverId            String?
   driver              Driver?           @relation(fields: [driverId], references: [id])
   amount              Decimal           @db.Decimal(10, 2)
+  cancellationCharge  Decimal           @default(0) @db.Decimal(10, 2)
   reason              String
   phoneNumber         String
   notes               String?
@@ -875,18 +875,22 @@ model AdminRefundRequest {
   approvedBy          AdminUser?        @relation("ApprovedBy", fields: [approvedById], references: [id])
   approvedAt          DateTime?
   bufferExpiresAt     DateTime?
+  rejectionReason     String?
   revertReason        String?
   revertRequestedById String?
+  revertRequestedBy   AdminUser?        @relation("RefundRevertRequestedBy", fields: [revertRequestedById], references: [id])
   revertRequestedAt   DateTime?
   completedAt         DateTime?
-  refundIntentId      String?           // Link to actual RefundIntent after completion
+  refundIntentId      String?           @unique // Link to actual RefundIntent after completion
+  refundIntent        RefundIntent?     @relation(fields: [refundIntentId], references: [id])
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
+  @@index([bookingId, status])
+  @@index([bookingId, createdAt(sort: Desc)])
   @@index([customerId])
   @@index([driverId])
-  @@index([status])
-  @@index([createdAt])
+  @@index([revertRequestedById])
 }
 
 // Support Notes for bookings
@@ -975,7 +979,7 @@ enum FieldPhotoType {
 
 // NOTE: Different enum name to avoid collision with existing RefundStatus
 enum AdminRefundStatus {
-  INITIATED
+  PENDING
   APPROVED
   REJECTED
   REVERT_REQUESTED

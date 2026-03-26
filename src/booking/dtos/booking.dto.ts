@@ -93,6 +93,8 @@ export class BookingResponseDto {
   updatedAt: Date;
   @Expose()
   scheduledAt: Date | null;
+  @Expose()
+  gstNumber: string | null;
 }
 
 /**

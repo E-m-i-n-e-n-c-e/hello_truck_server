@@ -147,6 +147,14 @@ export class DashboardStatsDto {
   @ApiPropertyOptional({ description: 'All active requests assigned to me' })
   @Expose()
   myActive?: number;
+
+  @ApiPropertyOptional({ description: 'Latest refund requests in PENDING status' })
+  @Expose()
+  pendingRefundRequests?: number;
+
+  @ApiPropertyOptional({ description: 'Latest refund requests in REVERT_REQUESTED status' })
+  @Expose()
+  refundRevertRequests?: number;
 }
 
 /**
@@ -154,9 +162,9 @@ export class DashboardStatsDto {
  * `role` discriminates the stats shape on the frontend.
  */
 export class DashboardSummaryResponseDto {
-  @ApiProperty({ enum: ['admin', 'agent'], description: 'Identifies which stats shape is returned' })
+  @ApiProperty({ enum: ['admin', 'agent', 'support'], description: 'Identifies which stats shape is returned' })
   @Expose()
-  role: 'admin' | 'agent';
+  role: 'admin' | 'agent' | 'support';
 
   @ApiProperty({ description: 'Role-specific verification stats', type: DashboardStatsDto })
   @Expose()

@@ -30,7 +30,6 @@ import { AdminAuthModule } from './auth/admin-auth.module';
 import { AdminUsersModule } from './users/admin-users.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { VerificationModule } from './verification/verification.module';
-import { AdminRefundModule } from './refund/admin-refund.module';
 import { SupportModule } from './support/support.module';
 import { AdminNotificationsModule } from './notifications/admin-notifications.module';
 import { AdminThrottlerGuard } from './guards/admin-throttler.guard';
@@ -64,8 +63,7 @@ import { LibredeskModule } from './libredesk/libredesk.module';
     AdminUsersModule,        // User management
     AuditLogModule,          // Audit logging for all portal users
     VerificationModule,      // Driver verification workflow
-    AdminRefundModule,       // Refund management
-    SupportModule,           // Customer support dashboard
+    SupportModule,           // Customer support + refund workflow
     AdminNotificationsModule, // Admin in-app notifications
     LibredeskModule,         // LibreDesk synchronization
   ],

@@ -4,6 +4,15 @@
  * These are for web push notifications sent to admin portal users
  */
 
+// FCM Topics for admin notifications
+export const AdminFcmTopic = {
+  VERIFICATION_REVERT_REQUESTS: 'admin-revert-requests',
+  REFUND_REQUESTS: 'admin-refund-requests',
+  REFUND_REVERT_REQUESTS: 'admin-refund-revert-requests',
+} as const;
+
+export type AdminFcmTopicType = typeof AdminFcmTopic[keyof typeof AdminFcmTopic];
+
 // Event types for admin web push notifications
 export const AdminNotificationEvent = {
   // Verification events
@@ -11,6 +20,7 @@ export const AdminNotificationEvent = {
   VERIFICATION_ASSIGNED: 'VERIFICATION_ASSIGNED',
   REVERT_REQUESTED: 'REVERT_REQUESTED',
   REVERT_DECISION: 'REVERT_DECISION',
+  VERIFICATION_REVERT_DECISION: 'VERIFICATION_REVERT_DECISION',
   FIELD_VERIFICATION_SUBMITTED: 'FIELD_VERIFICATION_SUBMITTED',
 
   // Refund events

@@ -222,10 +222,20 @@ export class AdminFirebaseService implements OnModuleInit {
       const tokenSet = new Set<string>(sessions.filter(s => s.fcmToken).map(s => s.fcmToken!));
       const tokens: string[] = Array.from(tokenSet);
 
+      // Ensure all data values are strings (FCM requirement)
+      const sanitizedData: Record<string, string> = {};
+      if (payload.data) {
+        for (const [key, value] of Object.entries(payload.data)) {
+          if (value !== undefined && value !== null) {
+            sanitizedData[key] = String(value);
+          }
+        }
+      }
+
       const result = await this.app.messaging().sendEachForMulticast({
         tokens,
         notification: payload.notification,
-        data: payload.data as Record<string, string>,
+        data: sanitizedData,
       });
 
       // Update lastNotifiedAt for all sessions
@@ -283,10 +293,20 @@ export class AdminFirebaseService implements OnModuleInit {
     }
 
     try {
+      // Ensure all data values are strings (FCM requirement)
+      const sanitizedData: Record<string, string> = {};
+      if (payload.data) {
+        for (const [key, value] of Object.entries(payload.data)) {
+          if (value !== undefined && value !== null) {
+            sanitizedData[key] = String(value);
+          }
+        }
+      }
+
       await this.app.messaging().send({
         topic,
         notification: payload.notification,
-        data: payload.data as Record<string, string>,
+        data: sanitizedData,
         webpush: {
           fcmOptions: {
             link: payload.data?.actionUrl,

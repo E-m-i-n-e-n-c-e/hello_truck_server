@@ -1,23 +1,55 @@
-/**
- * Support Module
- *
- * Customer Support Dashboard for:
- * - Searching bookings by phone/ID
- * - Viewing customer/driver metadata
- * - Fetching live driver location
- * - Managing support notes
- */
 import { Module } from '@nestjs/common';
-import { SupportController } from './support.controller';
-import { SupportService } from './support.service';
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../prisma/prisma.module';
-import { RedisModule } from '../redis/redis.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { AdminFirebaseModule } from '../firebase/admin-firebase.module';
+import { RazorpayModule } from '../razorpay/razorpay.module';
+import { RedisModule } from '../redis/redis.module';
+import { RedisService } from '../redis/redis.service';
+import { AdminNotificationsModule } from '../notifications/admin-notifications.module';
+import { BookingModule } from '../../booking/booking.module';
+import { SupportController } from './controllers/support.controller';
+import { AdminSupportController } from './controllers/admin-support.controller';
+import { SupportService } from './services/support.service';
+import { AdminSupportService } from './services/admin-support.service';
+import { SupportQueueService, SUPPORT_QUEUE_NAME } from './services/support-queue.service';
+import { SupportQueueProcessor } from './support-queue.processor';
+import { SupportCron } from './support.cron';
 
 @Module({
-  imports: [PrismaModule, RedisModule, AuditLogModule],
-  controllers: [SupportController],
-  providers: [SupportService],
-  exports: [SupportService],
+  imports: [
+    PrismaModule,
+    AuditLogModule,
+    AdminFirebaseModule,
+    RazorpayModule,
+    RedisModule,
+    AdminNotificationsModule,
+    BookingModule,
+    BullModule.registerQueueAsync({
+      name: SUPPORT_QUEUE_NAME,
+      inject: [RedisService],
+      useFactory: (redisService: RedisService) => ({
+        connection: redisService.bullClient,
+        defaultJobOptions: {
+          removeOnComplete: true,
+          removeOnFail: false,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+        },
+      }),
+    }),
+  ],
+  controllers: [SupportController, AdminSupportController],
+  providers: [
+    SupportService,
+    AdminSupportService,
+    SupportQueueService,
+    SupportQueueProcessor,
+    SupportCron,
+  ],
+  exports: [SupportService, AdminSupportService],
 })
 export class SupportModule {}

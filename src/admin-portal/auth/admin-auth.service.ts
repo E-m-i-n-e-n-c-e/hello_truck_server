@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminSessionService } from '../session/admin-session.service';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
+import { AdminFcmTopic } from '../types/admin-notification.types';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { AdminRole } from '@prisma/client';
@@ -229,8 +230,14 @@ export class AdminAuthService {
 
   /**
    * Subscribe admin FCM token to notification topics
+   * Admins are subscribed to all relevant topics for broadcast notifications
    */
   async subscribeAdminToTopics(fcmToken: string): Promise<void> {
-    await this.adminFirebaseService.subscribeToTopic(fcmToken, 'admin-revert-requests');
+    // Subscribe to all admin topics
+    await Promise.all([
+      this.adminFirebaseService.subscribeToTopic(fcmToken, AdminFcmTopic.VERIFICATION_REVERT_REQUESTS),
+      this.adminFirebaseService.subscribeToTopic(fcmToken, AdminFcmTopic.REFUND_REQUESTS),
+      this.adminFirebaseService.subscribeToTopic(fcmToken, AdminFcmTopic.REFUND_REVERT_REQUESTS),
+    ]);
   }
 }

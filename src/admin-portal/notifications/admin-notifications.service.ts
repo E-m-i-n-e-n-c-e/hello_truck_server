@@ -11,16 +11,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
-import { AdminRole, VerificationRequestStatus } from '@prisma/client';
-import { AdminMessagingPayload, AdminNotificationEvent, AdminNotificationEventType } from '../types/admin-notification.types';
-
-const ACTIVE_STATUSES: VerificationRequestStatus[] = [
-  VerificationRequestStatus.PENDING,
-  VerificationRequestStatus.IN_REVIEW,
-  VerificationRequestStatus.REVERT_REQUESTED,
-  VerificationRequestStatus.REVERTED,
-  VerificationRequestStatus.APPROVED,
-];
+import { AdminRole } from '@prisma/client';
+import { AdminMessagingPayload, AdminNotificationEventType, AdminFcmTopicType } from '../types/admin-notification.types';
 
 export interface AdminNotificationInput {
   title: string;
@@ -35,7 +27,7 @@ export interface SendNotificationOptions {
   userId?: string;           // Target specific user
   roles?: AdminRole[];       // Target all users with specific roles
   useTopic?: boolean;        // Use FCM topic for efficient broadcast (only works with roles)
-  topic?: string;            // FCM topic name (required if useTopic is true)
+  topic?: AdminFcmTopicType; // FCM topic name (required if useTopic is true)
   event: AdminNotificationEventType; // Event type for FCM payload
 }
 
@@ -105,10 +97,10 @@ export class AdminNotificationsService {
       },
       data: {
         event,
-        entityId: input.entityId,
-        entityType: input.entityType,
-        driverId: input.driverId,
-        actionUrl: input.actionUrl,
+        ...(input.entityId && { entityId: input.entityId }),
+        ...(input.entityType && { entityType: input.entityType }),
+        ...(input.driverId && { driverId: input.driverId }),
+        ...(input.actionUrl && { actionUrl: input.actionUrl }),
       },
     };
 
@@ -230,6 +222,8 @@ export class AdminNotificationsService {
       reverted: bigint;
       revertRequested: bigint;
       myAssignments: bigint;
+      pendingRefundRequests: bigint;
+      refundRevertRequests: bigint;
     };
 
     // ── Query 2b (agent): single table scan, 4 conditional counters ───────────
@@ -238,6 +232,11 @@ export class AdminNotificationsService {
       reverted: bigint;
       inReview: bigint;
       revertRequested: bigint;
+    };
+
+    type SupportStatsRow = {
+      pendingRefundRequests: bigint;
+      refundRevertRequests: bigint;
     };
 
     const [notifRows, statsRows] = await Promise.all([
@@ -270,17 +269,49 @@ export class AdminNotificationsService {
                 "assignedToId"
               FROM "DriverVerificationRequest"
               ORDER BY "driverId", "createdAt" DESC
+            ),
+            latest_refunds AS (
+              SELECT DISTINCT ON ("bookingId")
+                id,
+                "bookingId",
+                status
+              FROM "AdminRefundRequest"
+              ORDER BY "bookingId", "createdAt" DESC
             )
             SELECT
-              COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "totalActive",
-              COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" IS NULL) AS "unassigned",
-              COUNT(id) FILTER (WHERE status = 'IN_REVIEW'::"VerificationRequestStatus") AS "inReview",
-              COUNT(id) FILTER (WHERE status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
-              COUNT(id) FILTER (WHERE status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested",
-              COUNT(id) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" = ${userId}) AS "myAssignments"
+              COUNT(*) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "totalActive",
+              COUNT(*) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" IS NULL) AS "unassigned",
+              COUNT(*) FILTER (WHERE status = 'IN_REVIEW'::"VerificationRequestStatus") AS "inReview",
+              COUNT(*) FILTER (WHERE status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
+              COUNT(*) FILTER (WHERE status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested",
+              COUNT(*) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" = ${userId}) AS "myAssignments",
+              (SELECT COUNT(*) FROM latest_refunds WHERE status = 'PENDING'::"AdminRefundStatus") AS "pendingRefundRequests",
+              (SELECT COUNT(*) FROM latest_refunds WHERE status = 'REVERT_REQUESTED'::"AdminRefundStatus") AS "refundRevertRequests"
             FROM latest_requests
           `
-        : this.prisma.$queryRaw<AgentStatsRow[]>`
+        : role === AdminRole.CUSTOMER_SUPPORT
+          ? this.prisma.$queryRaw<SupportStatsRow[]>`
+              WITH latest_refunds AS (
+                SELECT DISTINCT ON ("bookingId")
+                  id,
+                  "bookingId",
+                  status,
+                  "createdById"
+                FROM "AdminRefundRequest"
+                ORDER BY "bookingId", "createdAt" DESC
+              )
+              SELECT
+                COUNT(*) FILTER (
+                  WHERE status = 'PENDING'::"AdminRefundStatus"
+                  AND "createdById" = ${userId}
+                ) AS "pendingRefundRequests",
+                COUNT(*) FILTER (
+                  WHERE status = 'REVERT_REQUESTED'::"AdminRefundStatus"
+                  AND "createdById" = ${userId}
+                ) AS "refundRevertRequests"
+              FROM latest_refunds
+            `
+          : this.prisma.$queryRaw<AgentStatsRow[]>`
             WITH latest_requests AS (
               SELECT DISTINCT ON ("driverId")
                 id,
@@ -291,10 +322,10 @@ export class AdminNotificationsService {
               ORDER BY "driverId", "createdAt" DESC
             )
             SELECT
-              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "myActive",
-              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
-              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'IN_REVIEW'::"VerificationRequestStatus") AS "inReview",
-              COUNT(id) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested"
+              COUNT(*) FILTER (WHERE "assignedToId" = ${userId} AND status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[])) AS "myActive",
+              COUNT(*) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERTED'::"VerificationRequestStatus") AS "reverted",
+              COUNT(*) FILTER (WHERE "assignedToId" = ${userId} AND status = 'IN_REVIEW'::"VerificationRequestStatus") AS "inReview",
+              COUNT(*) FILTER (WHERE "assignedToId" = ${userId} AND status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested"
             FROM latest_requests
           `,
     ]);
@@ -309,7 +340,11 @@ export class AdminNotificationsService {
     );
 
     return {
-      role: isAdmin ? ('admin' as const) : ('agent' as const),
+      role: isAdmin
+        ? ('admin' as const)
+        : role === AdminRole.CUSTOMER_SUPPORT
+          ? ('support' as const)
+          : ('agent' as const),
       stats,
       recentNotifications,
       unreadNotifications,

@@ -395,6 +395,13 @@ export class AdminVerificationService {
         driver: {
           include: { documents: true },
         },
+        revertRequestedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
     });
 
@@ -455,6 +462,28 @@ export class AdminVerificationService {
 
       await this.verificationQueue.cancelVerificationFinalization(id);
 
+      // Notify the agent who requested the revert
+      if (verification.revertRequestedBy?.id) {
+        this.notificationsService
+          .sendNotification(
+            {
+              title: 'Verification revert approved',
+              message: `Verification revert approved for driver ${verification.driver.firstName || verification.driver.phoneNumber}`,
+              entityId: id,
+              entityType: 'VERIFICATION',
+              driverId: verification.driver.id,
+              actionUrl: `/verification/requests/${id}`,
+            },
+            {
+              userId: verification.revertRequestedBy.id,
+              event: AdminNotificationEvent.VERIFICATION_REVERT_DECISION,
+            },
+          )
+          .catch((error) => {
+            this.logger.error(`Failed to notify revert requester ${verification.revertRequestedBy?.id}`, error);
+          });
+      }
+
       return {
         success: true,
         message: 'Revert approved - verification reset to pending',
@@ -494,6 +523,28 @@ export class AdminVerificationService {
     ]);
 
     await this.verificationQueue.scheduleVerificationFinalization(id, bufferExpiresAt);
+
+    // Notify the agent who requested the revert that it was rejected
+    if (verification.revertRequestedBy?.id) {
+      this.notificationsService
+        .sendNotification(
+          {
+            title: 'Verification revert rejected',
+            message: `Verification remains approved for driver ${verification.driver.firstName || verification.driver.phoneNumber}`,
+            entityId: id,
+            entityType: 'VERIFICATION',
+            driverId: verification.driver.id,
+            actionUrl: `/verification/requests/${id}`,
+          },
+          {
+            userId: verification.revertRequestedBy.id,
+            event: AdminNotificationEvent.VERIFICATION_REVERT_DECISION,
+          },
+        )
+        .catch((error) => {
+          this.logger.error(`Failed to notify revert requester ${verification.revertRequestedBy?.id}`, error);
+        });
+    }
 
     return {
       success: true,
