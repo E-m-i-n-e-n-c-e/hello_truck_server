@@ -14,7 +14,7 @@ import { uploadUrlDto } from 'src/common/dtos/upload-url.dto';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentVariables } from 'src/config/env.config';
-import { createLibreDeskTicket } from 'src/common/utils/libredesk.util';
+import { assignLibreDeskTeam, createLibreDeskTicket } from 'src/common/utils/libredesk.util';
 
 @Injectable()
 export class DocumentsService {
@@ -347,6 +347,10 @@ export class DocumentsService {
       });
 
       // Step 2: Create LibreDesk ticket with request ID
+      const apiUrl = this.configService.get('LIBREDESK_API_URL', { infer: true })!;
+      const apiKey = this.configService.get('LIBREDESK_API_KEY', { infer: true })!;
+      const apiSecret = this.configService.get('LIBREDESK_API_SECRET', { infer: true })!;
+
       const ticketId = await createLibreDeskTicket(
         {
           driverName: driverName || 'Unknown Driver',
@@ -356,18 +360,23 @@ export class DocumentsService {
           requestId: verificationRequest.id,
         },
         {
-          apiUrl: this.configService.get('LIBREDESK_API_URL', { infer: true })!,
-          apiKey: this.configService.get('LIBREDESK_API_KEY', { infer: true })!,
-          apiSecret: this.configService.get('LIBREDESK_API_SECRET', {
-            infer: true,
-          })!,
-          inboxId: this.configService.get('LIBREDESK_INBOX_ID', {
-            infer: true,
-          })!,
+          apiUrl,
+          apiKey,
+          apiSecret,
+          inboxId: this.configService.get('LIBREDESK_INBOX_ID', { infer: true })!,
         },
       );
 
-      // Step 3: Update verification request with ticket ID
+      // Step 3: Assign conversation to the appropriate team
+      // NEW_DRIVER  → Field_Agents team (id: 3) — handled by field agents in person
+      // EXISTING_DRIVER → Agents team (id: 4) — document approval by remote agents
+      const teamId = verificationType === 'NEW_DRIVER'
+        ? this.configService.get('LIBREDESK_FIELD_AGENTS_TEAM_ID', { infer: true })!
+        : this.configService.get('LIBREDESK_AGENTS_TEAM_ID', { infer: true })!;
+
+      await assignLibreDeskTeam(ticketId, teamId, { apiUrl, apiKey, apiSecret });
+
+      // Step 4: Update verification request with ticket ID
       await this.prisma.driverVerificationRequest.update({
         where: { id: verificationRequest.id },
         data: { ticketId },

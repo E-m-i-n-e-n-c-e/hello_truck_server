@@ -1,7 +1,7 @@
 /**
  * LibreDesk Utility
  *
- * Simple utility to create tickets in LibreDesk ticketing system
+ * Simple utility to create tickets and manage assignments in LibreDesk ticketing system
  */
 import axios from 'axios';
 
@@ -111,6 +111,53 @@ Admin Portal Link: https://ht-admin-gilt.vercel.app/verifications/request/${requ
   } catch (error) {
     console.error(
       `Failed to create LibreDesk ticket for driver ${driverId}`,
+      error,
+    );
+    throw error;
+  }
+}
+
+/**
+ * Assigns a LibreDesk conversation to a team.
+ * Calls: PUT /api/v1/conversations/{uuid}/assignee/team
+ * Body: { assignee_id: <teamId> }
+ *
+ * @param conversationUuid - The UUID of the LibreDesk conversation/ticket
+ * @param teamId - The ID of the team to assign (3 = Field_Agents, 4 = Agents)
+ * @param config - LibreDesk API configuration
+ */
+export async function assignLibreDeskTeam(
+  conversationUuid: string,
+  teamId: number,
+  config: Pick<LibreDeskConfig, 'apiUrl' | 'apiKey' | 'apiSecret'>,
+): Promise<void> {
+  const credentials = Buffer.from(
+    `${config.apiKey}:${config.apiSecret}`,
+  ).toString('base64');
+
+  try {
+    console.log(
+      `Assigning LibreDesk conversation ${conversationUuid} to team ${teamId}`,
+    );
+
+    await axios.put(
+      `${config.apiUrl}/api/v1/conversations/${conversationUuid}/assignee/team`,
+      { assignee_id: teamId },
+      {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      },
+    );
+
+    console.log(
+      `LibreDesk conversation ${conversationUuid} successfully assigned to team ${teamId}`,
+    );
+  } catch (error) {
+    console.error(
+      `Failed to assign LibreDesk conversation ${conversationUuid} to team ${teamId}`,
       error,
     );
     throw error;

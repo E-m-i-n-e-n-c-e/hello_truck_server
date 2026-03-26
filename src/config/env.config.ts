@@ -66,6 +66,9 @@ const envSchema = z.object({
   LIBREDESK_API_KEY: z.string().min(1, 'LIBREDESK_API_KEY is required'),
   LIBREDESK_API_SECRET: z.string().min(1, 'LIBREDESK_API_SECRET is required'),
   LIBREDESK_INBOX_ID: z.coerce.number().min(1, 'LIBREDESK_INBOX_ID is required'),
+  // LibreDesk Teams
+  LIBREDESK_FIELD_AGENTS_TEAM_ID: z.coerce.number().min(1).default(3), // Team 3 - Field_Agents (new driver requests)
+  LIBREDESK_AGENTS_TEAM_ID: z.coerce.number().min(1).default(4),             // Team 4 - Agents (existing driver doc approval)
 });
 
 // Export the inferred type
