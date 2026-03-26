@@ -17,6 +17,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { VerificationQueueService } from './verification-queue.service';
 import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
+import { AdminNotificationsService } from '../../notifications/admin-notifications.service';
 import {
   AssignVerificationRequestDto,
   CreateVerificationRequestDto,
@@ -43,8 +44,11 @@ export class AdminVerificationService {
     private readonly verificationQueue: VerificationQueueService,
     private readonly firebaseService: AdminFirebaseService,
     private readonly libredeskService: LibredeskService,
+    private readonly notificationsService: AdminNotificationsService,
   ) {
-    this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
+    // TODO:
+    // this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
+    this.bufferDurationMinutes = 1;
   }
 
   async listDrivers(filters: ListVerificationDriversRequestDto) {
@@ -230,7 +234,7 @@ export class AdminVerificationService {
     if (!ACTIVE_VERIFICATION_REQUEST_STATUSES.includes(verification.status)) {
       throw new BadRequestException('Cannot assign verification request unless it is active');
     }
-    
+
     // Prevent reassigning to same user
     if (verification.assignedToId && dto.email.trim().toLowerCase() === verification.assignedTo?.email?.toLowerCase()) {
       throw new BadRequestException('Verification is already assigned to this user');
@@ -296,40 +300,28 @@ export class AdminVerificationService {
       },
     });
 
-    await this.prisma.adminNotification.create({
-      data: {
-        userId: assignee.id,
-        title: 'New verification assigned',
-        message: `You have been assigned a verification request for ${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
-        entityId: updated.id,
-        entityType: 'VERIFICATION',
-        driverId: verification.driver.id,
-        actionUrl: `/verifications/request/${updated.id}`,
-      },
-    });
-
     if (updated.assignedTo) {
       if (updated.ticketId) {
         this.libredeskService.assignConversation(updated.ticketId, assignee.email);
       }
 
-      this.firebaseService
-        .notifyAdminSessions(updated.assignedTo.id, {
-          notification: {
-            title: 'New Verification Assigned',
-            body: `You have been assigned verification for driver ${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
-          },
-          data: {
-            event: AdminNotificationEvent.VERIFICATION_ASSIGNED,
-            entityId: updated.id,
-            entityType: 'VERIFICATION',
-            driverId: verification.driver.id,
-            actionUrl: `/verifications/request/${updated.id}`,
-          },
-        })
-        .catch((error) => {
-          this.logger.error(`Failed to notify admin user ${updated.assignedTo!.id}`, error);
-        });
+      // Send notification (fire-and-forget, best effort)
+      this.notificationsService.sendNotification(
+        {
+          title: 'New verification assigned',
+          message: `You have been assigned a verification request for ${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+          entityId: updated.id,
+          entityType: 'VERIFICATION',
+          driverId: verification.driver.id,
+          actionUrl: `/verifications/request/${updated.id}`,
+        },
+        {
+          userId: assignee.id,
+          event: AdminNotificationEvent.VERIFICATION_ASSIGNED,
+        },
+      ).catch((error) => {
+        this.logger.error(`Failed to send assignment notification to ${assignee.id}:`, error);
+      });
     }
 
     return {

@@ -24,6 +24,7 @@ import {
 import { FieldVerificationService } from './field-verification.service';
 import { VerificationQueueService } from './verification-queue.service';
 import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
+import { AdminNotificationsService } from '../../notifications/admin-notifications.service';
 import { FcmEventType } from '../../types/fcm.types';
 import { AUDIT_METADATA_KEY } from '../../audit-log/decorators/audit-log.decorator';
 import {
@@ -53,8 +54,11 @@ export class AgentVerificationService {
     private readonly verificationQueue: VerificationQueueService,
     private readonly firebaseService: AdminFirebaseService,
     private readonly fieldVerificationService: FieldVerificationService,
+    private readonly notificationsService: AdminNotificationsService,
   ) {
-    this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
+    // TODO:
+    // this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
+    this.bufferDurationMinutes = 1;
   }
 
   async listRequests(filters: ListVerificationsRequestDto, userId?: string, userRole?: AdminRole) {
@@ -646,6 +650,21 @@ export class AgentVerificationService {
   async requestRevert(id: string, dto: VerificationRevertRequestDto, userId: string) {
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id },
+      include: {
+        driver: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        revertRequestedBy: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
 
     if (!verification) {
@@ -687,6 +706,27 @@ export class AgentVerificationService {
       this.logger.error(`Failed to cancel verification finalization job for ${id}`, error);
       throw error;
     }
+
+    // Broadcast notification to all admins (fire-and-forget, best effort)
+    const driverName = `${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim();
+    this.notificationsService.sendNotification(
+      {
+        title: 'Revert Request',
+        message: `Agent requested to revert verification for ${driverName}`,
+        entityId: id,
+        entityType: 'VERIFICATION',
+        driverId: verification.driver.id,
+        actionUrl: `/verifications/request/${id}`,
+      },
+      {
+        roles: [AdminRole.ADMIN, AdminRole.SUPER_ADMIN],
+        useTopic: true,
+        topic: 'admin-revert-requests',
+        event: 'REVERT_REQUESTED',
+      },
+    ).catch((error) => {
+      this.logger.error(`Failed to broadcast revert request notification:`, error);
+    });
 
     return {
       ...updated,

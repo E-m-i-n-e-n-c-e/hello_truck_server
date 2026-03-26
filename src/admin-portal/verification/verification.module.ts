@@ -26,6 +26,7 @@ import { RedisModule } from '../redis/redis.module';
 import { RedisService } from '../redis/redis.service';
 import { AdminVerificationController } from './controllers/admin-verification.controller';
 import { LibredeskModule } from '../libredesk/libredesk.module';
+import { AdminNotificationsModule } from '../notifications/admin-notifications.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { LibredeskModule } from '../libredesk/libredesk.module';
     AuditLogModule,
     RedisModule,
     LibredeskModule,
+    AdminNotificationsModule,
     BullModule.registerQueueAsync({
       name: VERIFICATION_QUEUE_NAME,
       inject: [RedisService],

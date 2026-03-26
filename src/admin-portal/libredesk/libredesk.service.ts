@@ -4,10 +4,10 @@ import axios from 'axios';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
+import { AdminNotificationsService } from '../notifications/admin-notifications.service';
 import {
   AdminRole,
   VerificationRequestStatus,
-  VerificationStatus
 } from '@prisma/client';
 import { ACTIVE_VERIFICATION_REQUEST_STATUSES } from '../verification/utils/verification.constants';
 import { AdminNotificationEvent } from '../types/admin-notification.types';
@@ -29,7 +29,7 @@ export class LibredeskService {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
-    private firebaseService: AdminFirebaseService,
+    private notificationsService: AdminNotificationsService,
   ) {
     this.baseUrl = `${this.configService.get<string>('LIBREDESK_API_URL')}/api/v1`;
     const apiKey = this.configService.get<string>('LIBREDESK_API_KEY');
@@ -77,7 +77,7 @@ export class LibredeskService {
         headers: this.authHeader,
         timeout: 10000,
       });
-      
+
       const conversation = res.data?.data || res.data;
       return conversation;
     } catch (error) {
@@ -166,7 +166,7 @@ export class LibredeskService {
    */
   async handleWebhook(payload: LibredeskWebhookPayload, signature: string) {
     this.logger.log(JSON.stringify(payload));
-    
+
     // 1. Verify signature if secret is configured
     if (this.webhookSecret) {
       if (!signature) throw new UnauthorizedException('Missing Libredesk signature header');
@@ -192,7 +192,7 @@ export class LibredeskService {
       if (!conversationData) {
         this.logger.log(`Webhook: Minimal payload received, fetching conversation ${conversation_uuid}`);
         conversationData = await this.getConversation(conversation_uuid);
-        
+
         if (!conversationData) {
           this.logger.error(`Failed to fetch conversation ${conversation_uuid} from Libredesk API`);
           return { success: true, ignored: true, reason: 'conversation_fetch_failed' };
@@ -295,19 +295,6 @@ export class LibredeskService {
         status: updated.status,
       };
 
-      // Notify new assignee in our dashboard
-      await this.prisma.adminNotification.create({
-        data: {
-          userId: assignee.id,
-          title: 'New verification assigned',
-          message: `You have been assigned a verification request for ${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),          
-          entityId: updated.id,
-          entityType: 'VERIFICATION',
-          driverId: verification.driver.id,
-          actionUrl: `/verifications/request/${updated.id}`,
-        },
-      });
-
       // Create audit log for webhook assignment (fire-and-forget, best effort)
       this.prisma.auditLog.create({
         data: {
@@ -325,24 +312,25 @@ export class LibredeskService {
         this.logger.error(`Failed to create audit log for webhook assignment: ${error.message}`);
       });
 
-      // Send Push Notification
-      this.firebaseService
-        .notifyAdminSessions(assignee.id, {
-          notification: {
-            title: 'New Verification Assigned',
-            body: `You have been assigned verification in Libredesk for driver ${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
-          },
-          data: {
-            event: AdminNotificationEvent.VERIFICATION_ASSIGNED,
-            entityId: updated.id,
-            entityType: 'VERIFICATION',
-            driverId: verification.driver.id,
-            actionUrl: `/verifications/request/${updated.id}`,
-          },
-        })
-        .catch((e) => this.logger.error(`Failed to notify ${assignee.id}`, e));
-
       this.logger.log(`Libredesk Webhook: Synced Verification ${updated.id} assignment to ${assignee.email}`);
+
+      // Send notification (fire-and-forget, best effort)
+      this.notificationsService.sendNotification(
+        {
+          title: 'New verification assigned',
+          message: `You have been assigned a verification request for ${verification.driver.firstName ?? ''} ${verification.driver.lastName ?? ''}`.trim(),
+          entityId: updated.id,
+          entityType: 'VERIFICATION',
+          driverId: verification.driver.id,
+          actionUrl: `/verifications/request/${updated.id}`,
+        },
+        {
+          userId: assignee.id,
+          event: AdminNotificationEvent.VERIFICATION_ASSIGNED,
+        },
+      ).catch((error) => {
+        this.logger.error(`Failed to send assignment notification to ${assignee.id}:`, error);
+      });
     } catch (error) {
       this.logger.error(`Failed to assign by ticket ID ${ticketId}`, error);
     }

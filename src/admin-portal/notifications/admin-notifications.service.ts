@@ -12,7 +12,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminFirebaseService } from '../firebase/admin-firebase.service';
 import { AdminRole, VerificationRequestStatus } from '@prisma/client';
-import { AdminMessagingPayload } from '../types/admin-notification.types';
+import { AdminMessagingPayload, AdminNotificationEvent, AdminNotificationEventType } from '../types/admin-notification.types';
 
 const ACTIVE_STATUSES: VerificationRequestStatus[] = [
   VerificationRequestStatus.PENDING,
@@ -34,7 +34,9 @@ export interface AdminNotificationInput {
 export interface SendNotificationOptions {
   userId?: string;           // Target specific user
   roles?: AdminRole[];       // Target all users with specific roles
-  excludeUserId?: string;    // Exclude specific user
+  useTopic?: boolean;        // Use FCM topic for efficient broadcast (only works with roles)
+  topic?: string;            // FCM topic name (required if useTopic is true)
+  event: AdminNotificationEventType; // Event type for FCM payload
 }
 
 @Injectable()
@@ -50,12 +52,16 @@ export class AdminNotificationsService {
    * Send notification to admin user(s)
    * 1. Stores in DB for in-app display
    * 2. Delegates to FirebaseService for web push
+   *
+   * Supports two modes:
+   * - Individual: Sends to specific users via their FCM tokens
+   * - Broadcast: Sends to FCM topic (efficient for multiple users)
    */
   async sendNotification(
     input: AdminNotificationInput,
     options: SendNotificationOptions,
   ): Promise<void> {
-    const { userId, roles, excludeUserId } = options;
+    const { userId, roles, useTopic, topic, event } = options;
 
     // Get target users
     let targetUsers: { id: string }[] = [];
@@ -67,7 +73,6 @@ export class AdminNotificationsService {
         where: {
           role: { in: roles },
           isActive: true,
-          ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
         },
         select: { id: true },
       });
@@ -99,6 +104,7 @@ export class AdminNotificationsService {
         body: input.message,
       },
       data: {
+        event,
         entityId: input.entityId,
         entityType: input.entityType,
         driverId: input.driverId,
@@ -106,12 +112,17 @@ export class AdminNotificationsService {
       },
     };
 
-    // Send to each user's sessions
-    for (const user of targetUsers) {
-      await this.firebaseService.notifyAdminSessions(user.id, pushPayload);
+    // Use topic broadcast if enabled (efficient for multiple users)
+    if (useTopic && topic && roles) {
+      await this.firebaseService.notifyTopic(topic, pushPayload);
+      this.logger.log(`Sent notification to ${targetUsers.length} admin users via topic: ${topic}`);
+    } else {
+      // Send to each user's sessions individually
+      for (const user of targetUsers) {
+        await this.firebaseService.notifyAdminSessions(user.id, pushPayload);
+      }
+      this.logger.log(`Sent notification to ${targetUsers.length} admin users`);
     }
-
-    this.logger.log(`Sent notification to ${targetUsers.length} admin users`);
   }
 
   /**

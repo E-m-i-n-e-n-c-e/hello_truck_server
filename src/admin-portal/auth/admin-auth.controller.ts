@@ -177,6 +177,7 @@ export class AdminAuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateFcmToken(
     @Req() req: Request,
+    @CurrentAdminUser() user: AdminJwtPayload,
     @Body() dto: UpdateFcmTokenRequestDto,
   ): Promise<UpdateFcmTokenResponseDto> {
     // Extract refresh token from cookie to identify the session
@@ -193,6 +194,11 @@ export class AdminAuthController {
     }
 
     await this.sessionService.updateSessionFcmToken(session.id, dto.fcmToken);
+
+    // Auto-subscribe admins to revert-requests topic
+    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+      await this.authService.subscribeAdminToTopics(dto.fcmToken);
+    }
 
     return { message: 'FCM token updated successfully' };
   }

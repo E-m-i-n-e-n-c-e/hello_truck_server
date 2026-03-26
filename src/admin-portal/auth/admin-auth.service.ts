@@ -226,4 +226,11 @@ export class AdminAuthService {
 
     return { id: user.id, email: user.email, role: user.role };
   }
+
+  /**
+   * Subscribe admin FCM token to notification topics
+   */
+  async subscribeAdminToTopics(fcmToken: string): Promise<void> {
+    await this.adminFirebaseService.subscribeToTopic(fcmToken, 'admin-revert-requests');
+  }
 }

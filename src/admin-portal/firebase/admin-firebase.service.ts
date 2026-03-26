@@ -239,6 +239,66 @@ export class AdminFirebaseService implements OnModuleInit {
     }
   }
 
+  /**
+   * Subscribe FCM token to a topic
+   */
+  async subscribeToTopic(token: string, topic: string): Promise<void> {
+    if (!this.app) {
+      this.logger.warn('Firebase not initialized, skipping topic subscription');
+      return;
+    }
+
+    try {
+      await this.app.messaging().subscribeToTopic([token], topic);
+      this.logger.log(`Subscribed token to topic: ${topic}`);
+    } catch (error) {
+      this.logger.error(`Failed to subscribe to topic ${topic}:`, error);
+    }
+  }
+
+  /**
+   * Unsubscribe FCM token from a topic
+   */
+  async unsubscribeFromTopic(token: string, topic: string): Promise<void> {
+    if (!this.app) {
+      this.logger.warn('Firebase not initialized, skipping topic unsubscription');
+      return;
+    }
+
+    try {
+      await this.app.messaging().unsubscribeFromTopic([token], topic);
+      this.logger.log(`Unsubscribed token from topic: ${topic}`);
+    } catch (error) {
+      this.logger.error(`Failed to unsubscribe from topic ${topic}:`, error);
+    }
+  }
+
+  /**
+   * Send notification to FCM topic (broadcast to all subscribers)
+   */
+  async notifyTopic(topic: string, payload: AdminMessagingPayload): Promise<void> {
+    if (!this.app) {
+      this.logger.warn('Firebase not initialized, skipping topic notification');
+      return;
+    }
+
+    try {
+      await this.app.messaging().send({
+        topic,
+        notification: payload.notification,
+        data: payload.data as Record<string, string>,
+        webpush: {
+          fcmOptions: {
+            link: payload.data?.actionUrl,
+          },
+        },
+      });
+      this.logger.log(`Sent notification to topic: ${topic}`);
+    } catch (error) {
+      this.logger.error(`Failed to send to topic ${topic}:`, error);
+    }
+  }
+
   // ==================== Storage Operations ====================
 
   /**
