@@ -26,6 +26,8 @@ export interface CreateAuditLogInput {
 
 // Action types
 export const AuditActionTypes = {
+  UNRESOLVED: '__UNRESOLVED__',
+
   // Auth
   LOGIN: 'LOGIN',
   LOGOUT: 'LOGOUT',

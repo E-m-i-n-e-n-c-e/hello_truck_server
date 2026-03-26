@@ -120,7 +120,7 @@ export class AdminVerificationController {
   @Serialize(RevertDecisionResponseDto)
   @ApiOperation({ summary: 'Approve or reject revert request (admin only)' })
   @AuditLog({
-    action: AuditActionTypes.REVERT_APPROVED,
+    action: AuditActionTypes.UNRESOLVED,
     module: AuditModules.VERIFICATION,
     description: 'Revert decision recorded for verification :id',
     entityType: 'VERIFICATION_REQUEST',

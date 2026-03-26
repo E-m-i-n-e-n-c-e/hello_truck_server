@@ -17,10 +17,11 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, tap } from 'rxjs';
-import { AuditLogService } from './audit-log.service';
+import { AuditActionTypes, AuditLogService } from './audit-log.service';
 import { AUDIT_LOG_KEY, AuditLogMetadata, AUDIT_METADATA_KEY } from './decorators/audit-log.decorator';
 import { AdminJwtPayload } from '../auth/admin-auth.service';
 
@@ -101,15 +102,21 @@ export class AuditLogInterceptor implements NestInterceptor {
         }
 
         const entityType = auditMetadata.entityType;
+        const responseAuditMetadata =
+          auditMetadata.captureSnapshots && response && typeof response === 'object'
+            ? (response as any)[AUDIT_METADATA_KEY]
+            : undefined;
 
-        // Determine actual action type (for dynamic actions like document approval/rejection)
         let actionType = auditMetadata.action;
-
-        // Special handling for document actions - check request body for actual action
-        if (request.body?.action === 'APPROVED') {
-          actionType = 'DOCUMENT_APPROVED';
-        } else if (request.body?.action === 'REJECTED') {
-          actionType = 'DOCUMENT_REJECTED';
+        if (actionType === AuditActionTypes.UNRESOLVED) {
+          if (!responseAuditMetadata?.actionType) {
+            throw new InternalServerErrorException(
+              'Audit action type must be returned in response audit metadata for this endpoint',
+            );
+          }
+          actionType = responseAuditMetadata.actionType;
+        } else if (responseAuditMetadata?.actionType) {
+          actionType = responseAuditMetadata.actionType;
         }
 
         // Log asynchronously (don't await)

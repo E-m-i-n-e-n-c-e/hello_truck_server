@@ -33,6 +33,7 @@ export interface AuditSnapshotMetadata {
   beforeSnapshot?: any;
   afterSnapshot?: any;
   entityId?: string;
+  actionType?: string;
 }
 
 export const AuditLog = (metadata: AuditLogMetadata) =>

@@ -459,6 +459,7 @@ export class AdminVerificationService {
         success: true,
         message: 'Revert approved - verification reset to pending',
         [AUDIT_METADATA_KEY]: {
+          actionType: 'REVERT_APPROVED',
           beforeSnapshot,
           afterSnapshot: {
             verificationId: id,
@@ -498,6 +499,7 @@ export class AdminVerificationService {
       success: true,
       message: 'Revert rejected - verification remains approved and timer restarted',
       [AUDIT_METADATA_KEY]: {
+        actionType: 'REVERT_REJECTED',
         beforeSnapshot,
         afterSnapshot: {
           verificationId: id,

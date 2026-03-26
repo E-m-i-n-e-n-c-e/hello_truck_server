@@ -27,6 +27,7 @@ import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
 import { AdminNotificationsService } from '../../notifications/admin-notifications.service';
 import { FcmEventType } from '../../types/fcm.types';
 import { AUDIT_METADATA_KEY } from '../../audit-log/decorators/audit-log.decorator';
+import { AuditActionTypes } from '../../audit-log/audit-log.service';
 import {
   ACTIVE_VERIFICATION_REQUEST_STATUSES,
   DOCUMENT_FIELDS,
@@ -393,6 +394,10 @@ export class AgentVerificationService {
       success: true,
       message: `Document ${dto.action.toLowerCase()}`,
       [AUDIT_METADATA_KEY]: {
+        actionType:
+          dto.action === DocumentActionType.APPROVED
+            ? AuditActionTypes.DOCUMENT_APPROVED
+            : AuditActionTypes.DOCUMENT_REJECTED,
         beforeSnapshot,
         afterSnapshot: {
           verificationId,

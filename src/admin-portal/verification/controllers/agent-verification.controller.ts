@@ -79,7 +79,7 @@ export class AgentVerificationController {
   @ApiParam({ name: 'field', description: 'Document field: license, rcBook, fc, insurance, aadhar, selfie' })
   @ApiOperation({ summary: 'Approve or reject a specific document' })
   @AuditLog({
-    action: AuditActionTypes.DOCUMENT_APPROVED,
+    action: AuditActionTypes.UNRESOLVED,
     module: AuditModules.VERIFICATION,
     description: 'Document :field action performed for verification :id',
     entityType: 'VERIFICATION_REQUEST',
