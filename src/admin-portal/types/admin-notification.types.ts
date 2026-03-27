@@ -16,21 +16,14 @@ export type AdminFcmTopicType = typeof AdminFcmTopic[keyof typeof AdminFcmTopic]
 // Event types for admin web push notifications
 export const AdminNotificationEvent = {
   // Verification events
-  NEW_VERIFICATION: 'NEW_VERIFICATION',
   VERIFICATION_ASSIGNED: 'VERIFICATION_ASSIGNED',
   REVERT_REQUESTED: 'REVERT_REQUESTED',
-  REVERT_DECISION: 'REVERT_DECISION',
   VERIFICATION_REVERT_DECISION: 'VERIFICATION_REVERT_DECISION',
-  FIELD_VERIFICATION_SUBMITTED: 'FIELD_VERIFICATION_SUBMITTED',
 
   // Refund events
   NEW_REFUND_REQUEST: 'NEW_REFUND_REQUEST',
   REFUND_REVERT_REQUESTED: 'REFUND_REVERT_REQUESTED',
   REFUND_REVERT_DECISION: 'REFUND_REVERT_DECISION',
-
-  // System events
-  BUFFER_EXPIRING: 'BUFFER_EXPIRING',
-  ASSIGNMENT_CHANGED: 'ASSIGNMENT_CHANGED',
 } as const;
 
 export type AdminNotificationEventType = typeof AdminNotificationEvent[keyof typeof AdminNotificationEvent];
