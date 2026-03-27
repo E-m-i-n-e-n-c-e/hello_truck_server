@@ -290,12 +290,13 @@ export class BookingNotificationService {
   notifyDriverPaymentReceived(
     driverId: string,
     bookingId: string,
+    bookingNumber: number,
     amount: number,
   ): void {
     this.firebaseService.notifyAllSessions(driverId, 'driver', {
       notification: {
         title: 'Payment Received! ✅',
-        body: `₹${amount.toFixed(2)} payment received for Booking #${bookingId}`,
+        body: `₹${amount.toFixed(2)} payment received for Booking #${bookingNumber}`,
       },
       data: {
         event: FcmEventType.PaymentSuccess,

@@ -15,7 +15,7 @@ import { AdminNotificationsService } from '../../notifications/admin-notificatio
 import { AdminNotificationEvent } from '../../types/admin-notification.types';
 import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
 import { FcmEventType } from '../../types/fcm.types';
-import { BookingRefundService } from '../../../booking/services/booking-refund.service';
+import { RefundProcessorService } from './refund-processor.service';
 import { EDITABLE_REFUND_REQUEST_STATUSES } from '../utils/support.constants';
 import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
 
@@ -31,7 +31,7 @@ export class AdminSupportService {
     private readonly auditLog: AuditLogService,
     private readonly notificationsService: AdminNotificationsService,
     private readonly firebaseService: AdminFirebaseService,
-    private readonly bookingRefundService: BookingRefundService,
+    private readonly refundProcessor: RefundProcessorService,
   ) {
     // TODO:
     // this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
@@ -400,7 +400,7 @@ export class AdminSupportService {
       },
     });
 
-    await this.bookingRefundService.processRefundIntent(refundIntent.id);
+    await this.refundProcessor.processRefundIntent(refundIntent.id);
 
     await this.auditLog.log({
       userId: 'SYSTEM',
@@ -416,28 +416,6 @@ export class AdminSupportService {
         refundIntentId: refundIntent.id,
       },
     });
-
-    this.firebaseService
-      .notifyAllSessions(
-        refund.customerId,
-        'customer',
-        {
-          notification: {
-            title: 'Refund Processed',
-            body: `Your refund for Booking #${refund.booking.bookingNumber.toString()} has been processed.`,
-          },
-          data: {
-            event: FcmEventType.RefundProcessed,
-            refundId,
-            refundIntentId: refundIntent.id,
-            status: AdminRefundStatus.COMPLETED,
-          },
-        },
-        this.prisma,
-      )
-      .catch((error) => {
-        this.logger.error(`Failed to notify customer ${refund.customerId} about refund completion`, error);
-      });
   }
 
   private assertAdminRole(role: AdminRole) {

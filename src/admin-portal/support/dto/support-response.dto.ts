@@ -1,8 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { AdminRefundStatus, AdminRole, BookingStatus } from '@prisma/client';
-import { BookingAddressResponseDto } from '../../../booking/dtos/booking-address.dto';
-import { InvoiceResponseDto } from '../../../booking/dtos/booking-invoice.dto';
-import { PackageDetailsResponseDto } from '../../../booking/dtos/package.dto';
+import { BookingAddressResponseDto, InvoiceResponseDto, PackageDetailsResponseDto } from './booking-shared.dto';
 
 export class SupportPaginationResponseDto {
   @Expose()

@@ -7,11 +7,11 @@ import { RazorpayModule } from '../razorpay/razorpay.module';
 import { RedisModule } from '../redis/redis.module';
 import { RedisService } from '../redis/redis.service';
 import { AdminNotificationsModule } from '../notifications/admin-notifications.module';
-import { BookingModule } from '../../booking/booking.module';
 import { SupportController } from './controllers/support.controller';
 import { AdminSupportController } from './controllers/admin-support.controller';
 import { SupportService } from './services/support.service';
 import { AdminSupportService } from './services/admin-support.service';
+import { RefundProcessorService } from './services/refund-processor.service';
 import { SupportQueueService, SUPPORT_QUEUE_NAME } from './services/support-queue.service';
 import { SupportQueueProcessor } from './support-queue.processor';
 import { SupportCron } from './support.cron';
@@ -24,7 +24,6 @@ import { SupportCron } from './support.cron';
     RazorpayModule,
     RedisModule,
     AdminNotificationsModule,
-    BookingModule,
     BullModule.registerQueueAsync({
       name: SUPPORT_QUEUE_NAME,
       inject: [RedisService],
@@ -46,6 +45,7 @@ import { SupportCron } from './support.cron';
   providers: [
     SupportService,
     AdminSupportService,
+    RefundProcessorService,
     SupportQueueService,
     SupportQueueProcessor,
     SupportCron,

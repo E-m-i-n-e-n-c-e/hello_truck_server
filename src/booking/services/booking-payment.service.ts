@@ -110,6 +110,7 @@ export class BookingPaymentService {
       this.notificationService.notifyDriverPaymentReceived(
         invoice.booking.assignedDriverId,
         invoice.bookingId,
+        Number(invoice.booking.bookingNumber),
         Number(invoice.finalAmount),
       );
     }
@@ -162,6 +163,7 @@ export class BookingPaymentService {
       this.notificationService.notifyDriverPaymentReceived(
         booking.assignedDriverId,
         booking.id,
+        Number(booking.bookingNumber),
         Number(finalInvoice.finalAmount),
       );
     }
