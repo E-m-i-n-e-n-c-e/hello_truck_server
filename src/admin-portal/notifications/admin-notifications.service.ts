@@ -224,6 +224,7 @@ export class AdminNotificationsService {
       myAssignments: bigint;
       pendingRefundRequests: bigint;
       refundRevertRequests: bigint;
+      revertedRefundRequests: bigint;
     };
 
     // ── Query 2b (agent): single table scan, 4 conditional counters ───────────
@@ -237,6 +238,7 @@ export class AdminNotificationsService {
     type SupportStatsRow = {
       pendingRefundRequests: bigint;
       refundRevertRequests: bigint;
+      revertedRefundRequests: bigint;
     };
 
     const [notifRows, statsRows] = await Promise.all([
@@ -286,7 +288,8 @@ export class AdminNotificationsService {
               COUNT(*) FILTER (WHERE status = 'REVERT_REQUESTED'::"VerificationRequestStatus") AS "revertRequested",
               COUNT(*) FILTER (WHERE status = ANY(ARRAY['PENDING','IN_REVIEW','REVERT_REQUESTED','REVERTED','APPROVED']::"VerificationRequestStatus"[]) AND "assignedToId" = ${userId}) AS "myAssignments",
               (SELECT COUNT(*) FROM latest_refunds WHERE status = 'PENDING'::"AdminRefundStatus") AS "pendingRefundRequests",
-              (SELECT COUNT(*) FROM latest_refunds WHERE status = 'REVERT_REQUESTED'::"AdminRefundStatus") AS "refundRevertRequests"
+              (SELECT COUNT(*) FROM latest_refunds WHERE status = 'REVERT_REQUESTED'::"AdminRefundStatus") AS "refundRevertRequests",
+              (SELECT COUNT(*) FROM latest_refunds WHERE status = 'REVERTED'::"AdminRefundStatus") AS "revertedRefundRequests"
             FROM latest_requests
           `
         : role === AdminRole.CUSTOMER_SUPPORT
@@ -308,7 +311,11 @@ export class AdminNotificationsService {
                 COUNT(*) FILTER (
                   WHERE status = 'REVERT_REQUESTED'::"AdminRefundStatus"
                   AND "createdById" = ${userId}
-                ) AS "refundRevertRequests"
+                ) AS "refundRevertRequests",
+                COUNT(*) FILTER (
+                  WHERE status = 'REVERTED'::"AdminRefundStatus"
+                  AND "createdById" = ${userId}
+                ) AS "revertedRefundRequests"
               FROM latest_refunds
             `
           : this.prisma.$queryRaw<AgentStatsRow[]>`

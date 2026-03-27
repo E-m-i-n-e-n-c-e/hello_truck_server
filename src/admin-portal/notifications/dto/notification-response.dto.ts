@@ -155,6 +155,10 @@ export class DashboardStatsDto {
   @ApiPropertyOptional({ description: 'Latest refund requests in REVERT_REQUESTED status' })
   @Expose()
   refundRevertRequests?: number;
+
+  @ApiPropertyOptional({ description: 'Latest refund requests in REVERTED status' })
+  @Expose()
+  revertedRefundRequests?: number;
 }
 
 /**

@@ -25,7 +25,7 @@ import { FieldVerificationService } from './field-verification.service';
 import { VerificationQueueService } from './verification-queue.service';
 import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
 import { AdminNotificationsService } from '../../notifications/admin-notifications.service';
-import { AdminFcmTopic } from '../../types/admin-notification.types';
+import { AdminFcmTopic, AdminNotificationEvent } from '../../types/admin-notification.types';
 import { FcmEventType } from '../../types/fcm.types';
 import { AUDIT_METADATA_KEY } from '../../audit-log/decorators/audit-log.decorator';
 import { AuditActionTypes } from '../../audit-log/audit-log.service';
@@ -728,7 +728,7 @@ export class AgentVerificationService {
         roles: [AdminRole.ADMIN, AdminRole.SUPER_ADMIN],
         useTopic: true,
         topic: AdminFcmTopic.VERIFICATION_REVERT_REQUESTS,
-        event: 'REVERT_REQUESTED',
+        event: AdminNotificationEvent.REVERT_REQUESTED,
       },
     ).catch((error) => {
       this.logger.error(`Failed to broadcast revert request notification:`, error);
