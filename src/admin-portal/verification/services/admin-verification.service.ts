@@ -472,7 +472,7 @@ export class AdminVerificationService {
               entityId: id,
               entityType: 'VERIFICATION',
               driverId: verification.driver.id,
-              actionUrl: `/verification/requests/${id}`,
+              actionUrl: `/verifications/request/${id}`,
             },
             {
               userId: verification.revertRequestedBy.id,
@@ -534,7 +534,7 @@ export class AdminVerificationService {
             entityId: id,
             entityType: 'VERIFICATION',
             driverId: verification.driver.id,
-            actionUrl: `/verification/requests/${id}`,
+            actionUrl: `/verifications/request/${id}`,
           },
           {
             userId: verification.revertRequestedBy.id,
