@@ -73,15 +73,15 @@ export class SupportController {
     return this.supportService.getDriverDetails(identifier);
   }
 
-  @Get('drivers/:id/location')
+  @Get('bookings/:bookingId/tracking')
   @Serialize(SupportLiveTrackingResponseDto)
   @Roles(AdminRole.CUSTOMER_SUPPORT, AdminRole.ADMIN, AdminRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Fetch live driver location (logged)' })
-  async getDriverLocation(
-    @Param('id') id: string,
+  @ApiOperation({ summary: 'Fetch live tracking for a booking (logged)' })
+  async getBookingTracking(
+    @Param('bookingId') bookingId: string,
     @CurrentAdminUser() user: AdminJwtPayload,
   ) {
-    return this.supportService.getDriverLocation(id, user.sub, user.role);
+    return this.supportService.getBookingTracking(bookingId, user.sub, user.role);
   }
 
   @Post('notes')

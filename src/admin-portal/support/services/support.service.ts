@@ -304,17 +304,38 @@ export class SupportService {
     return driver;
   }
 
-  async getDriverLocation(driverId: string, userId: string, userRole: AdminRole) {
+  async getBookingTracking(bookingId: string, userId: string, userRole: AdminRole) {
+    // First, get the booking to find the assigned driver
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        assignedDriverId: true,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (!booking.assignedDriverId) {
+      throw new NotFoundException('No driver assigned to this booking');
+    }
+
+    const driverId = booking.assignedDriverId;
     const navigationKey = `driver_navigation:${driverId}`;
     const navigation = await this.redis.get(navigationKey);
 
-    let responsePayload: Record<string, unknown> | null = null;
+    const parsedNavigation = navigation ? JSON.parse(navigation) : null;
+    const bookingIdMatches = parsedNavigation?.bookingId === bookingId;
 
-    if (navigation) {
-      const parsedNavigation = JSON.parse(navigation);
-      responsePayload = {
+    // Use navigation data if booking ID matches, otherwise fallback to geoset
+    if (navigation && bookingIdMatches) {
+      this.logger.log(`Booking ${bookingId} tracking: active navigation found`);
+
+      return {
         driverId,
-        bookingId: parsedNavigation.bookingId ?? null,
+        bookingId: parsedNavigation.bookingId,
         latitude: parsedNavigation.location?.latitude ?? null,
         longitude: parsedNavigation.location?.longitude ?? null,
         timeToPickup: parsedNavigation.timeToPickup ?? null,
@@ -325,57 +346,42 @@ export class SupportService {
         kmTravelled: parsedNavigation.kmTravelled ?? null,
         routePolyline: parsedNavigation.routePolyline ?? null,
         lastUpdated: parsedNavigation.sentAt,
-        isStale: parsedNavigation.sentAt
-          ? (new Date().getTime() - new Date(parsedNavigation.sentAt).getTime()) > 60000
-          : true,
-      };
-    } else {
-      // Fallback: read from the GeoSet populated by the update-location socket event
-      // profileService.updateLocation stores coordinates via GEOADD on 'active_drivers'
-      const geoPos = await this.redis.geopos('active_drivers', driverId);
-      const pos = geoPos?.[0]; // returns [[lng, lat]] or [[null, null]] if not found
-
-      if (!pos || pos[0] === null || pos[1] === null) {
-        throw new NotFoundException('Driver location not available');
-      }
-
-      // geopos returns [longitude, latitude] as strings
-      const longitude = parseFloat(pos[0] as string);
-      const latitude = parseFloat(pos[1] as string);
-
-      // Check lastSeen TTL to surface staleness (30s TTL set by profileService.updateLocation)
-      const lastSeenKey = `driver:${driverId}:lastSeen`;
-      const lastSeenTtl = await this.redis.ttl(lastSeenKey);
-      const isStale = lastSeenTtl <= 0;
-
-      responsePayload = {
-        driverId,
-        bookingId: null,
-        latitude,
-        longitude,
-        timeToPickup: null,
-        timeToDrop: null,
-        distanceToPickup: null,
-        distanceToDrop: null,
-        initialDistanceToPickup: null,
-        kmTravelled: null,
-        routePolyline: null,
-        lastUpdated: new Date().toISOString(),
-        isStale,
       };
     }
 
-    await this.auditLog.log({
-      userId,
-      role: userRole,
-      actionType: AuditActionTypes.DRIVER_LOCATION_FETCHED,
-      module: AuditModules.SUPPORT,
-      description: `Fetched live location for driver: ${driverId}`,
-      entityId: driverId,
-      entityType: 'Driver',
-    });
+    // Fallback to geoset
+    this.logger.log(
+      navigation
+        ? `Booking ${bookingId} tracking: driver on different booking (${parsedNavigation.bookingId}), using fallback`
+        : `Booking ${bookingId} tracking: no navigation data, using fallback`
+    );
 
-    return responsePayload;
+    const geoPos = await this.redis.geopos('active_drivers', driverId);
+    const pos = geoPos?.[0];
+
+    if (!pos || pos[0] === null || pos[1] === null) {
+      throw new NotFoundException('Driver location not available');
+    }
+
+    // Redis geopos returns [longitude, latitude]
+    const longitude = parseFloat(pos[0] as string);
+    const latitude = parseFloat(pos[1] as string);
+
+    return {
+      driverId,
+      bookingId: null,
+      latitude,
+      longitude,
+      timeToPickup: null,
+      timeToDrop: null,
+      distanceToPickup: null,
+      distanceToDrop: null,
+      initialDistanceToPickup: null,
+      kmTravelled: null,
+      routePolyline: null,
+      lastUpdated: null,
+      isStale: true,
+    };
   }
 
   async createNote(
