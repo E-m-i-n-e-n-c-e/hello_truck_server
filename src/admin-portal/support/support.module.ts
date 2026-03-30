@@ -31,7 +31,7 @@ import { SupportCron } from './support.cron';
         connection: redisService.bullClient,
         defaultJobOptions: {
           removeOnComplete: true,
-          removeOnFail: false,
+          removeOnFail: true, // Clean up failed jobs to prevent memory leak
           attempts: 3,
           backoff: {
             type: 'exponential',

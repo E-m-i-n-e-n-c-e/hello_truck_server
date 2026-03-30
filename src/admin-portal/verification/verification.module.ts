@@ -44,7 +44,7 @@ import { AdminNotificationsModule } from '../notifications/admin-notifications.m
           connection: redisService.bullClient, // Use pre-configured Redis client with TLS
           defaultJobOptions: {
             removeOnComplete: true,
-            removeOnFail: false,
+            removeOnFail: true, // Clean up failed jobs to prevent memory leak
             attempts: 3,
             backoff: {
               type: 'exponential',
