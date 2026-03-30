@@ -134,13 +134,22 @@ export class AuditLogService {
     }
 
     if (userSearch) {
-      where.user = {
-        OR: [
-          { email: { contains: userSearch, mode: 'insensitive' } },
-          { firstName: { contains: userSearch, mode: 'insensitive' } },
-          { lastName: { contains: userSearch, mode: 'insensitive' } },
-        ],
-      };
+      const searchLower = userSearch.toLowerCase();
+
+      const isSystemSearch = searchLower.includes('system') || searchLower.includes('sys');
+
+      where.OR = [
+        {
+          user: {
+            OR: [
+              { email: { contains: userSearch, mode: 'insensitive' } },
+              { firstName: { contains: userSearch, mode: 'insensitive' } },
+              { lastName: { contains: userSearch, mode: 'insensitive' } },
+            ],
+          },
+        },
+        ...(isSystemSearch ? [{ userId: null }] : []),
+      ];
     }
 
     return where;
