@@ -135,21 +135,53 @@ export class AuditLogService {
 
     if (userSearch) {
       const searchLower = userSearch.toLowerCase();
+      const isSystemSearch =
+        searchLower.includes('system') || searchLower.includes('sys');
 
-      const isSystemSearch = searchLower.includes('system') || searchLower.includes('sys');
-
-      where.OR = [
-        {
-          user: {
-            OR: [
-              { email: { contains: userSearch, mode: 'insensitive' } },
-              { firstName: { contains: userSearch, mode: 'insensitive' } },
-              { lastName: { contains: userSearch, mode: 'insensitive' } },
-            ],
+      // Split search into first and last name if space exists
+      const trimmedSearch = userSearch.trim();
+      const parts = trimmedSearch.split(/\s+/).filter(Boolean);
+      
+      if (parts.length >= 2) {
+        // Multi-word: try firstName + lastName combination
+        const [first, ...rest] = parts;
+        const last = rest.join(' ');
+        
+        where.OR = [
+          {
+            user: {
+              OR: [
+                // Match "John Doe" as firstName="John" + lastName="Doe"
+                {
+                  AND: [
+                    { firstName: { contains: first, mode: 'insensitive' } },
+                    { lastName: { contains: last, mode: 'insensitive' } },
+                  ],
+                },
+                // Fallback to individual fields
+                { email: { contains: trimmedSearch, mode: 'insensitive' } },
+                { firstName: { contains: trimmedSearch, mode: 'insensitive' } },
+                { lastName: { contains: trimmedSearch, mode: 'insensitive' } },
+              ],
+            },
           },
-        },
-        ...(isSystemSearch ? [{ userId: null }] : []),
-      ];
+          ...(isSystemSearch ? [{ userId: null }] : []),
+        ];
+      } else {
+        // Single word: search all fields
+        where.OR = [
+          {
+            user: {
+              OR: [
+                { email: { contains: trimmedSearch, mode: 'insensitive' } },
+                { firstName: { contains: trimmedSearch, mode: 'insensitive' } },
+                { lastName: { contains: trimmedSearch, mode: 'insensitive' } },
+              ],
+            },
+          },
+          ...(isSystemSearch ? [{ userId: null }] : []),
+        ];
+      }
     }
 
     return where;

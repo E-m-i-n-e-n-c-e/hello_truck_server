@@ -111,11 +111,36 @@ export class AgentVerificationService {
     if (search || driverVerificationStatus || hasPendingDocuments !== undefined) {
       where.driver = {};
       if (search) {
-        where.driver.OR = [
-          { firstName: { contains: search, mode: 'insensitive' } },
-          { lastName: { contains: search, mode: 'insensitive' } },
-          { phoneNumber: { contains: search } },
-        ];
+        // Split search into first and last name if space exists
+        const trimmedSearch = search.trim();
+        const parts = trimmedSearch.split(/\s+/).filter(Boolean);
+        
+        if (parts.length >= 2) {
+          // Multi-word: try firstName + lastName combination
+          const [first, ...rest] = parts;
+          const last = rest.join(' ');
+          
+          where.driver.OR = [
+            // Match "John Doe" as firstName="John" + lastName="Doe"
+            {
+              AND: [
+                { firstName: { contains: first, mode: 'insensitive' } },
+                { lastName: { contains: last, mode: 'insensitive' } },
+              ],
+            },
+            // Fallback to individual fields
+            { firstName: { contains: trimmedSearch, mode: 'insensitive' } },
+            { lastName: { contains: trimmedSearch, mode: 'insensitive' } },
+            { phoneNumber: { contains: trimmedSearch } },
+          ];
+        } else {
+          // Single word: search all fields
+          where.driver.OR = [
+            { firstName: { contains: trimmedSearch, mode: 'insensitive' } },
+            { lastName: { contains: trimmedSearch, mode: 'insensitive' } },
+            { phoneNumber: { contains: trimmedSearch } },
+          ];
+        }
       }
       if (driverVerificationStatus) {
         where.driver.verificationStatus = driverVerificationStatus;

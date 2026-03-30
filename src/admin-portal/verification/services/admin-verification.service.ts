@@ -73,6 +73,7 @@ export class AdminVerificationService {
     if (search) {
       const searchPattern = `%${search}%`;
       conditions.push(Prisma.sql`(
+        (d."firstName" || ' ' || d."lastName") ILIKE ${searchPattern} OR
         d."firstName" ILIKE ${searchPattern} OR
         d."lastName" ILIKE ${searchPattern} OR
         d."phoneNumber" LIKE ${searchPattern}
