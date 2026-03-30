@@ -401,21 +401,6 @@ export class AdminSupportService {
     });
 
     await this.refundProcessor.processRefundIntent(refundIntent.id);
-
-    await this.auditLog.log({
-      userId: 'SYSTEM',
-      role: AdminRole.SUPER_ADMIN,
-      actionType: AuditActionTypes.REFUND_COMPLETED,
-      module: AuditModules.SYSTEM,
-      description: `Refund ${refundId} finalized after buffer expiry`,
-      entityId: refundId,
-      entityType: 'REFUND_REQUEST',
-      afterSnapshot: {
-        refundId,
-        status: AdminRefundStatus.COMPLETED,
-        refundIntentId: refundIntent.id,
-      },
-    });
   }
 
   private assertAdminRole(role: AdminRole) {

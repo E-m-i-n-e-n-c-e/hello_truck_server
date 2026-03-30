@@ -32,6 +32,7 @@ import {
 import { AdminNotificationEvent } from '../../types/admin-notification.types';
 import { FcmEventType } from '../../types/fcm.types';
 import { LibredeskService } from '../../libredesk/libredesk.service';
+import { AuditActionTypes } from 'src/admin-portal/audit-log/audit-log.service';
 
 @Injectable()
 export class AdminVerificationService {
@@ -437,7 +438,7 @@ export class AdminVerificationService {
         this.prisma.verificationAction.create({
           data: {
             verificationRequestId: id,
-            actionType: 'REVERT_APPROVED',
+            actionType: AuditActionTypes.REVERT_APPROVED,
             actionById: handledById,
           },
         }),
@@ -488,7 +489,7 @@ export class AdminVerificationService {
         success: true,
         message: 'Revert approved - verification reset to pending',
         [AUDIT_METADATA_KEY]: {
-          actionType: 'REVERT_APPROVED',
+          actionType: AuditActionTypes.REVERT_APPROVED,
           beforeSnapshot,
           afterSnapshot: {
             verificationId: id,
@@ -516,7 +517,7 @@ export class AdminVerificationService {
       this.prisma.verificationAction.create({
         data: {
           verificationRequestId: id,
-          actionType: 'REVERT_REJECTED',
+          actionType: AuditActionTypes.REVERT_REJECTED,
           actionById: handledById,
         },
       }),
@@ -550,7 +551,7 @@ export class AdminVerificationService {
       success: true,
       message: 'Revert rejected - verification remains approved and timer restarted',
       [AUDIT_METADATA_KEY]: {
-        actionType: 'REVERT_REJECTED',
+        actionType: AuditActionTypes.REVERT_REJECTED,
         beforeSnapshot,
         afterSnapshot: {
           verificationId: id,
