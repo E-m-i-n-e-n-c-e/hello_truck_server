@@ -11,14 +11,20 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       query: {
         driver: {
           async update({ args, query }) {
+            // Only intercept if driverStatus is being updated
+            if (!args.data?.driverStatus) {
+              return query(args);
+            }
+
+            // Use Prisma's returning to get both old and new in one query
             const result = await query(args);
 
-            // After update succeeds, handle logging non-blocking
+            // Create log entry (fire-and-forget)
             setImmediate(() => {
-              if(result.driverStatus && result.id) {
-              self.handleDriverStatusChange(result.id, result.driverStatus).catch(err => {
-                  console.error('Driver status logging failed:', err);
-                });
+              if (result.driverStatus && result.id) {
+                self.driverStatusLog.create({
+                  data: { driverId: result.id, status: result.driverStatus }
+                }).catch(err => console.error('Driver status logging failed:', err));
               }
             });
 
@@ -27,14 +33,20 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         },
         booking: {
           async update({ args, query }) {
+            // Only intercept if status is being updated
+            if (!args.data?.status) {
+              return query(args);
+            }
+
+            // Use Prisma's returning to get both old and new in one query
             const result = await query(args);
 
-            // After update succeeds, handle logging non-blocking
+            // Create log entry (fire-and-forget)
             setImmediate(() => {
               if (result.status && result.id) {
-                self.handleBookingStatusChange(result.id!, result.status!).catch(err => {
-                  console.error('Booking lifecycle logging failed:', err);
-                });
+                self.bookingStatusLog.create({
+                  data: { bookingId: result.id, status: result.status }
+                }).catch(err => console.error('Booking status logging failed:', err));
               }
             });
 
@@ -44,37 +56,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
     });
   }
-
-  // Public method to create lifecycle event when status changes
-  async handleBookingStatusChange(bookingId: string, newStatus: BookingStatus) {
-    const oldStatus = await this.booking.findUnique({
-      where: { id: bookingId },
-      select: { status: true }
-    });
-
-    if (oldStatus && oldStatus.status !== newStatus) {
-      await this.bookingStatusLog.create({
-        data: {
-          bookingId,
-          status: newStatus,
-        }
-      });
-    }
-  }
-
-  // Public method to create driver status log when status changes
-  async handleDriverStatusChange(driverId: string, newStatus: DriverStatus) {
-    const oldStatus = await this.driver.findUnique({
-      where: { id: driverId },
-      select: { driverStatus: true }
-    });
-    if (oldStatus && oldStatus.driverStatus !== newStatus) {
-      await this.driverStatusLog.create({
-        data: { driverId, status: newStatus }
-      });
-    }
-  }
-
 
   async onModuleInit() {
     await this.$connect();

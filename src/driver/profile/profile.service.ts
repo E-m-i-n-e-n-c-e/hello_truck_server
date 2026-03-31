@@ -194,14 +194,6 @@ export class ProfileService {
         where: { id: userId },
         data: { driverStatus: status },
       });
-
-      // Log the status change
-      await tx.driverStatusLog.create({
-        data: {
-          driverId: userId,
-          status: status,
-        },
-      });
     });
 
     return { success: true, message: 'Driver status updated successfully' };
