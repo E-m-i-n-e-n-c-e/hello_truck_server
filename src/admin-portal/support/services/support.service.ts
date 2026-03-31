@@ -203,6 +203,16 @@ export class SupportService {
         statusLogs: {
           orderBy: { statusChangedAt: 'asc' },
         },
+        refundIntents: {
+          orderBy: { createdAt: 'desc' },
+        },
+        adminRefundRequests: {
+          include: this.refundInclude('minimal'),
+          orderBy: { createdAt: 'desc' },
+        },
+        supportNotes: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
@@ -210,32 +220,23 @@ export class SupportService {
       throw new NotFoundException('Booking not found');
     }
 
-    const [refundIntents, adminRefunds, notes] = await Promise.all([
-      this.prisma.refundIntent.findMany({
-        where: { bookingId },
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.adminRefundRequest.findMany({
-        where: { bookingId },
-        include: this.refundInclude(),
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.supportNote.findMany({
-        where: { bookingId },
-        orderBy: { createdAt: 'desc' },
-      }),
-    ]);
+    const decoratedRefunds = booking.adminRefundRequests.map((refund) => 
+      this.decorateRefund({ 
+        ...refund, 
+        booking,
+        customer: booking.customer,
+        driver: booking.assignedDriver,
+      })
+    );
 
     return {
       booking,
       refundHistory: {
-        intents: refundIntents,
-        manual: adminRefunds.map((refund) => this.decorateRefund(refund)),
-        latestRequest: adminRefunds[0]
-          ? this.decorateRefund(adminRefunds[0])
-          : null,
+        intents: booking.refundIntents,
+        manual: decoratedRefunds,
+        latestRequest: decoratedRefunds[0] || null,
       },
-      notes,
+      notes: booking.supportNotes,
     };
   }
 
@@ -604,24 +605,37 @@ export class SupportService {
       throw new BadRequestException('Cancellation charge cannot exceed total paid');
     }
 
-    const existingRefund = await this.prisma.adminRefundRequest.findFirst({
-      where: {
-        bookingId: dto.bookingId,
-        status: {
-          in: [
-            ...ACTIVE_REFUND_REQUEST_STATUSES ?? [],
-            AdminRefundStatus.COMPLETED,
-          ],
+    // Check for existing completed refunds (both manual and automatic create RefundIntent)
+    // Also check for active manual refund requests (PENDING/APPROVED/REVERT_REQUESTED)
+    const bookingWithRefunds = await this.prisma.booking.findUnique({
+      where: { id: dto.bookingId },
+      select: {
+        adminRefundRequests: {
+          where: {
+            status: {
+              in: ACTIVE_REFUND_REQUEST_STATUSES, // PENDING, APPROVED, REVERT_REQUESTED, REVERTED
+            },
+          },
+          select: { id: true, status: true },
+          take: 1,
+        },
+        refundIntents: {
+          where: { status: 'COMPLETED' },
+          select: { id: true, isApproved: true },
+          take: 1,
         },
       },
-      select: { id: true, status: true },
     });
 
-    if (existingRefund) {
-      if (existingRefund.status === AdminRefundStatus.APPROVED || existingRefund.status === AdminRefundStatus.COMPLETED) {
-        throw new BadRequestException('A refund has already been approved or completed for this booking. Multiple refunds are not allowed.');
-      }
-      throw new BadRequestException('An active refund request already exists for this booking');
+    const activeManualRefund = bookingWithRefunds?.adminRefundRequests[0];
+    const completedRefund = bookingWithRefunds?.refundIntents[0];
+
+    if (activeManualRefund) {
+      throw new BadRequestException('An active manual refund request already exists for this booking');
+    }
+
+    if (completedRefund) {
+      throw new BadRequestException(`A refund has already been completed for this booking.`);
     }
 
     const createdRefund = await this.prisma.adminRefundRequest.create({
@@ -749,7 +763,17 @@ export class SupportService {
     };
   }
 
-  private refundInclude(): Prisma.AdminRefundRequestInclude {
+  private refundInclude(mode: 'full' | 'minimal' = 'full'): Prisma.AdminRefundRequestInclude {
+    if (mode === 'minimal') {
+      // For getBookingDetails - don't include booking/customer/driver (already fetched)
+      return {
+        createdBy: true,
+        approvedBy: true,
+        revertRequestedBy: true,
+      };
+    }
+
+    // For standalone queries - include everything
     return {
       booking: {
         include: {
