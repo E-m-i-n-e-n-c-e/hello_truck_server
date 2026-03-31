@@ -222,3 +222,10 @@ export class SupportRefundRevertDecisionRequestDto {
   @IsBoolean()
   approve: boolean;
 }
+
+export class AdminCancelBookingDto {
+  @ApiProperty({ description: 'Reason for cancellation (min 10 chars)' })
+  @IsString()
+  @MinLength(10)
+  reason: string;
+}

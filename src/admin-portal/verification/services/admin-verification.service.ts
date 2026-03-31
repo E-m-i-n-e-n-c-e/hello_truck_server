@@ -578,14 +578,8 @@ export class AdminVerificationService {
       throw new NotFoundException(`Verification ${verificationId} not found`);
     }
 
-    if (
-      verification.status !== VerificationRequestStatus.APPROVED ||
-      !verification.bufferExpiresAt ||
-      verification.bufferExpiresAt > new Date()
-    ) {
-      this.logger.log(
-        `Skipping finalization for ${verificationId}; status=${verification.status}, bufferExpiresAt=${verification.bufferExpiresAt?.toISOString() ?? 'null'}`,
-      );
+    if (verification.status !== VerificationRequestStatus.APPROVED) {
+      this.logger.log(`Skipping finalization for ${verificationId}; status=${verification.status}`);
       return;
     }
 

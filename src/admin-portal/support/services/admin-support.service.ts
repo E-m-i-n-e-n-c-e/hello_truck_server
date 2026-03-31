@@ -348,14 +348,9 @@ export class AdminSupportService {
     if (!refund) {
       throw new NotFoundException(`Refund ${refundId} not found`);
     }
-    if (
-      refund.status !== AdminRefundStatus.APPROVED ||
-      !refund.bufferExpiresAt ||
-      refund.bufferExpiresAt > new Date()
-    ) {
-      this.logger.log(
-        `Skipping refund finalization for ${refundId}; status=${refund.status}, bufferExpiresAt=${refund.bufferExpiresAt?.toISOString() ?? 'null'}`,
-      );
+    
+    if (refund.status !== AdminRefundStatus.APPROVED) {
+      this.logger.log(`Skipping refund finalization for ${refundId}; status=${refund.status}`);
       return;
     }
 

@@ -5,11 +5,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { AdminRefundStatus, AdminRole, Prisma } from '@prisma/client';
+import { AdminRefundStatus, AdminRole, Prisma, BookingStatus, DriverStatus, AssignmentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { AdminNotificationsService } from '../../notifications/admin-notifications.service';
 import { AdminNotificationEvent, AdminFcmTopic } from '../../types/admin-notification.types';
+import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
+import { FcmEventType } from '../../types/fcm.types';
 import { AUDIT_METADATA_KEY } from '../../audit-log/decorators/audit-log.decorator';
 import { AuditActionTypes, AuditLogService, AuditModules } from '../../audit-log/audit-log.service';
 import {
@@ -31,6 +33,7 @@ export class SupportService {
     private readonly auditLog: AuditLogService,
     private readonly notificationsService: AdminNotificationsService,
     private readonly supportQueue: SupportQueueService,
+    private readonly adminFirebaseService: AdminFirebaseService,
   ) {}
 
   async searchBookings(filters: SearchBookingsRequestDto) {
@@ -809,6 +812,103 @@ export class SupportService {
         refund.bufferExpiresAt && isInBuffer
           ? Math.max(0, Math.ceil((refund.bufferExpiresAt.getTime() - Date.now()) / 60000))
           : 0,
+    };
+  }
+
+  async adminCancelBooking(bookingId: string, reason: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        customer: true,
+        assignedDriver: true,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.EXPIRED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      throw new BadRequestException(`Cannot cancel booking with status ${booking.status}`);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      if (booking.assignedDriverId) {
+        await tx.driver.update({
+          where: { id: booking.assignedDriverId },
+          data: { driverStatus: DriverStatus.AVAILABLE },
+        });
+
+        await tx.bookingAssignment.updateMany({
+          where: { bookingId, driverId: booking.assignedDriverId, status: AssignmentStatus.OFFERED },
+          data: { status: AssignmentStatus.AUTO_REJECTED, respondedAt: new Date() },
+        });
+      }
+    });
+
+    if (booking.customerId) {
+      this.adminFirebaseService
+        .notifyAllSessions(booking.customerId, 'customer', {
+          notification: {
+            title: 'Booking Cancelled',
+            body: `Your booking #${booking.bookingNumber} has been cancelled by admin`,
+          },
+          data: {
+            event: FcmEventType.BookingStatusChange,
+            newStatus: BookingStatus.CANCELLED,
+          },
+        }, this.prisma)
+        .catch((error) => {
+          this.logger.error(`Failed to notify customer ${booking.customerId} of cancellation`, error);
+        });
+    }
+
+    if (booking.assignedDriverId) {
+      this.adminFirebaseService
+        .notifyAllSessions(booking.assignedDriverId, 'driver', {
+          notification: {
+            title: 'Ride Cancelled',
+            body: `Booking #${booking.bookingNumber} has been cancelled by admin`,
+          },
+          data: {
+            event: FcmEventType.RideCancelled,
+          },
+        }, this.prisma)
+        .catch((error) => {
+          this.logger.error(`Failed to notify driver ${booking.assignedDriverId} of cancellation`, error);
+        });
+    }
+
+    return {
+      message: 'Booking cancelled successfully',
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot: {
+          bookingId,
+          bookingNumber: booking.bookingNumber.toString(),
+          status: booking.status,
+        },
+        afterSnapshot: {
+          bookingId,
+          bookingNumber: booking.bookingNumber.toString(),
+          status: BookingStatus.CANCELLED,
+          cancelledAt: new Date().toISOString(),
+          cancellationReason: reason,
+        },
+        entityId: bookingId,
+      },
     };
   }
 

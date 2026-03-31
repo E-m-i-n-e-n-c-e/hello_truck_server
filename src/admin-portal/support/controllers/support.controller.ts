@@ -26,6 +26,7 @@ import {
   ListSupportRefundsRequestDto,
   SearchBookingsRequestDto,
   SupportRefundRevertRequestDto,
+  AdminCancelBookingDto,
 } from '../dto/support-request.dto';
 import {
   ListSupportRefundsResponseDto,
@@ -169,5 +170,23 @@ export class SupportController {
     @CurrentAdminUser() user: AdminJwtPayload,
   ) {
     return this.supportService.requestRevert(id, dto.reason, user.sub, user.role);
+  }
+
+  @Post('bookings/:id/cancel')
+  @Roles(AdminRole.ADMIN, AdminRole.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Force cancel a booking (admin only)' })
+  @AuditLog({
+    action: AuditActionTypes.BOOKING_CANCELLED,
+    module: AuditModules.SUPPORT,
+    description: 'Booking :id cancelled by admin',
+    entityType: 'BOOKING',
+    captureSnapshots: true,
+  })
+  async cancelBooking(
+    @Param('id') id: string,
+    @Body() dto: AdminCancelBookingDto,
+  ) {
+    return this.supportService.adminCancelBooking(id, dto.reason);
   }
 }

@@ -56,6 +56,7 @@ export const AuditActionTypes = {
 
   // Support
   SUPPORT_NOTE_ADDED: 'SUPPORT_NOTE_ADDED',
+  BOOKING_CANCELLED: 'BOOKING_CANCELLED',
 
   // Field Verification
   FIELD_PHOTO_UPLOADED: 'FIELD_PHOTO_UPLOADED',

@@ -217,6 +217,9 @@ Admin portal uses JWT-based authentication with HTTP-only cookies for enhanced s
 - `bookingId`: `string` - Booking ID
 - `content`: `string` - Support note content
 
+**`AdminCancelBookingDto`**:
+- `reason`: `string` - Cancellation reason (min 10 characters)
+
 **`SupportNoteResponseDto`**:
 - `id`: `string`
 - `bookingId`: `string`
@@ -332,6 +335,7 @@ Admin portal uses JWT-based authentication with HTTP-only cookies for enhanced s
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `GET` | `/admin-api/support/bookings` | Search bookings with filters (phone, bookingId, bookingNumber) | Query: `SearchBookingDto` | `{ bookings: BookingDetailsDto[], pagination: PaginationDto }` | CUSTOMER_SUPPORT, ADMIN, SUPER_ADMIN |
 | `GET` | `/admin-api/support/bookings/:id` | Get complete booking details | - | `BookingDetailsDto` | CUSTOMER_SUPPORT, ADMIN, SUPER_ADMIN |
+| `POST` | `/admin-api/support/bookings/:id/cancel` | Force cancel a booking (resets driver status, no refund processing) | `AdminCancelBookingDto` | `{ message: string }` | ADMIN, SUPER_ADMIN |
 | `GET` | `/admin-api/support/customers/:identifier` | Get customer details by ID or phone number | - | `CustomerDetailsDto` | CUSTOMER_SUPPORT, ADMIN, SUPER_ADMIN |
 | `GET` | `/admin-api/support/drivers/:identifier` | Get driver details by ID or phone number | - | `DriverDetailsDto` | CUSTOMER_SUPPORT, ADMIN, SUPER_ADMIN |
 | `GET` | `/admin-api/support/drivers/:id/location` | Fetch live driver location (AUDIT LOGGED) | - | `{ driverId: string, latitude: number, longitude: number, lastUpdated: string }` | CUSTOMER_SUPPORT, ADMIN, SUPER_ADMIN |
