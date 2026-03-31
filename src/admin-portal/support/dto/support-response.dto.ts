@@ -318,6 +318,9 @@ export class SupportRefundIntentResponseDto {
   bookingId: string;
 
   @Expose()
+  customerId: string;
+
+  @Expose()
   walletRefundAmount: number;
 
   @Expose()
@@ -327,13 +330,37 @@ export class SupportRefundIntentResponseDto {
   cancellationCharge: number;
 
   @Expose()
+  rzpPaymentId: string | null;
+
+  @Expose()
+  rzpRefundId: string | null;
+
+  @Expose()
   status: string;
+
+  @Expose()
+  failureReason: string | null;
+
+  @Expose()
+  retryCount: number;
+
+  @Expose()
+  maxRetries: number;
 
   @Expose()
   createdAt: Date;
 
   @Expose()
-  updatedAt: Date;
+  processedAt: Date | null;
+
+  @Expose()
+  wasPaid: boolean;
+
+  @Expose()
+  refundFactor: number | null;
+
+  @Expose()
+  isApproved: boolean;
 }
 
 export class SupportNoteResponseDto {

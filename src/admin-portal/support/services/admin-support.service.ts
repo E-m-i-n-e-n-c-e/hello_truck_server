@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AdminRefundStatus, AdminRole } from '@prisma/client';
+import { AdminRefundStatus, AdminRole, BookingStatus, DriverStatus, AssignmentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupportQueueService } from './support-queue.service';
 import { AUDIT_METADATA_KEY } from '../../audit-log/decorators/audit-log.decorator';
@@ -18,6 +18,7 @@ import { FcmEventType } from '../../types/fcm.types';
 import { RefundProcessorService } from './refund-processor.service';
 import { EDITABLE_REFUND_REQUEST_STATUSES } from '../utils/support.constants';
 import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
+import { RazorpayService } from '../../razorpay/razorpay.service';
 
 @Injectable()
 export class AdminSupportService {
@@ -32,6 +33,7 @@ export class AdminSupportService {
     private readonly notificationsService: AdminNotificationsService,
     private readonly firebaseService: AdminFirebaseService,
     private readonly refundProcessor: RefundProcessorService,
+    private readonly razorpayService: RazorpayService,
   ) {
     // TODO:
     // this.bufferDurationMinutes = this.configService.get<number>('ADMIN_BUFFER_DURATION_MINUTES', 60);
@@ -396,6 +398,129 @@ export class AdminSupportService {
     });
 
     await this.refundProcessor.processRefundIntent(refundIntent.id);
+  }
+
+  async cancelBooking(bookingId: string, reason: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        customer: true,
+        assignedDriver: true,
+        invoices: {
+          where: { type: 'FINAL' },
+          select: { rzpPaymentLinkId: true, isPaid: true },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.EXPIRED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      throw new BadRequestException(`Cannot cancel booking with status ${booking.status}`);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      if (booking.assignedDriverId) {
+        await tx.driver.update({
+          where: { id: booking.assignedDriverId },
+          data: { driverStatus: DriverStatus.AVAILABLE },
+        });
+
+        await tx.bookingAssignment.updateMany({
+          where: { bookingId, driverId: booking.assignedDriverId, status: AssignmentStatus.OFFERED },
+          data: { status: AssignmentStatus.AUTO_REJECTED, respondedAt: new Date() },
+        });
+      }
+    });
+
+    // Fire-and-forget: Manually log booking status change
+    this.prisma.bookingStatusLog
+      .create({
+        data: {
+          bookingId,
+          status: BookingStatus.CANCELLED,
+        },
+      })
+      .catch((err) => {
+        this.logger.error(`Failed to log booking status change for ${bookingId}:`, err.message);
+      });
+
+    // Fire-and-forget: Cancel Razorpay payment link if exists and not paid
+    const finalInvoice = booking.invoices[0];
+    if (finalInvoice?.rzpPaymentLinkId && !finalInvoice.isPaid) {
+      this.razorpayService
+        .cancelPaymentLink(finalInvoice.rzpPaymentLinkId)
+        .catch((err) => {
+          this.logger.error(`Failed to cancel payment link ${finalInvoice.rzpPaymentLinkId}:`, err.message);
+        });
+    }
+
+    if (booking.customerId) {
+      this.firebaseService
+        .notifyAllSessions(booking.customerId, 'customer', {
+          notification: {
+            title: 'Booking Cancelled',
+            body: `Your booking #${booking.bookingNumber} has been cancelled by admin`,
+          },
+          data: {
+            event: FcmEventType.BookingStatusChange,
+            newStatus: BookingStatus.CANCELLED,
+          },
+        }, this.prisma)
+        .catch((error) => {
+          this.logger.error(`Failed to notify customer ${booking.customerId} of cancellation`, error);
+        });
+    }
+
+    if (booking.assignedDriverId) {
+      this.firebaseService
+        .notifyAllSessions(booking.assignedDriverId, 'driver', {
+          notification: {
+            title: 'Ride Cancelled',
+            body: `Booking #${booking.bookingNumber} has been cancelled by admin`,
+          },
+          data: {
+            event: FcmEventType.RideCancelled,
+          },
+        }, this.prisma)
+        .catch((error) => {
+          this.logger.error(`Failed to notify driver ${booking.assignedDriverId} of cancellation`, error);
+        });
+    }
+
+    return {
+      message: 'Booking cancelled successfully',
+      [AUDIT_METADATA_KEY]: {
+        beforeSnapshot: {
+          bookingId,
+          bookingNumber: booking.bookingNumber.toString(),
+          status: booking.status,
+        },
+        afterSnapshot: {
+          bookingId,
+          bookingNumber: booking.bookingNumber.toString(),
+          status: BookingStatus.CANCELLED,
+          cancelledAt: new Date().toISOString(),
+          cancellationReason: reason,
+        },
+        entityId: bookingId,
+      },
+    };
   }
 
   private assertAdminRole(role: AdminRole) {

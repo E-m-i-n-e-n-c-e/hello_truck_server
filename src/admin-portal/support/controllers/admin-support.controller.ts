@@ -21,6 +21,7 @@ import { Serialize } from '../../common/interceptors/serialize.interceptor';
 import {
   RejectSupportRefundRequestDto,
   SupportRefundRevertDecisionRequestDto,
+  AdminCancelBookingDto,
 } from '../dto/support-request.dto';
 import { SupportRefundRequestResponseDto } from '../dto/support-response.dto';
 
@@ -89,5 +90,22 @@ export class AdminSupportController {
     @CurrentAdminUser() user: AdminJwtPayload,
   ) {
     return this.adminSupportService.handleRevertDecision(id, dto.approve, user.sub, user.role);
+  }
+
+  @Post('bookings/:id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Force cancel a booking (admin only)' })
+  @AuditLog({
+    action: AuditActionTypes.BOOKING_CANCELLED,
+    module: AuditModules.SUPPORT,
+    description: 'Booking :id cancelled by admin',
+    entityType: 'BOOKING',
+    captureSnapshots: true,
+  })
+  async cancelBooking(
+    @Param('id') id: string,
+    @Body() dto: AdminCancelBookingDto,
+  ) {
+    return this.adminSupportService.cancelBooking(id, dto.reason);
   }
 }
