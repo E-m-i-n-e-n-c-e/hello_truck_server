@@ -1,60 +1,60 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient, BookingStatus, DriverStatus } from '@prisma/client';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PrismaService.name);
+
   constructor() {
     super();
 
     const self = this;
-    this.$extends({
+    const extended = this.$extends({
       query: {
         driver: {
           async update({ args, query }) {
-            // Only intercept if driverStatus is being updated
-            if (!args.data?.driverStatus) {
-              return query(args);
-            }
-
-            // Use Prisma's returning to get both old and new in one query
             const result = await query(args);
 
-            // Create log entry (fire-and-forget)
-            setImmediate(() => {
-              if (result.driverStatus && result.id) {
+            // Only log if driverStatus was updated
+            if (args.data?.driverStatus && result.driverStatus && result.id) {
+              const driverId = result.id;
+              const status = result.driverStatus;
+              setImmediate(() => {
                 self.driverStatusLog.create({
-                  data: { driverId: result.id, status: result.driverStatus }
-                }).catch(err => console.error('Driver status logging failed:', err));
-              }
-            });
+                  data: { driverId, status }
+                }).catch(err => {
+                  self.logger.error('Driver status logging failed:', err);
+                });
+              });
+            }
 
             return result;
           }
         },
         booking: {
           async update({ args, query }) {
-            // Only intercept if status is being updated
-            if (!args.data?.status) {
-              return query(args);
-            }
-
-            // Use Prisma's returning to get both old and new in one query
             const result = await query(args);
 
-            // Create log entry (fire-and-forget)
-            setImmediate(() => {
-              if (result.status && result.id) {
+            // Only log if status was updated
+            if (args.data?.status && result.status && result.id) {
+              const bookingId = result.id;
+              const status = result.status;
+              setImmediate(() => {
                 self.bookingStatusLog.create({
-                  data: { bookingId: result.id, status: result.status }
-                }).catch(err => console.error('Booking status logging failed:', err));
-              }
-            });
+                  data: { bookingId, status }
+                }).catch(err => {
+                  self.logger.error('Booking status logging failed:', err);
+                });
+              });
+            }
 
             return result;
           }
         },
       }
     });
+
+    return extended as this;
   }
 
   async onModuleInit() {

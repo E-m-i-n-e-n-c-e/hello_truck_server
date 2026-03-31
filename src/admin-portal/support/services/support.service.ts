@@ -22,6 +22,7 @@ import {
 } from '../dto/support-request.dto';
 import { SupportQueueService } from './support-queue.service';
 import { ACTIVE_REFUND_REQUEST_STATUSES } from '../utils/support.constants';
+import { RazorpayService } from '../../razorpay/razorpay.service';
 
 @Injectable()
 export class SupportService {
@@ -34,6 +35,7 @@ export class SupportService {
     private readonly notificationsService: AdminNotificationsService,
     private readonly supportQueue: SupportQueueService,
     private readonly adminFirebaseService: AdminFirebaseService,
+    private readonly razorpayService: RazorpayService,
   ) {}
 
   async searchBookings(filters: SearchBookingsRequestDto) {
@@ -821,6 +823,10 @@ export class SupportService {
       include: {
         customer: true,
         assignedDriver: true,
+        invoices: {
+          where: { type: 'FINAL' },
+          select: { rzpPaymentLinkId: true, isPaid: true },
+        },
       },
     });
 
@@ -858,6 +864,28 @@ export class SupportService {
         });
       }
     });
+
+    // Fire-and-forget: Manually log booking status change
+    this.prisma.bookingStatusLog
+      .create({
+        data: {
+          bookingId,
+          status: BookingStatus.CANCELLED,
+        },
+      })
+      .catch((err) => {
+        this.logger.error(`Failed to log booking status change for ${bookingId}:`, err.message);
+      });
+
+    // Fire-and-forget: Cancel Razorpay payment link if exists and not paid
+    const finalInvoice = booking.invoices[0];
+    if (finalInvoice?.rzpPaymentLinkId && !finalInvoice.isPaid) {
+      this.razorpayService
+        .cancelPaymentLink(finalInvoice.rzpPaymentLinkId)
+        .catch((err) => {
+          this.logger.error(`Failed to cancel payment link ${finalInvoice.rzpPaymentLinkId}:`, err.message);
+        });
+    }
 
     if (booking.customerId) {
       this.adminFirebaseService
