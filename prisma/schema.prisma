@@ -451,6 +451,7 @@ model Payout {
   failureReason    String?
   retryCount       Int           @default(0)
   createdAt        DateTime      @default(now())
+  processingStartedAt DateTime?
   processedAt      DateTime?
   driver           Driver        @relation(fields: [driverId], references: [id], onDelete: Cascade)
   transactions     Transaction[]
@@ -513,6 +514,7 @@ model RefundIntent {
   retryCount           Int                 @default(0)
   maxRetries           Int                 @default(3)
   createdAt            DateTime            @default(now())
+  processingStartedAt  DateTime?
   processedAt          DateTime?
   wasPaid              Boolean
   refundFactor         Decimal?            @db.Decimal(10, 2)

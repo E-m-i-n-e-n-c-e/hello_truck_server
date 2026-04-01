@@ -335,6 +335,7 @@ export class AdminSupportService {
     const refund = await this.prisma.adminRefundRequest.findUnique({
       where: { id: refundId },
       include: {
+        refundIntent: true,
         booking: {
           include: {
             invoices: {
@@ -350,9 +351,14 @@ export class AdminSupportService {
     if (!refund) {
       throw new NotFoundException(`Refund ${refundId} not found`);
     }
-    
+
     if (refund.status !== AdminRefundStatus.APPROVED) {
       this.logger.log(`Skipping refund finalization for ${refundId}; status=${refund.status}`);
+      return;
+    }
+
+    if (refund.refundIntentId && refund.refundIntent) {
+      await this.refundProcessor.processRefundIntent(refund.refundIntentId);
       return;
     }
 
@@ -390,9 +396,6 @@ export class AdminSupportService {
     await this.prisma.adminRefundRequest.update({
       where: { id: refundId },
       data: {
-        status: AdminRefundStatus.COMPLETED,
-        completedAt: new Date(),
-        bufferExpiresAt: null,
         refundIntentId: refundIntent.id,
       },
     });

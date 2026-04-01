@@ -10,6 +10,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { VerificationRequestStatus } from '@prisma/client';
 import { AdminVerificationService } from './services/admin-verification.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class VerificationCron {
@@ -18,6 +19,7 @@ export class VerificationCron {
   constructor(
     private readonly prisma: PrismaService,
     private readonly adminVerificationService: AdminVerificationService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -26,6 +28,14 @@ export class VerificationCron {
    */
   @Cron(CronExpression.EVERY_2_HOURS)
   async handleExpiredBufferVerifications() {
+    const lockKey = 'lock:admin-verification-finalization';
+    const acquired = await this.redisService.tryLock(lockKey, 600); // Lock for 10 minutes
+
+    if (!acquired) {
+      this.logger.log('[CRON] Another instance is already running admin verification finalization. Skipping.');
+      return;
+    }
+
     this.logger.log('Running verification finalization cron job...');
 
     try {
@@ -43,7 +53,6 @@ export class VerificationCron {
           id: true,
           driverId: true,
         },
-        take: 50, // Process in batches to avoid overwhelming the system
       });
 
       if (expiredVerifications.length === 0) {

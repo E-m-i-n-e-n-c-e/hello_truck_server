@@ -1,28 +1,47 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { RazorpayXService } from 'src/razorpay/razorpayx.service';
-import { FirebaseService } from 'src/firebase/firebase.service';
+import { ConfigService } from '@nestjs/config';
 import {
   PaymentMethod,
-  TransactionType,
+  Payout,
+  PayoutStatus,
   TransactionCategory,
+  TransactionType,
 } from '@prisma/client';
+import { FirebaseService } from 'src/firebase/firebase.service';
 import {
   toDecimal,
   toNumber,
   truncateDecimal,
 } from 'src/booking/utils/decimal.utils';
 import { FcmEventType } from 'src/common/types/fcm.types';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RazorpayXService } from 'src/razorpay/razorpayx.service';
+import { PayoutResponse } from 'src/razorpay/types/razorpayx-payout.types';
+import { EnvironmentVariables } from 'src/config/env.config';
+
+const RATE_LIMIT_DELAY_MS = 1000;
 
 @Injectable()
 export class DriverPayoutService {
   private readonly logger = new Logger(DriverPayoutService.name);
+  private readonly stalePayoutMinutes: number;
+  private readonly payoutRetryWindowDays: number;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly razorpayxService: RazorpayXService,
     private readonly firebaseService: FirebaseService,
-  ) {}
+    private readonly configService: ConfigService<EnvironmentVariables>,
+  ) {
+    this.stalePayoutMinutes = this.configService.get<number>(
+      'PAYOUT_STALE_PROCESSING_MINUTES',
+      15,
+    );
+    this.payoutRetryWindowDays = this.configService.get<number>(
+      'PAYOUT_RETRY_WINDOW_DAYS',
+      2,
+    );
+  }
 
   /**
    * Process payout for a single driver
@@ -37,37 +56,24 @@ export class DriverPayoutService {
     const walletBalanceDecimal = toDecimal(driver.walletBalance);
     const payoutAmount = toNumber(truncateDecimal(walletBalanceDecimal));
 
-    this.logger.log(
-      `Processing payout for driver ${driver.id}: ₹${payoutAmount}`,
-    );
+    if (payoutAmount <= 0) {
+      return;
+    }
 
-    const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const referenceId = `payout-${driver.id}-${todayStr}`;
+    if (!driver.fundAccountId || !driver.payoutMethod) {
+      throw new BadRequestException(
+        'Payout method not configured. Please add bank account or UPI details.',
+      );
+    }
 
-    // Select payout mode based on driver's registered payout method
-    // BANK_ACCOUNT → IMPS (instant bank transfer)
-    // VPA → UPI (instant UPI transfer)
-    const payoutMode = driver.payoutMethod === 'VPA' ? 'UPI' : 'IMPS';
+    this.logger.log(`Processing payout for driver ${driver.id}: Rs.${payoutAmount}`);
 
-    // Create payout via RazorpayX (MONEY MOVEMENT FIRST - before DB logging)
-    const payout = await this.razorpayxService.createPayout({
-      fundAccountId: driver.fundAccountId!,
-      amount: payoutAmount,
-      currency: 'INR',
-      mode: payoutMode,
-      purpose: 'payout',
-      referenceId,
-    });
-
-    // Now log in DB (after money movement initiated)
-    await this.prisma.$transaction(async (tx) => {
-      // Deduct from driver wallet
+    const payoutRecord = await this.prisma.$transaction(async (tx) => {
       await tx.driver.update({
         where: { id: driver.id },
         data: { walletBalance: 0 },
       });
 
-      // Log payout
       await tx.driverWalletLog.create({
         data: {
           driverId: driver.id,
@@ -78,42 +84,88 @@ export class DriverPayoutService {
         },
       });
 
-      // Create transaction record
+      const payout = await tx.payout.create({
+        data: {
+          driverId: driver.id,
+          amount: payoutAmount,
+          status: PayoutStatus.PROCESSING,
+          processingStartedAt: new Date(),
+        },
+      });
+
       await tx.transaction.create({
         data: {
           driverId: driver.id,
           paymentMethod: PaymentMethod.ONLINE,
           amount: payoutAmount,
-          type: TransactionType.CREDIT, // Driver receives payout = CREDIT (money IN)
+          type: TransactionType.CREDIT,
           category: TransactionCategory.DRIVER_PAYOUT,
-          description: `Daily payout`,
+          description: 'Daily payout',
+          payoutId: payout.id,
         },
       });
 
-      // Create payout record
-      await tx.payout.create({
-        data: {
-          driverId: driver.id,
-          amount: payoutAmount,
-          razorpayPayoutId: payout.razorpayPayoutId,
-          status: 'PROCESSING',
-          processedAt: new Date(),
-        },
-      });
+      return payout;
     });
 
-    this.logger.log(
-      `✓ Processed payout for driver ${driver.id}: ₹${payoutAmount}`,
+    await this.executeStoredPayout(
+      payoutRecord.id,
+      driver.id,
+      driver.fundAccountId,
+      driver.payoutMethod,
+      payoutAmount,
     );
-
-    // Send notification (fire-and-forget, outside transaction)
-    this.notifyDriverPayoutProcessed(driver.id, payoutAmount);
   }
 
-  /**
-   * Process withdrawal request from driver
-   * Allows driver to withdraw specific amount from wallet
-   */
+  async retryPayout(payoutId: string): Promise<void> {
+    const staleBefore = new Date(Date.now() - this.stalePayoutMinutes * 60 * 1000);
+    const retryWindowStart = new Date(
+      Date.now() - this.payoutRetryWindowDays * 24 * 60 * 60 * 1000,
+    );
+
+    const [payout] = await this.prisma.payout.updateManyAndReturn({
+      where: {
+        id: payoutId,
+        razorpayPayoutId: null,
+        OR: [
+          {
+            status: PayoutStatus.FAILED,
+            createdAt: { gte: retryWindowStart },
+          },
+          {
+            status: PayoutStatus.PROCESSING,
+            processingStartedAt: { lte: staleBefore },
+          },
+        ],
+      },
+      data: {
+        status: PayoutStatus.PROCESSING,
+        processingStartedAt: new Date(),
+      },
+      include: {
+        driver: {
+          select: {
+            id: true,
+            fundAccountId: true,
+            payoutMethod: true,
+          },
+        },
+      },
+    });
+
+    if (!payout) {
+      return;
+    }
+
+    await this.executeStoredPayout(
+      payout.id,
+      payout.driver.id,
+      payout.driver.fundAccountId,
+      payout.driver.payoutMethod,
+      toNumber(truncateDecimal(payout.amount)),
+    );
+  }
+
   async processWithdrawal(driverId: string, amount: number): Promise<void> {
     if (amount <= 0) {
       throw new BadRequestException('Withdrawal amount must be positive');
@@ -158,36 +210,17 @@ export class DriverPayoutService {
       `Processing withdrawal for driver ${driverId}: ₹${withdrawalAmount}`,
     );
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const referenceId = `withdrawal-${driverId}-${timestamp}`;
-
-    // Select payout mode based on driver's registered payout method
-    const payoutMode = driver.payoutMethod === 'VPA' ? 'UPI' : 'IMPS';
-
-    // Create payout via RazorpayX (MONEY MOVEMENT FIRST)
-    const payout = await this.razorpayxService.createPayout({
-      fundAccountId: driver.fundAccountId,
-      amount: withdrawalAmount,
-      currency: 'INR',
-      mode: payoutMode,
-      purpose: 'payout',
-      referenceId,
-    });
-
-    // Now log in DB (after money movement initiated)
-    await this.prisma.$transaction(async (tx) => {
+    const payoutRecord = await this.prisma.$transaction(async (tx) => {
       const beforeBalance = toNumber(walletBalanceDecimal);
       const afterBalance = toNumber(
         truncateDecimal(walletBalanceDecimal.minus(withdrawalAmountDecimal)),
       );
 
-      // Deduct from driver wallet
       await tx.driver.update({
         where: { id: driverId },
         data: { walletBalance: afterBalance },
       });
 
-      // Log withdrawal
       await tx.driverWalletLog.create({
         data: {
           driverId,
@@ -198,41 +231,138 @@ export class DriverPayoutService {
         },
       });
 
-      // Create transaction record
+      const payout = await tx.payout.create({
+        data: {
+          driverId,
+          amount: payoutAmount,
+          status: PayoutStatus.PROCESSING,
+          processingStartedAt: new Date(),
+        },
+      });
+
       await tx.transaction.create({
         data: {
           driverId,
           paymentMethod: PaymentMethod.ONLINE,
           amount: payoutAmount,
-          type: TransactionType.CREDIT, // Driver receives withdrawal = CREDIT (money IN)
+          type: TransactionType.CREDIT,
           category: TransactionCategory.DRIVER_PAYOUT,
           description: 'Wallet withdrawal',
+          payoutId: payout.id,
         },
       });
 
-      // Create payout record
-      await tx.payout.create({
-        data: {
-          driverId,
+      return payout;
+    });
+
+    await this.executeStoredPayout(
+      payoutRecord.id,
+      driverId,
+      driver.fundAccountId,
+      driver.payoutMethod,
+      payoutAmount,
+      'Wallet withdrawal',
+    );
+  }
+
+  private async executeStoredPayout(
+    payoutId: string,
+    driverId: string,
+    fundAccountId: string | null,
+    payoutMethod: string | null,
+    payoutAmount: number,
+    successDescription: 'Daily payout' | 'Wallet withdrawal' = 'Daily payout',
+  ): Promise<void> {
+    if (!fundAccountId || !payoutMethod) {
+      await this.markPayoutFailed(
+        payoutId,
+        'Payout method not configured. Please add bank account or UPI details.',
+      );
+      throw new BadRequestException(
+        'Payout method not configured. Please add bank account or UPI details.',
+      );
+    }
+
+    const payoutMode = payoutMethod === 'VPA' ? 'UPI' : 'IMPS';
+    const referenceId = payoutId;
+
+    try {
+      let payout: PayoutResponse;
+
+      try {
+        payout = await this.razorpayxService.createPayout({
+          fundAccountId,
           amount: payoutAmount,
+          currency: 'INR',
+          mode: payoutMode,
+          purpose: 'payout',
+          referenceId,
+        });
+      } catch (error) {
+        if (!this.isRateLimitError(error)) {
+          throw error;
+        }
+
+        await this.delay(RATE_LIMIT_DELAY_MS);
+        payout = await this.razorpayxService.createPayout({
+          fundAccountId,
+          amount: payoutAmount,
+          currency: 'INR',
+          mode: payoutMode,
+          purpose: 'payout',
+          referenceId,
+        });
+      }
+
+      await this.prisma.payout.update({
+        where: { id: payoutId },
+        data: {
           razorpayPayoutId: payout.razorpayPayoutId,
-          status: 'PROCESSING',
+          status: PayoutStatus.COMPLETED,
+          failureReason: null,
           processedAt: new Date(),
         },
       });
-    });
 
-    this.logger.log(
-      `✓ Processed withdrawal for driver ${driverId}: ₹${withdrawalAmount}`,
-    );
+      this.logger.log(`${successDescription} processed for driver ${driverId}: Rs.${payoutAmount}`);
 
-    // Send notification
-    this.notifyDriverWithdrawalProcessed(driverId, payoutAmount);
+      if (successDescription === 'Wallet withdrawal') {
+        this.notifyDriverWithdrawalProcessed(driverId, payoutAmount);
+      } else {
+        this.notifyDriverPayoutProcessed(driverId, payoutAmount);
+      }
+    } catch (error) {
+      await this.markPayoutFailed(payoutId, error.message);
+      throw error;
+    }
   }
 
-  /**
-   * Send FCM notification for payout processed
-   */
+  private async markPayoutFailed(
+    payoutId: string,
+    failureReason: string,
+  ): Promise<void> {
+    await this.prisma.payout.update({
+      where: { id: payoutId },
+      data: {
+        status: PayoutStatus.FAILED,
+        failureReason,
+        retryCount: {
+          increment: 1,
+        },
+      },
+    });
+  }
+
+  private isRateLimitError(error: any): boolean {
+    const status = error?.response?.status ?? error?.status;
+    const message = String(error?.message ?? '').toLowerCase();
+    return status === 429 || message.includes('429') || message.includes('rate limit');
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   private notifyDriverPayoutProcessed(driverId: string, amount: number): void {
     this.firebaseService
       .notifyAllSessions(driverId, 'driver', {

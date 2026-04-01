@@ -34,6 +34,8 @@ const adminEnvSchema = z.object({
 
   // Buffer Configuration
   ADMIN_BUFFER_DURATION_MINUTES: z.coerce.number().min(1).default(60), // 1 hour default
+  REFUND_STALE_PROCESSING_MINUTES: z.coerce.number().min(1).default(15), // Minutes after which a processing refund is considered stale and eligible for retry
+  REFUND_RETRY_WINDOW_DAYS: z.coerce.number().min(1).default(2), // Days after which failed refunds are no longer retried
 
   // Audit Log Archival
   AUDIT_LOG_RETENTION_DAYS: z.coerce.number().min(1).default(90), // Archive logs older than 90 days

@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { createHmac } from 'crypto';
@@ -280,6 +280,9 @@ export class RazorpayService {
         this.logger.error(
           `Razorpay API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
         );
+        if (error.response.status === 429) {
+          throw new HttpException('Razorpay rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
+        }
       }
 
       this.logger.error(`Failed to create Razorpay refund: ${error.message}`);
@@ -311,6 +314,11 @@ export class RazorpayService {
         notes: refund.notes,
       }));
     } catch (error) {
+      if (error.response?.status === 429) {
+        this.logger.error(`Razorpay refund fetch rate-limited for payment ${paymentId}`);
+        throw new HttpException('Razorpay rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
+      }
+
       this.logger.error(`Failed to fetch refunds: ${error.message}`);
       throw new Error(`Failed to fetch refunds: ${error.message}`);
     }

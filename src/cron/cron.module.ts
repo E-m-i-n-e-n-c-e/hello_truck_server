@@ -12,6 +12,7 @@ import { SessionCleanupService } from './services/session-cleanup.service';
 import { DriverCleanupService } from './services/driver-cleanup.service';
 import { BookingCleanupService } from './services/booking-cleanup.service';
 import { LogCleanupService } from './services/log-cleanup.service';
+import { FinancialCleanupService } from './services/financial-cleanup.service';
 import { PayoutService } from './services/payout.service';
 import { RefundCronService } from './services/refund-cron.service';
 import { VerificationRequestService } from './services/verification-request.service';
@@ -35,6 +36,7 @@ import { BookingRefundService } from 'src/booking/services/booking-refund.servic
     DriverCleanupService,
     BookingCleanupService,
     LogCleanupService,
+    FinancialCleanupService,
     RedisService,
     PayoutService,
     RefundCronService,

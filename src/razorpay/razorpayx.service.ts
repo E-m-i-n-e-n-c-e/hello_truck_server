@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { CreatePayoutParams, PayoutResponse, FetchPayoutResponse, RazorpayPayoutResponse, RazorpayFundAccountResponse } from './types/razorpayx-payout.types';
@@ -45,6 +45,16 @@ export class RazorpayXService {
    */
   async createPayout(params: CreatePayoutParams): Promise<PayoutResponse> {
     try {
+      // TODO: Remove this development stub before production deployment
+      if(process.env.NODE_ENV === 'development') {
+        this.logger.debug(`Received createPayout request with params: ${JSON.stringify(params)}`);
+        return {
+          razorpayPayoutId: 'fake_payout_id_123',
+          status: 'processed',
+          amount: params.amount,
+        };
+      }
+
       // Validate amount is positive and >= minimum (0.01 INR = 1 paise)
       if (params.amount <= 0) {
         throw new BadRequestException('Payout amount must be greater than zero');
@@ -147,6 +157,11 @@ export class RazorpayXService {
         const status = error.response?.status;
         const errorData = error.response?.data;
 
+        if (status === 429) {
+          this.logger.error(`RazorpayX rate limit error: ${JSON.stringify(errorData)}`);
+          throw new HttpException('RazorpayX rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
+        }
+
         if (status === 400) {
           const errorMessage = errorData?.error?.description || 'Invalid payout request';
           this.logger.error(`RazorpayX validation error: ${JSON.stringify(errorData)}`);
@@ -199,6 +214,10 @@ export class RazorpayXService {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
         const errorData = error.response?.data;
+        if (status === 429) {
+          this.logger.error(`RazorpayX fund account fetch rate limit error: ${JSON.stringify(errorData)}`);
+          throw new HttpException('RazorpayX rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
+        }
         this.logger.error(`Failed to fetch fund account details: ${status} - ${JSON.stringify(errorData)}`);
       } else {
         this.logger.error(`Failed to fetch fund account details: ${error.message}`);
@@ -241,6 +260,11 @@ export class RazorpayXService {
         } : undefined,
       };
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        this.logger.error(`RazorpayX payout fetch rate limit error: ${JSON.stringify(error.response.data)}`);
+        throw new HttpException('RazorpayX rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
+      }
+
       const message = error.response?.data || error.message;
       this.logger.error(`RazorpayX payout fetch failed: ${JSON.stringify(message)}`);
       throw new InternalServerErrorException('Failed to fetch payout status');

@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RazorpayService } from '../../razorpay/razorpay.service';
 import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
 import { FcmEventType } from '../../types/fcm.types';
-import { PaymentMethod, Prisma, TransactionCategory, TransactionType } from '@prisma/client';
+import { AdminRefundStatus, PaymentMethod, Prisma, RefundStatus, TransactionCategory, TransactionType } from '@prisma/client';
 import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
+import { AdminEnvironmentVariables } from '../../config/admin-env.config';
+
+const RATE_LIMIT_DELAY_MS = 1000;
 
 /**
  * Admin portal refund processor
@@ -14,34 +18,57 @@ import { toDecimal, toNumber, truncateDecimal } from '../utils/decimal.utils';
 @Injectable()
 export class RefundProcessorService {
   private readonly logger = new Logger(RefundProcessorService.name);
+  private readonly staleProcessingMinutes: number;
+  private readonly refundRetryWindowDays: number;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly razorpayService: RazorpayService,
     private readonly firebaseService: AdminFirebaseService,
-  ) {}
+    private readonly configService: ConfigService<AdminEnvironmentVariables>,
+  ) {
+    this.staleProcessingMinutes = this.configService.get<number>(
+      'REFUND_STALE_PROCESSING_MINUTES',
+      15,
+    );
+    this.refundRetryWindowDays = this.configService.get<number>(
+      'REFUND_RETRY_WINDOW_DAYS',
+      2,
+    );
+  }
 
   /**
    * Process refund intent created by admin
    * Handles wallet credit AND Razorpay refund
    */
   async processRefundIntent(intentId: string): Promise<void> {
-    // Atomic claim: Mark as PROCESSING only if still PENDING
-    const claimed = await this.prisma.refundIntent.updateMany({
+    const staleBefore = new Date(
+      Date.now() - this.staleProcessingMinutes * 60 * 1000,
+    );
+    const twoDaysAgo = new Date(
+      Date.now() - this.refundRetryWindowDays * 24 * 60 * 60 * 1000,
+    );
+
+    // Atomic claim: allow retries for FAILED or stale PROCESSING intents.
+    const [intent] = await this.prisma.refundIntent.updateManyAndReturn({
       where: {
         id: intentId,
-        status: 'PENDING',
+        OR: [
+          { status: RefundStatus.PENDING },
+          {
+            status: RefundStatus.FAILED,
+            createdAt: { gte: twoDaysAgo },
+          },
+          {
+            status: RefundStatus.PROCESSING,
+            processingStartedAt: { lte: staleBefore },
+          },
+        ],
       },
-      data: { status: 'PROCESSING' },
-    });
-
-    if (claimed.count === 0) {
-      this.logger.log(`Refund intent ${intentId} already claimed`);
-      return;
-    }
-
-    const intent = await this.prisma.refundIntent.findUniqueOrThrow({
-      where: { id: intentId },
+      data: {
+        status: RefundStatus.PROCESSING,
+        processingStartedAt: new Date(),
+      },
       include: {
         booking: {
           include: {
@@ -51,6 +78,11 @@ export class RefundProcessorService {
         },
       },
     });
+
+    if (!intent) {
+      this.logger.log(`Refund intent ${intentId} already claimed`);
+      return;
+    }
 
     try {
       // Execute Razorpay refund first
@@ -103,9 +135,21 @@ export class RefundProcessorService {
         await tx.refundIntent.update({
           where: { id: intentId },
           data: {
-            status: 'COMPLETED',
+            status: RefundStatus.COMPLETED,
             rzpRefundId,
             processedAt: new Date(),
+          },
+        });
+
+        await tx.adminRefundRequest.updateMany({
+          where: {
+            refundIntentId: intentId,
+            status: AdminRefundStatus.APPROVED,
+          },
+          data: {
+            status: AdminRefundStatus.COMPLETED,
+            completedAt: new Date(),
+            bufferExpiresAt: null,
           },
         });
       });
@@ -143,7 +187,10 @@ export class RefundProcessorService {
         await this.prisma.refundIntent.update({
           where: { id: intentId },
           data: {
-            status: newRetryCount >= intent.maxRetries ? 'FAILED' : 'PENDING',
+            status:
+              newRetryCount >= intent.maxRetries
+                ? RefundStatus.FAILED
+                : RefundStatus.PENDING,
             failureReason: error.message,
             retryCount: newRetryCount,
           },
@@ -210,10 +257,10 @@ export class RefundProcessorService {
     if (amount <= 0 || !rzpPaymentId) return null;
 
     try {
-      // Check if refund already exists (idempotency)
-      const existingRefunds = await this.razorpayService.fetchRefunds(rzpPaymentId);
-      const matchedRefund = existingRefunds.find(
-        (r) => r.amount === amount && r.notes?.bookingId === bookingId,
+      const matchedRefund = await this.findExistingRefundWithRetry(
+        rzpPaymentId,
+        bookingId,
+        amount,
       );
 
       if (matchedRefund) {
@@ -221,8 +268,7 @@ export class RefundProcessorService {
         return matchedRefund.refundId;
       }
 
-      // Create new refund
-      const refund = await this.razorpayService.createRefund({
+      const refund = await this.createRefundWithRetry({
         paymentId: rzpPaymentId,
         amount,
         notes: {
@@ -237,5 +283,61 @@ export class RefundProcessorService {
       this.logger.error(`Razorpay refund failed: ${error.message}`);
       throw error;
     }
+  }
+
+  private async findExistingRefundWithRetry(
+    rzpPaymentId: string,
+    bookingId: string,
+    amount: number,
+  ) {
+    try {
+      const existingRefunds = await this.razorpayService.fetchRefunds(rzpPaymentId);
+      return existingRefunds.find(
+        (refund) => refund.amount === amount && refund.notes?.bookingId === bookingId,
+      );
+    } catch (error) {
+      if (!this.isRateLimitError(error)) {
+        throw error;
+      }
+
+      this.logger.warn(
+        `Rate limit while fetching refunds for payment ${rzpPaymentId}; retrying once after ${RATE_LIMIT_DELAY_MS}ms`,
+      );
+      await this.delay(RATE_LIMIT_DELAY_MS);
+      const existingRefunds = await this.razorpayService.fetchRefunds(rzpPaymentId);
+      return existingRefunds.find(
+        (refund) => refund.amount === amount && refund.notes?.bookingId === bookingId,
+      );
+    }
+  }
+
+  private async createRefundWithRetry(params: {
+    paymentId: string;
+    amount: number;
+    notes: Record<string, string>;
+  }) {
+    try {
+      return await this.razorpayService.createRefund(params);
+    } catch (error) {
+      if (!this.isRateLimitError(error)) {
+        throw error;
+      }
+
+      this.logger.warn(
+        `Rate limit while creating refund for payment ${params.paymentId}; retrying once after ${RATE_LIMIT_DELAY_MS}ms`,
+      );
+      await this.delay(RATE_LIMIT_DELAY_MS);
+      return this.razorpayService.createRefund(params);
+    }
+  }
+
+  private isRateLimitError(error: any): boolean {
+    const message = String(error?.message ?? '').toLowerCase();
+    const status = error?.response?.status ?? error?.status;
+    return status === 429 || message.includes('429') || message.includes('rate limit');
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

@@ -53,6 +53,12 @@ const envSchema = z.object({
 
   // Business Logic
   COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.07),
+  PAYOUT_DELAY_MS: z.coerce.number().min(0).default(200), // Delay in ms between processing payouts to avoid hitting rate limits
+  PAYOUT_STALE_PROCESSING_MINUTES: z.coerce.number().min(1).default(15), // Minutes after which a processing payout is considered stale and eligible for retry
+  PAYOUT_RETRY_WINDOW_DAYS: z.coerce.number().min(1).default(2), // Days after which failed payouts are no longer retried
+  REFUND_CRON_DELAY_MS: z.coerce.number().min(0).default(100), // Delay in ms between refund intent cron processing attempts
+  REFUND_STALE_PROCESSING_MINUTES: z.coerce.number().min(1).default(15), // Minutes after which a processing refund is considered stale and eligible for retry
+  REFUND_RETRY_WINDOW_DAYS: z.coerce.number().min(1).default(2), // Days after which failed refunds are no longer retried
 
   // Cancellation Charge (time-based)
   CANCELLATION_BASE_AMOUNT: z.coerce.number().min(0).default(100), // Fixed amount on which cancellation % is calculated

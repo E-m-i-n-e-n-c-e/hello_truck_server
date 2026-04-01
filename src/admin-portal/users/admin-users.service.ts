@@ -295,8 +295,7 @@ export class AdminUsersService {
       isActive: updatedUser.isActive,
     };
 
-    // TODO: Also invalidate all sessions for this user
-    // await this.sessionService.deleteAllUserSessions(id);
+    await this.prisma.adminSession.deleteMany({ where: { adminUserId: id } });
 
     return {
       message: 'User deactivated successfully',
