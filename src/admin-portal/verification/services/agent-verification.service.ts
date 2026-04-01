@@ -1064,7 +1064,7 @@ export class AgentVerificationService {
           editableStatuses.includes(verification.status),
         canRejectDriver,
         canRevertRejectedDriver: false,
-        canUploadFieldPhotos: editableStatuses.includes(verification.status),
+        canUploadFieldPhotos: editableStatuses.includes(verification.status) && userRole !== AdminRole.AGENT, // Prevent agents from uploading photos, only allow field agents and admins
       },
     };
   }

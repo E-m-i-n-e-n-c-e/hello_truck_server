@@ -16,6 +16,11 @@ export class FieldVerificationService {
   ) {}
 
   async uploadPhotos(dto: UploadPhotosRequestDto, userId: string, userRole: AdminRole) {
+    // Only field agents are allowed to upload photos
+    if (userRole === AdminRole.AGENT) {
+      throw new BadRequestException('Agents are not allowed to upload photos');
+    }
+
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id: dto.verificationId },
     });
@@ -135,6 +140,11 @@ export class FieldVerificationService {
     userId: string,
     userRole: AdminRole,
   ) {
+    // Only field agents are allowed to upload photos
+    if (userRole === AdminRole.AGENT) {
+      throw new BadRequestException('Agents are not allowed to upload photos');
+    }
+
     const verification = await this.prisma.driverVerificationRequest.findUnique({
       where: { id: verificationId },
     });
