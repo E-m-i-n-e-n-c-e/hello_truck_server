@@ -10,10 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { AdminNotificationsService } from '../../notifications/admin-notifications.service';
 import { AdminNotificationEvent, AdminFcmTopic } from '../../types/admin-notification.types';
-import { AdminFirebaseService } from '../../firebase/admin-firebase.service';
-import { FcmEventType } from '../../types/fcm.types';
 import { AUDIT_METADATA_KEY } from '../../audit-log/decorators/audit-log.decorator';
-import { AuditActionTypes, AuditLogService, AuditModules } from '../../audit-log/audit-log.service';
 import {
   CreateSupportNoteRequestDto,
   CreateSupportRefundRequestDto,
@@ -597,6 +594,9 @@ export class SupportService {
     const invoice = booking.invoices[0];
     if (!invoice) {
       throw new BadRequestException('Booking has no final invoice');
+    }
+    if (!invoice.isPaid) {
+      throw new BadRequestException('Cannot create refund request for unpaid invoice');
     }
 
     const totalPaid = Number(invoice.walletApplied) + Number(invoice.finalAmount);
